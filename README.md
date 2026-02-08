@@ -48,6 +48,8 @@ winget-tui
 |-----|--------|
 | `↑` / `k` | Move up |
 | `↓` / `j` | Move down |
+| `PgUp` / `PgDn` | Jump 20 items |
+| `Home` / `End` | Jump to first / last |
 | `Tab` | Cycle views (Search → Installed → Upgrades) |
 | `/` or `s` | Focus search input |
 | `Enter` | Submit search / show details |
@@ -58,6 +60,7 @@ winget-tui
 | `x` | Uninstall selected package |
 | `?` | Toggle help overlay |
 | `q` / `Esc` | Quit / close dialog |
+| `Ctrl+C` | Quit |
 
 ### Mouse Support
 
@@ -67,6 +70,7 @@ winget-tui
 - **Click** on a package row to select it and load details
 - **Scroll wheel** over the package list to navigate up/down
 - **Right-click** a package to select and load its details
+- **Click & drag** the scrollbar to scrub through the list
 
 ### Views
 
@@ -83,7 +87,7 @@ winget-tui
 │   ├── app.rs           # App state, message passing, async coordination
 │   ├── backend.rs       # WingetBackend trait (abstraction layer)
 │   ├── cli_backend.rs   # CLI implementation (shells out to winget.exe)
-│   ├── handler.rs       # Keyboard input handling
+│   ├── handler.rs       # Keyboard and mouse input handling
 │   ├── models.rs        # Data types (Package, Source, Operation, etc.)
 │   └── ui.rs            # Ratatui rendering (all UI components)
 └── Cargo.toml
