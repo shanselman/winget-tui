@@ -144,17 +144,17 @@ impl CliBackend {
         let source_idx = cols.iter().position(|(n, _)| *n == "Source");
         let avail_idx = cols.iter().position(|(n, _)| *n == "Available");
 
-        let id = id_idx.map(|i| get_field(i)).unwrap_or_default();
+        let id = id_idx.map(&get_field).unwrap_or_default();
         if id.is_empty() {
             return None;
         }
 
         Some(Package {
-            name: name_idx.map(|i| get_field(i)).unwrap_or_default(),
+            name: name_idx.map(&get_field).unwrap_or_default(),
             id,
-            version: ver_idx.map(|i| get_field(i)).unwrap_or_default(),
-            source: source_idx.map(|i| get_field(i)).unwrap_or_default(),
-            available_version: avail_idx.map(|i| get_field(i)).unwrap_or_default(),
+            version: ver_idx.map(&get_field).unwrap_or_default(),
+            source: source_idx.map(&get_field).unwrap_or_default(),
+            available_version: avail_idx.map(&get_field).unwrap_or_default(),
         })
     }
 
@@ -268,15 +268,15 @@ impl CliBackend {
                 let arg_idx = col_positions.iter().position(|(n, _)| *n == "Argument");
                 let type_idx = col_positions.iter().position(|(n, _)| *n == "Type");
 
-                let name = name_idx.map(|i| get_field(i)).unwrap_or_default();
+                let name = name_idx.map(&get_field).unwrap_or_default();
                 if name.is_empty() {
                     return None;
                 }
 
                 Some(Source {
                     name,
-                    url: arg_idx.map(|i| get_field(i)).unwrap_or_default(),
-                    source_type: type_idx.map(|i| get_field(i)).unwrap_or_default(),
+                    url: arg_idx.map(&get_field).unwrap_or_default(),
+                    source_type: type_idx.map(&get_field).unwrap_or_default(),
                 })
             })
             .collect()
