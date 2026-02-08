@@ -1,0 +1,20 @@
+# Rust build artifacts
+/target
+*.pdb
+
+# IDE / editor
+.vs/
+.vscode/
+*.user
+.idea/
+
+# Debug files
+debug_*.txt
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Copilot / AI
+.claude/
+.copilot/
