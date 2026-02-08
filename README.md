@@ -5,6 +5,8 @@ A terminal user interface for [Windows Package Manager (winget)](https://github.
 ![Rust](https://img.shields.io/badge/Rust-000000?style=flat&logo=rust&logoColor=white)
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 
+![winget-tui screenshot](img/wingettui.png)
+
 ## Features
 
 - **Search & Discover** — Find packages across all winget sources
@@ -27,7 +29,7 @@ A terminal user interface for [Windows Package Manager (winget)](https://github.
 ### From source
 
 ```sh
-git clone https://github.com/your-username/winget-tui.git
+git clone https://github.com/shanselman/winget-tui.git
 cd winget-tui
 cargo build --release
 ```
@@ -52,8 +54,8 @@ winget-tui
 | `f` | Cycle source filter (All → winget → msstore) |
 | `r` | Refresh current view |
 | `i` | Install selected package |
-| `u` | Uninstall selected package |
-| `U` (Shift) | Upgrade selected package |
+| `u` | Upgrade selected package |
+| `x` | Uninstall selected package |
 | `?` | Toggle help overlay |
 | `q` / `Esc` | Quit / close dialog |
 
