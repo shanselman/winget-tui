@@ -84,26 +84,58 @@ impl CliBackend {
 
     fn detect_columns(header: &str) -> Vec<(&str, usize)> {
         let mut cols = Vec::new();
-        let mut i = 0;
-        let bytes = header.as_bytes();
+        let mut display_pos = 0usize;
+        let mut byte_pos = 0usize;
 
-        while i < bytes.len() {
+        let chars: Vec<char> = header.chars().collect();
+        let mut ci = 0;
+
+        while ci < chars.len() {
             // Skip whitespace
-            while i < bytes.len() && bytes[i] == b' ' {
-                i += 1;
+            while ci < chars.len() && chars[ci] == ' ' {
+                display_pos += 1;
+                byte_pos += 1;
+                ci += 1;
             }
-            if i >= bytes.len() {
+            if ci >= chars.len() {
                 break;
             }
-            let start = i;
+            let start_display = display_pos;
+            let start_byte = byte_pos;
             // Read until whitespace
-            while i < bytes.len() && bytes[i] != b' ' {
-                i += 1;
+            while ci < chars.len() && chars[ci] != ' ' {
+                display_pos += chars[ci].width().unwrap_or(0);
+                byte_pos += chars[ci].len_utf8();
+                ci += 1;
             }
-            let name = &header[start..i];
-            cols.push((name, start));
+            let name = &header[start_byte..byte_pos];
+            cols.push((name, start_display));
         }
         cols
+    }
+
+    /// Find a column index matching any of the given names (case-insensitive).
+    fn find_column_ci(cols: &[(&str, usize)], names: &[&str]) -> Option<usize> {
+        cols.iter().position(|(col_name, _)| {
+            let lower = col_name.to_lowercase();
+            names.iter().any(|n| lower == *n)
+        })
+    }
+
+    /// Normalize a `winget show` key to a canonical English name (case-insensitive,
+    /// with known translations for common locales).
+    fn normalize_show_key(key: &str) -> &'static str {
+        match key.to_lowercase().as_str() {
+            "version" | "packageversion" => "version",
+            "publisher" | "herausgeber" | "éditeur" | "editore" | "editor" => "publisher",
+            "description" | "beschreibung" | "descripción" | "descrição" | "descrizione"
+                => "description",
+            "homepage" | "startseite" => "homepage",
+            "publisher url" | "herausgeber-url" => "publisher_url",
+            "license" | "lizenz" | "licence" | "licencia" | "licença" | "licenza" => "license",
+            "source" | "quelle" | "origen" | "fonte" | "origine" => "source",
+            _ => "",
+        }
     }
 
     fn parse_table_row(&self, line: &str, cols: &[(&str, usize)]) -> Option<Package> {
@@ -137,12 +169,32 @@ impl CliBackend {
             result.trim().to_string()
         };
 
-        // Find column indices by name
-        let name_idx = cols.iter().position(|(n, _)| *n == "Name");
-        let id_idx = cols.iter().position(|(n, _)| *n == "Id");
-        let ver_idx = cols.iter().position(|(n, _)| *n == "Version");
-        let source_idx = cols.iter().position(|(n, _)| *n == "Source");
-        let avail_idx = cols.iter().position(|(n, _)| *n == "Available");
+        // Find column indices by name — case-insensitive with known translations
+        // to support non-English locales (e.g. German: ID, Verfügbar, Quelle)
+        let mut name_idx = Self::find_column_ci(cols, &["name", "nom", "nombre", "nome"]);
+        let mut id_idx = Self::find_column_ci(cols, &["id", "id."]);
+        let mut ver_idx = Self::find_column_ci(cols, &[
+            "version", "versión", "versão", "versione",
+        ]);
+        let mut source_idx = Self::find_column_ci(cols, &[
+            "source", "quelle", "origen", "fonte", "origine",
+        ]);
+        let mut avail_idx = Self::find_column_ci(cols, &[
+            "available", "verfügbar", "disponible", "disponível", "disponibile",
+        ]);
+
+        // Positional fallback for unrecognized locales (e.g. CJK)
+        if id_idx.is_none() && cols.len() >= 4 {
+            name_idx = name_idx.or(Some(0));
+            id_idx = Some(1);
+            ver_idx = ver_idx.or(Some(2));
+            if cols.len() >= 5 {
+                avail_idx = avail_idx.or(Some(3));
+                source_idx = source_idx.or(Some(4));
+            } else {
+                source_idx = source_idx.or(Some(3));
+            }
+        }
 
         let id = id_idx.map(&get_field).unwrap_or_default();
         if id.is_empty() {
@@ -168,16 +220,22 @@ impl CliBackend {
             let line = lines[i];
             let trimmed = line.trim();
 
-            // Parse "Found Name [Id]" header line
-            if trimmed.starts_with("Found ") {
-                if let Some(bracket_start) = trimmed.rfind('[') {
-                    if let Some(bracket_end) = trimmed.rfind(']') {
-                        detail.name = trimmed[6..bracket_start].trim().to_string();
-                        detail.id = trimmed[bracket_start + 1..bracket_end].to_string();
-                    }
+            // Parse "Found Name [Id]" header line (locale-independent).
+            // Matches any "Prefix Name [Id]" pattern, e.g. "Gefunden Chrome [Google.Chrome]"
+            if let (Some(bracket_start), Some(bracket_end)) =
+                (trimmed.rfind('['), trimmed.rfind(']'))
+            {
+                if bracket_end > bracket_start && !trimmed.contains(':') {
+                    let before_bracket = trimmed[..bracket_start].trim();
+                    // Skip the prefix word ("Found", "Gefunden", etc.)
+                    detail.name = before_bracket
+                        .split_once(' ')
+                        .map(|(_, name)| name.trim().to_string())
+                        .unwrap_or_default();
+                    detail.id = trimmed[bracket_start + 1..bracket_end].to_string();
+                    i += 1;
+                    continue;
                 }
-                i += 1;
-                continue;
             }
 
             // Parse "Key: Value" lines (only top-level, not indented)
@@ -185,10 +243,10 @@ impl CliBackend {
                 if let Some((key, value)) = trimmed.split_once(':') {
                     let key = key.trim();
                     let value = value.trim().to_string();
-                    match key {
-                        "Version" | "PackageVersion" => detail.version = value,
-                        "Publisher" => detail.publisher = value,
-                        "Description" => {
+                    match Self::normalize_show_key(key) {
+                        "version" => detail.version = value,
+                        "publisher" => detail.publisher = value,
+                        "description" => {
                             // Description value may be on this line or on indented continuation lines
                             let mut desc = value;
                             while i + 1 < lines.len() && lines[i + 1].starts_with("  ") {
@@ -200,14 +258,14 @@ impl CliBackend {
                             }
                             detail.description = desc;
                         }
-                        "Homepage" => detail.homepage = value,
-                        "Publisher Url" => {
+                        "homepage" => detail.homepage = value,
+                        "publisher_url" => {
                             if detail.homepage.is_empty() {
                                 detail.homepage = value;
                             }
                         }
-                        "License" => detail.license = value,
-                        "Source" => detail.source = value,
+                        "license" => detail.license = value,
+                        "source" => detail.source = value,
                         _ => {}
                     }
                 }
@@ -264,9 +322,16 @@ impl CliBackend {
                     result.trim().to_string()
                 };
 
-                let name_idx = col_positions.iter().position(|(n, _)| *n == "Name");
-                let arg_idx = col_positions.iter().position(|(n, _)| *n == "Argument");
-                let type_idx = col_positions.iter().position(|(n, _)| *n == "Type");
+                let mut name_idx = Self::find_column_ci(&col_positions, &["name", "nom", "nombre", "nome"]);
+                let mut arg_idx = Self::find_column_ci(&col_positions, &["argument"]);
+                let mut type_idx = Self::find_column_ci(&col_positions, &["type", "typ", "tipo"]);
+
+                // Positional fallback for unrecognized locales
+                if name_idx.is_none() && col_positions.len() >= 3 {
+                    name_idx = Some(0);
+                    arg_idx = Some(1);
+                    type_idx = Some(2);
+                }
 
                 let name = name_idx.map(&get_field).unwrap_or_default();
                 if name.is_empty() {
@@ -340,5 +405,122 @@ impl WingetBackend for CliBackend {
     async fn list_sources(&self) -> Result<Vec<Source>> {
         let output = self.run_winget(&["source", "list"]).await?;
         Ok(self.parse_sources_from_table(&output))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_english_upgrade_table() {
+        let backend = CliBackend::new();
+        let output = "\
+Name                           Id                          Version     Available   Source
+-----------------------------------------------------------------------------------------------
+Google Chrome                  Google.Chrome               131.0.6778  132.0.6834  winget
+Microsoft Visual Studio Code   Microsoft.VisualStudioCode  1.95.3      1.96.0      winget
+";
+        let packages = backend.parse_packages_from_table(output);
+        assert_eq!(packages.len(), 2);
+        assert_eq!(packages[0].id, "Google.Chrome");
+        assert_eq!(packages[0].version, "131.0.6778");
+        assert_eq!(packages[0].available_version, "132.0.6834");
+        assert_eq!(packages[0].source, "winget");
+        assert_eq!(packages[1].id, "Microsoft.VisualStudioCode");
+    }
+
+    #[test]
+    fn parse_german_upgrade_table() {
+        let backend = CliBackend::new();
+        let output = "\
+Name                           ID                          Version     Verfügbar   Quelle
+-----------------------------------------------------------------------------------------------
+Google Chrome                  Google.Chrome               131.0.6778  132.0.6834  winget
+Microsoft Visual Studio Code   Microsoft.VisualStudioCode  1.95.3      1.96.0      winget
+";
+        let packages = backend.parse_packages_from_table(output);
+        assert_eq!(packages.len(), 2, "should parse German table headers");
+        assert_eq!(packages[0].id, "Google.Chrome");
+        assert_eq!(packages[0].available_version, "132.0.6834");
+        assert_eq!(packages[0].source, "winget");
+        assert_eq!(packages[1].id, "Microsoft.VisualStudioCode");
+    }
+
+    #[test]
+    fn parse_unknown_locale_positional_fallback() {
+        let backend = CliBackend::new();
+        // Unrecognized column headers trigger positional fallback
+        let output = "\
+Foo                            Bar                         Baz         Qux         Quux
+-----------------------------------------------------------------------------------------------
+Google Chrome                  Google.Chrome               131.0.6778  132.0.6834  winget
+";
+        let packages = backend.parse_packages_from_table(output);
+        assert_eq!(packages.len(), 1, "should parse via positional fallback");
+        assert_eq!(packages[0].name, "Google Chrome");
+        assert_eq!(packages[0].id, "Google.Chrome");
+        assert_eq!(packages[0].version, "131.0.6778");
+        assert_eq!(packages[0].available_version, "132.0.6834");
+        assert_eq!(packages[0].source, "winget");
+    }
+
+    #[test]
+    fn parse_english_show_output() {
+        let backend = CliBackend::new();
+        let output = "\
+Found Google Chrome [Google.Chrome]
+Version: 132.0.6834
+Publisher: Google LLC
+Description: A fast, secure, and free web browser
+Homepage: https://www.google.com/chrome
+License: Proprietary
+Source: winget
+";
+        let detail = backend.parse_show_output(output);
+        assert_eq!(detail.id, "Google.Chrome");
+        assert_eq!(detail.name, "Google Chrome");
+        assert_eq!(detail.version, "132.0.6834");
+        assert_eq!(detail.publisher, "Google LLC");
+        assert_eq!(detail.description, "A fast, secure, and free web browser");
+        assert_eq!(detail.homepage, "https://www.google.com/chrome");
+        assert_eq!(detail.license, "Proprietary");
+    }
+
+    #[test]
+    fn parse_german_show_output() {
+        let backend = CliBackend::new();
+        let output = "\
+Gefunden Google Chrome [Google.Chrome]
+Version: 132.0.6834
+Herausgeber: Google LLC
+Beschreibung: Ein schneller, sicherer und kostenloser Webbrowser
+Startseite: https://www.google.com/chrome
+Lizenz: Proprietary
+Quelle: winget
+";
+        let detail = backend.parse_show_output(output);
+        assert_eq!(detail.id, "Google.Chrome");
+        assert_eq!(detail.name, "Google Chrome");
+        assert_eq!(detail.version, "132.0.6834");
+        assert_eq!(detail.publisher, "Google LLC");
+        assert_eq!(detail.description, "Ein schneller, sicherer und kostenloser Webbrowser");
+        assert_eq!(detail.homepage, "https://www.google.com/chrome");
+        assert_eq!(detail.license, "Proprietary");
+    }
+
+    #[test]
+    fn parse_german_list_table_without_available() {
+        let backend = CliBackend::new();
+        let output = "\
+Name                           ID                          Version  Quelle
+---------------------------------------------------------------------------
+Google Chrome                  Google.Chrome               131.0.6  winget
+";
+        let packages = backend.parse_packages_from_table(output);
+        assert_eq!(packages.len(), 1);
+        assert_eq!(packages[0].id, "Google.Chrome");
+        assert_eq!(packages[0].source, "winget");
+        assert!(packages[0].available_version.is_empty());
     }
 }
