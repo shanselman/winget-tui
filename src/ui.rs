@@ -303,6 +303,17 @@ fn draw_detail_panel(f: &mut Frame, app: &App, area: Rect) {
                 Span::styled("  Version   ", label_style),
                 Span::raw(&detail.version),
             ]),
+        ];
+
+        // Show available version in Upgrades mode
+        if !detail.available_version.is_empty() {
+            lines.push(Line::from(vec![
+                Span::styled("  Available ", label_style),
+                Span::styled(&detail.available_version, Style::default().fg(Color::Green)),
+            ]));
+        }
+
+        lines.extend(vec![
             Line::from(vec![
                 Span::styled("  Publisher ", label_style),
                 Span::raw(&detail.publisher),
@@ -311,7 +322,7 @@ fn draw_detail_panel(f: &mut Frame, app: &App, area: Rect) {
                 Span::styled("  Source    ", label_style),
                 Span::raw(&detail.source),
             ]),
-        ];
+        ]);
 
         if !detail.license.is_empty() {
             lines.push(Line::from(vec![

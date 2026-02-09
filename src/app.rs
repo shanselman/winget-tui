@@ -216,6 +216,7 @@ impl App {
                 name: pkg.name.clone(),
                 version: pkg.version.clone(),
                 source: pkg.source.clone(),
+                available_version: pkg.available_version.clone(),
                 ..PackageDetail::default()
             });
         }
@@ -307,6 +308,8 @@ impl App {
                             description: detail.description.clone(),
                             homepage: detail.homepage.clone(),
                             license: detail.license.clone(),
+                            // Preserve available_version from pre-populated data since winget show doesn't return it
+                            available_version: existing.available_version.clone(),
                         }
                     } else {
                         detail

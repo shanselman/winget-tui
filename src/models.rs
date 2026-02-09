@@ -66,6 +66,8 @@ pub struct PackageDetail {
     pub homepage: String,
     pub license: String,
     pub source: String,
+    /// Available version when viewing an upgrade (empty otherwise)
+    pub available_version: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]
