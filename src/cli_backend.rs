@@ -535,7 +535,7 @@ Name                           ID                          Version     Verfügba
 -------------------------------------------------------------------------------------------------
 RamMap                         Microsoft.Sysinternals.R... 1.61        1.62        winget
 vc_clip                        vc_clip.vc_dir              2026.01.29              winget
-2 Pakete verfügen über Pins, die ein Upgrade verhindern. Verwenden Sie den Befehl \"winget pin\", um Pins anzuzeigen und zu bearbeiten. Wenn Sie das --include-pinned-Argument verwenden, werden möglicherweise weitere ergebnisse angezeigt.
+2 Pakete verfügen über Pins, die ein Upgrade verhindern. Verwenden Sie den Befehl \"winget pin\", um Pins anzuzeigen und zu bearbeiten. Wenn Sie das --include-pinned-Argument verwenden, werden möglicherweise weitere Ergebnisse angezeigt.
 ";
         let packages = backend.parse_packages_from_table(output);
         assert_eq!(packages.len(), 2, "should parse only the package rows, not the pin message");
