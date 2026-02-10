@@ -74,10 +74,12 @@ impl CliBackend {
         lines[sep_idx + 1..]
             .iter()
             .filter(|l| !l.trim().is_empty())
-            // Stop at footer lines like "123 upgrades available."
-            // These are short lines with a digit followed by a word — distinct from data rows
-            // which span the full table width
-            .take_while(|l| l.len() > 20 || !l.trim_start().starts_with(|c: char| c.is_ascii_digit()))
+            // Stop at footer lines that start with a digit, such as:
+            // - "2 upgrades available."
+            // - "2 packages have pins that prevent upgrade..."
+            // - "2 Pakete verfügen über Pins, die ein Upgrade verhindern..."
+            // These lines indicate end of table data and start of informational messages.
+            .take_while(|l| !l.trim_start().starts_with(|c: char| c.is_ascii_digit()))
             .filter_map(|line| self.parse_table_row(line, &col_positions))
             .collect()
     }
@@ -522,5 +524,73 @@ Google Chrome                  Google.Chrome               131.0.6  winget
         assert_eq!(packages[0].id, "Google.Chrome");
         assert_eq!(packages[0].source, "winget");
         assert!(packages[0].available_version.is_empty());
+    }
+
+    #[test]
+    fn parse_upgrade_table_with_german_pin_message() {
+        let backend = CliBackend::new();
+        // Real output from winget upgrade with pinned packages (German locale)
+        let output = "\
+Name                           ID                          Version     Verfügbar   Quelle
+-------------------------------------------------------------------------------------------------
+RamMap                         Microsoft.Sysinternals.R... 1.61        1.62        winget
+vc_clip                        vc_clip.vc_dir              2026.01.29              winget
+2 Pakete verfügen über Pins, die ein Upgrade verhindern. Verwenden Sie den Befehl \"winget pin\", um Pins anzuzeigen und zu bearbeiten. Wenn Sie das --include-pinned-Argument verwenden, werden möglicherweise weitere Ergebnisse angezeigt.
+";
+        let packages = backend.parse_packages_from_table(output);
+        assert_eq!(packages.len(), 2, "should parse only the package rows, not the pin message");
+        assert_eq!(packages[0].id, "Microsoft.Sysinternals.R...");
+        assert_eq!(packages[0].version, "1.61");
+        assert_eq!(packages[0].available_version, "1.62");
+        assert_eq!(packages[1].id, "vc_clip.vc_dir");
+    }
+
+    #[test]
+    fn parse_upgrade_table_with_english_pin_message() {
+        let backend = CliBackend::new();
+        // English version of pin message
+        let output = "\
+Name                           Id                          Version     Available   Source
+-------------------------------------------------------------------------------------------------
+Google Chrome                  Google.Chrome               131.0.6778  132.0.6834  winget
+2 packages have pins that prevent upgrade. Use the \"winget pin\" command to view and edit pins. If you use the --include-pinned argument, additional results may be displayed.
+";
+        let packages = backend.parse_packages_from_table(output);
+        assert_eq!(packages.len(), 1, "should parse only the package rows, not the pin message");
+        assert_eq!(packages[0].id, "Google.Chrome");
+        assert_eq!(packages[0].available_version, "132.0.6834");
+    }
+
+    #[test]
+    fn parse_upgrade_table_with_upgrades_available_footer() {
+        let backend = CliBackend::new();
+        // Footer message indicating number of upgrades
+        let output = "\
+Name                           Id                          Version     Available   Source
+-------------------------------------------------------------------------------------------------
+Google Chrome                  Google.Chrome               131.0.6778  132.0.6834  winget
+Microsoft Visual Studio Code   Microsoft.VisualStudioCode  1.95.3      1.96.0      winget
+2 upgrades available.
+";
+        let packages = backend.parse_packages_from_table(output);
+        assert_eq!(packages.len(), 2, "should parse package rows, stopping at footer");
+        assert_eq!(packages[0].id, "Google.Chrome");
+        assert_eq!(packages[1].id, "Microsoft.VisualStudioCode");
+    }
+
+    #[test]
+    fn parse_upgrade_table_with_multiple_footer_lines() {
+        let backend = CliBackend::new();
+        // Multiple footer messages
+        let output = "\
+Name                           Id                          Version     Available   Source
+-------------------------------------------------------------------------------------------------
+Google Chrome                  Google.Chrome               131.0.6778  132.0.6834  winget
+1 upgrade available.
+2 packages have pins that prevent upgrade. Use the \"winget pin\" command to view and edit pins.
+";
+        let packages = backend.parse_packages_from_table(output);
+        assert_eq!(packages.len(), 1, "should stop at first footer line");
+        assert_eq!(packages[0].id, "Google.Chrome");
     }
 }
