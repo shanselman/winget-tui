@@ -260,7 +260,7 @@ fn handle_mouse(
 
                 let content_y = app.layout.list_content_y;
                 if row >= content_y {
-                    let clicked_idx = (row - content_y) as usize;
+                    let clicked_idx = (row - content_y) as usize + app.table_scroll_offset;
                     if clicked_idx < app.filtered_packages.len() {
                         app.selected = clicked_idx;
                         load_detail_for_selected(app);
@@ -290,7 +290,7 @@ fn handle_mouse(
             if in_rect(col, row, app.layout.package_list) {
                 let content_y = app.layout.list_content_y;
                 if row >= content_y {
-                    let clicked_idx = (row - content_y) as usize;
+                    let clicked_idx = (row - content_y) as usize + app.table_scroll_offset;
                     if clicked_idx < app.filtered_packages.len() {
                         app.selected = clicked_idx;
                         load_detail_for_selected(app);

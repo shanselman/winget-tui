@@ -82,6 +82,8 @@ pub struct App {
     pub show_help: bool,
     pub should_quit: bool,
     pub layout: LayoutRegions,
+    /// Scroll offset of the package list table (set during rendering)
+    pub table_scroll_offset: usize,
     /// Tick counter for animations (spinner, etc.)
     pub tick: usize,
     /// Incremented on each view refresh; stale results are discarded
@@ -114,6 +116,7 @@ impl App {
             show_help: false,
             should_quit: false,
             layout: LayoutRegions::default(),
+            table_scroll_offset: 0,
             tick: 0,
             view_generation: 0,
             detail_generation: 0,

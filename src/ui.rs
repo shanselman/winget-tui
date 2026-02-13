@@ -130,7 +130,7 @@ fn draw_main_content(f: &mut Frame, app: &mut App, area: Rect) {
     draw_detail_panel(f, app, chunks[1]);
 }
 
-fn draw_package_list(f: &mut Frame, app: &App, area: Rect) {
+fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
     let (icon, title) = match app.mode {
         AppMode::Search => ("🔍", "Search Results"),
         AppMode::Installed => ("📦", "Installed"),
@@ -254,6 +254,8 @@ fn draw_package_list(f: &mut Frame, app: &App, area: Rect) {
     let mut state = TableState::default();
     state.select(Some(app.selected));
     f.render_stateful_widget(table, area, &mut state);
+    // Capture scroll offset for mouse click hit-testing
+    app.table_scroll_offset = state.offset();
 
     // Scrollbar
     if app.filtered_packages.len() > (area.height as usize).saturating_sub(3) {
