@@ -15,18 +15,37 @@ impl CliBackend {
     }
 
     async fn run_winget(&self, args: &[&str]) -> Result<String> {
+        self.run_winget_inner(args, false).await
+    }
+
+    /// Run winget in strict mode: any non-zero exit is an error.
+    /// Use for mutating operations (install, uninstall, upgrade).
+    async fn run_winget_strict(&self, args: &[&str]) -> Result<String> {
+        self.run_winget_inner(args, true).await
+    }
+
+    async fn run_winget_inner(&self, args: &[&str], strict: bool) -> Result<String> {
         let output = Command::new("winget")
             .args(args)
             .output()
             .await
             .context("Failed to run winget. Is it installed?")?;
 
-        // winget may return non-zero for "no results" — still valid
         let stdout = String::from_utf8_lossy(&output.stdout).to_string();
         let stderr = String::from_utf8_lossy(&output.stderr).to_string();
 
-        if !output.status.success() && stdout.trim().is_empty() {
-            bail!("winget failed: {}", stderr.trim());
+        if !output.status.success() {
+            if strict || stdout.trim().is_empty() {
+                // In strict mode, always fail. In lenient mode, fail only if
+                // there's no stdout (winget returns non-zero for "no results"
+                // but still prints a table).
+                let detail = if stderr.trim().is_empty() {
+                    stdout.trim().to_string()
+                } else {
+                    stderr.trim().to_string()
+                };
+                bail!("winget failed: {}", detail);
+            }
         }
 
         // winget uses \r to overwrite progress spinners in-place, and outputs
@@ -391,16 +410,16 @@ impl WingetBackend for CliBackend {
             args.push("--version");
             args.push(v);
         }
-        self.run_winget(&args).await
+        self.run_winget_strict(&args).await
     }
 
     async fn uninstall(&self, id: &str) -> Result<String> {
-        self.run_winget(&["uninstall", "--id", id, "--accept-source-agreements"])
+        self.run_winget_strict(&["uninstall", "--id", id, "--accept-source-agreements"])
             .await
     }
 
     async fn upgrade(&self, id: &str) -> Result<String> {
-        self.run_winget(&["upgrade", "--id", id, "--accept-source-agreements", "--accept-package-agreements"])
+        self.run_winget_strict(&["upgrade", "--id", id, "--accept-source-agreements", "--accept-package-agreements"])
             .await
     }
 
