@@ -177,7 +177,6 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
         .enumerate()
         .map(|(i, pkg)| {
             let is_selected = i == app.selected;
-            let is_marked = app.selected_packages.contains(&i);
             let style = if is_selected {
                 Style::default()
                     .fg(Color::Black)
@@ -189,6 +188,7 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
 
             // Show checkbox for marked packages in Upgrades view, otherwise use arrow
             let prefix = if app.mode == AppMode::Upgrades {
+                let is_marked = app.selected_packages.contains(&i);
                 if is_marked {
                     if is_selected { "►✓" } else { " ✓" }
                 } else {
@@ -200,7 +200,8 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
 
             let cells: Vec<Cell> = if app.mode == AppMode::Upgrades {
                 // In Upgrades view, the name field is truncated to 17 chars instead of 18
-                // to accommodate the extra width of the checkbox character (✓) when packages are selected
+                // to accommodate the checkbox character (✓) which takes additional width
+                // in the prefix for any package that might be selected
                 vec![
                     Cell::from(format!("{}{}", prefix, truncate(&pkg.name, 17))),
                     Cell::from(truncate(&pkg.id, 25)),
