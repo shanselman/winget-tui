@@ -92,6 +92,7 @@ pub enum Operation {
     Install { id: String, version: Option<String> },
     Uninstall { id: String },
     Upgrade { id: String },
+    BatchUpgrade { ids: Vec<String> },
 }
 
 impl fmt::Display for Operation {
@@ -106,6 +107,7 @@ impl fmt::Display for Operation {
             }
             Self::Uninstall { id } => write!(f, "Uninstalling {id}"),
             Self::Upgrade { id } => write!(f, "Upgrading {id}"),
+            Self::BatchUpgrade { ids } => write!(f, "Upgrading {} packages", ids.len()),
         }
     }
 }

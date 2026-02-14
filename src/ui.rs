@@ -186,11 +186,25 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
                 Style::default()
             };
 
-            let prefix = if is_selected { "► " } else { "  " };
+            // Show checkbox for marked packages in Upgrades view, otherwise use arrow
+            let prefix = if app.mode == AppMode::Upgrades {
+                let is_marked = app.selected_packages.contains(&i);
+                match (is_selected, is_marked) {
+                    (true, true) => "►✓",
+                    (false, true) => " ✓",
+                    (true, false) => "► ",
+                    (false, false) => "  ",
+                }
+            } else {
+                if is_selected { "► " } else { "  " }
+            };
 
             let cells: Vec<Cell> = if app.mode == AppMode::Upgrades {
+                // In Upgrades view, the name field is truncated to 17 characters instead of 18
+                // to ensure consistent column width for all rows, accounting for the
+                // checkbox character (✓) that may appear in any row
                 vec![
-                    Cell::from(format!("{}{}", prefix, truncate(&pkg.name, 18))),
+                    Cell::from(format!("{}{}", prefix, truncate(&pkg.name, 17))),
                     Cell::from(truncate(&pkg.id, 25)),
                     Cell::from(pkg.version.clone()),
                     Cell::from(
@@ -484,7 +498,17 @@ fn draw_status_bar(f: &mut Frame, app: &App, area: Rect) {
 
     let keyhints = match app.input_mode {
         InputMode::Search => " Esc: cancel  Enter: search ",
-        InputMode::Normal => " ↑↓: nav  ←→/Tab: view  /: search  f: filter  ?: help ",
+        InputMode::Normal => {
+            if app.mode == AppMode::Upgrades {
+                if app.selected_packages.is_empty() {
+                    " Space: select  ↑↓: nav  /: search  ?: help "
+                } else {
+                    " Space: select  Shift+U: batch upgrade  ?: help "
+                }
+            } else {
+                " ↑↓: nav  ←→/Tab: view  /: search  f: filter  ?: help "
+            }
+        }
     };
     let hints = Paragraph::new(keyhints)
         .style(Style::default().fg(Color::Gray).bg(Color::DarkGray))
@@ -600,6 +624,14 @@ fn draw_help_overlay(f: &mut Frame) {
         Line::from(vec![
             Span::styled("  x           ", key),
             Span::raw("Uninstall selected package"),
+        ]),
+        Line::from(vec![
+            Span::styled("  Space       ", key),
+            Span::raw("Toggle selection (Upgrades view)"),
+        ]),
+        Line::from(vec![
+            Span::styled("  Shift+U     ", key),
+            Span::raw("Batch upgrade selected packages"),
         ]),
         Line::from(vec![
             Span::styled("  Enter       ", key),
