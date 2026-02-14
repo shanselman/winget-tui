@@ -12,6 +12,7 @@ A terminal user interface for [Windows Package Manager (winget)](https://github.
 - **Search & Discover** — Find packages across all winget sources
 - **Installed Packages** — View everything installed on your system
 - **Upgrade Management** — See available updates at a glance
+- **Batch Updates** — Select and upgrade multiple packages at once
 - **Source Filtering** — Filter by source (winget, msstore, or all)
 - **Package Details** — View publisher, description, license, homepage
 - **Keyboard-Driven** — Vim-style navigation, no mouse needed
@@ -58,6 +59,8 @@ winget-tui
 | `i` | Install selected package |
 | `u` | Upgrade selected package |
 | `x` | Uninstall selected package |
+| `Space` | Toggle package selection (Upgrades view only) |
+| `Shift+U` | Batch upgrade all selected packages |
 | `?` | Toggle help overlay |
 | `q` / `Esc` | Quit / close dialog |
 | `Ctrl+C` | Quit |
@@ -77,6 +80,17 @@ winget-tui
 - **Installed** (default) — Lists all packages installed on your system
 - **Search** — Search the winget repository for new packages
 - **Upgrades** — Shows packages with available updates
+
+### Batch Updates
+
+In the **Upgrades** view, you can select multiple packages and upgrade them all at once:
+
+1. Navigate to the Upgrades view (`Tab` or click on **⬆️ Upgrades**)
+2. Use `Space` to select/deselect packages (selected packages show a ✓ checkmark)
+3. Press `Shift+U` to upgrade all selected packages
+4. Confirm the batch operation when prompted
+
+Packages will be upgraded sequentially to avoid Windows Installer conflicts. Progress updates will be shown in the status bar.
 
 ## Architecture
 
