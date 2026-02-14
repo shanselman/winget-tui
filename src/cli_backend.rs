@@ -93,12 +93,14 @@ impl CliBackend {
         lines[sep_idx + 1..]
             .iter()
             .filter(|l| !l.trim().is_empty())
-            // Stop at footer lines that start with a digit, such as:
-            // - "2 upgrades available."
-            // - "2 packages have pins that prevent upgrade..."
-            // - "2 Pakete verfügen über Pins, die ein Upgrade verhindern..."
-            // These lines indicate end of table data and start of informational messages.
-            .take_while(|l| !l.trim_start().starts_with(|c: char| c.is_ascii_digit()))
+            // Stop at footer lines like "2 upgrades available." (digit(s) + space).
+            // Package names starting with digits like "7-Zip" have a non-space
+            // character after the digit, so they are NOT treated as footers.
+            .take_while(|l| {
+                let bytes = l.trim_start().as_bytes();
+                let d = bytes.iter().take_while(|b| b.is_ascii_digit()).count();
+                !(d > 0 && d < bytes.len() && bytes[d] == b' ')
+            })
             .filter_map(|line| self.parse_table_row(line, &col_positions))
             .collect()
     }
@@ -611,5 +613,25 @@ Google Chrome                  Google.Chrome               131.0.6778  132.0.683
         let packages = backend.parse_packages_from_table(output);
         assert_eq!(packages.len(), 1, "should stop at first footer line");
         assert_eq!(packages[0].id, "Google.Chrome");
+    }
+
+    #[test]
+    fn parse_table_with_digit_starting_package_name() {
+        let backend = CliBackend::new();
+        // 7-Zip starts with a digit — must NOT be treated as a footer line
+        let output = "\
+Name                                               Id                                                  Version          Available  Source
+-----------------------------------------------------------------------------------------------------------------------------------------
+7-Zip 25.01 (x64)                                  7zip.7zip                                           25.01                       winget
+CPUID CPU-Z MSI 2.15                               CPUID.CPU-Z.MSI                                     2.15             2.18       winget
+Docker Desktop                                     Docker.DockerDesktop                                4.56.0           4.59.0     winget
+2 upgrades available.
+";
+        let packages = backend.parse_packages_from_table(output);
+        assert_eq!(packages.len(), 3, "7-Zip must not be treated as footer");
+        assert_eq!(packages[0].id, "7zip.7zip");
+        assert_eq!(packages[0].name, "7-Zip 25.01 (x64)");
+        assert_eq!(packages[1].id, "CPUID.CPU-Z.MSI");
+        assert_eq!(packages[2].id, "Docker.DockerDesktop");
     }
 }

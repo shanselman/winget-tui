@@ -92,8 +92,16 @@ fn handle_normal_mode(
         KeyCode::Char('?') => {
             app.show_help = !app.show_help;
         }
-        KeyCode::Tab => {
+        KeyCode::Tab | KeyCode::Right => {
             app.mode = app.mode.cycle();
+            app.selected = 0;
+            app.detail = None;
+            app.loading = true;
+            app.set_status("Loading...");
+            app.refresh_view();
+        }
+        KeyCode::BackTab | KeyCode::Left => {
+            app.mode = app.mode.cycle_back();
             app.selected = 0;
             app.detail = None;
             app.loading = true;

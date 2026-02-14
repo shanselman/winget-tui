@@ -43,6 +43,14 @@ impl AppMode {
         }
     }
 
+    pub fn cycle_back(&self) -> Self {
+        match self {
+            Self::Search => Self::Upgrades,
+            Self::Installed => Self::Search,
+            Self::Upgrades => Self::Installed,
+        }
+    }
+
     #[allow(dead_code)]
     pub fn label(&self) -> &'static str {
         match self {

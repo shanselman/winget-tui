@@ -368,7 +368,7 @@ fn draw_detail_panel(f: &mut Frame, app: &App, area: Rect) {
             AppMode::Installed => {
                 if has_upgrade {
                     actions.push(Span::styled(
-                        " ⬆ u ",
+                        " u ",
                         Style::default()
                             .fg(Color::Black)
                             .bg(Color::Yellow)
@@ -387,7 +387,7 @@ fn draw_detail_panel(f: &mut Frame, app: &App, area: Rect) {
             }
             AppMode::Upgrades => {
                 actions.push(Span::styled(
-                    " ⬆ u ",
+                    " u ",
                     Style::default()
                         .fg(Color::Black)
                         .bg(Color::Yellow)
@@ -464,7 +464,7 @@ fn draw_status_bar(f: &mut Frame, app: &App, area: Rect) {
 
     let keyhints = match app.input_mode {
         InputMode::Search => " Esc: cancel  Enter: search ",
-        InputMode::Normal => " ↑↓: nav  Tab: view  /: search  f: filter  ?: help ",
+        InputMode::Normal => " ↑↓: nav  ←→/Tab: view  /: search  f: filter  ?: help ",
     };
     let hints = Paragraph::new(keyhints)
         .style(Style::default().fg(Color::Gray).bg(Color::DarkGray))
@@ -552,8 +552,8 @@ fn draw_help_overlay(f: &mut Frame) {
             Span::raw("Jump to first / last"),
         ]),
         Line::from(vec![
-            Span::styled("  Tab         ", key),
-            Span::raw("Cycle views"),
+            Span::styled("  ←→/Tab      ", key),
+            Span::raw("Cycle views (Shift+Tab: reverse)"),
         ]),
         Line::from(vec![
             Span::styled("  /           ", key),
