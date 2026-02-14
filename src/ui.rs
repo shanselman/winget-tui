@@ -8,6 +8,7 @@ use ratatui::{
         ScrollbarOrientation, ScrollbarState, Table, TableState, Wrap,
     },
 };
+use unicode_width::UnicodeWidthStr;
 
 use crate::app::{App, AppMode, ConfirmDialog, InputMode};
 
@@ -39,12 +40,20 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     }
 }
 
-fn draw_tab_bar(f: &mut Frame, app: &App, area: Rect) {
+fn draw_tab_bar(f: &mut Frame, app: &mut App, area: Rect) {
     let tabs = [
         (AppMode::Search, "🔍 Search"),
         (AppMode::Installed, "📦 Installed"),
         (AppMode::Upgrades, "⬆️  Upgrades"),
     ];
+    
+    // Calculate tab positions for mouse click handling
+    let title = " winget-tui ";
+    let title_width = title.width() as u16;
+    let spacing_width = 2u16; // "  " between title and tabs
+    let mut current_x = title_width + spacing_width;
+    let mut tab_regions = Vec::new();
+    
     let spans: Vec<Span> = tabs
         .iter()
         .flat_map(|(mode, label)| {
@@ -56,24 +65,37 @@ fn draw_tab_bar(f: &mut Frame, app: &App, area: Rect) {
             } else {
                 Style::default().fg(Color::Gray)
             };
+            
+            // Calculate width of this tab: " {label} " + " "
+            let tab_text = format!(" {} ", label);
+            let tab_width = tab_text.width() as u16;
+            let separator_width = 1u16; // " " between tabs
+            
+            // Store the clickable region for this tab
+            tab_regions.push((current_x, current_x + tab_width, *mode));
+            current_x += tab_width + separator_width;
+            
             vec![
-                Span::styled(format!(" {} ", label), style),
+                Span::styled(tab_text, style),
                 Span::raw(" "),
             ]
         })
         .collect();
 
-    let title = Span::styled(
-        " winget-tui ",
+    let title_span = Span::styled(
+        title,
         Style::default()
             .fg(Color::Green)
             .add_modifier(Modifier::BOLD),
     );
 
-    let mut all_spans = vec![title, Span::raw("  ")];
+    let mut all_spans = vec![title_span, Span::raw("  ")];
     all_spans.extend(spans);
 
     f.render_widget(Paragraph::new(Line::from(all_spans)), area);
+    
+    // Store tab regions for mouse click handling
+    app.layout.tab_regions = tab_regions;
 }
 
 fn draw_filter_bar(f: &mut Frame, app: &mut App, area: Rect) {

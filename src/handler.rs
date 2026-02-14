@@ -344,15 +344,9 @@ fn in_rect(col: u16, row: u16, rect: ratatui::layout::Rect) -> bool {
 
 /// Determine which tab was clicked based on x position
 fn handle_tab_click(app: &mut App, col: u16) {
-    // Tab bar layout: " winget-tui   Search  Installed  Upgrades "
-    // The title " winget-tui " is ~13 chars, then 2 spaces, then tabs ~9 chars each with spacing
-    let tab_start = 15u16;
-    let tab_width = 11u16;
-
-    let tabs = [AppMode::Search, AppMode::Installed, AppMode::Upgrades];
-    if col >= tab_start {
-        let tab_idx = ((col - tab_start) / tab_width) as usize;
-        if let Some(&mode) = tabs.get(tab_idx) {
+    // Use the pre-calculated tab regions from the UI rendering
+    for &(start_x, end_x, mode) in &app.layout.tab_regions {
+        if col >= start_x && col < end_x {
             if mode != app.mode {
                 app.mode = mode;
                 app.selected = 0;
@@ -361,6 +355,7 @@ fn handle_tab_click(app: &mut App, col: u16) {
                 app.set_status("Loading...");
                 app.refresh_view();
             }
+            break;
         }
     }
 }
