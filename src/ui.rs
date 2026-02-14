@@ -668,3 +668,68 @@ fn truncate(s: &str, max: usize) -> String {
         format!("{truncated}…")
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    #[test]
+    fn test_tab_width_calculations() {
+        // Test that tab widths are calculated correctly using unicode-width
+        let title = " winget-tui ";
+        let title_width = title.width() as u16;
+        assert_eq!(title_width, 12);
+        
+        let spacing_width = 2u16;
+        let mut current_x = title_width + spacing_width;
+        assert_eq!(current_x, 14); // Tabs start at position 14
+        
+        let tabs = [
+            (AppMode::Search, "🔍 Search"),
+            (AppMode::Installed, "📦 Installed"),
+            (AppMode::Upgrades, "⬆️  Upgrades"),
+        ];
+        
+        let mut tab_regions = Vec::new();
+        
+        for (mode, label) in &tabs {
+            let tab_text = format!(" {} ", label);
+            let tab_width = tab_text.width() as u16;
+            let separator_width = 1u16;
+            
+            tab_regions.push((current_x, current_x + tab_width, *mode));
+            current_x += tab_width + separator_width;
+        }
+        
+        // Verify the regions are correct
+        assert_eq!(tab_regions.len(), 3);
+        
+        // Search tab should start at 14
+        let (start, end, mode) = tab_regions[0];
+        assert_eq!(mode, AppMode::Search);
+        assert_eq!(start, 14);
+        // "🔍 Search" with spaces is 11 columns (emoji=2, space=1, Search=6, spaces=2)
+        assert_eq!(end - start, 11);
+        
+        // Installed tab should start where Search ends + separator
+        let (start, end, mode) = tab_regions[1];
+        assert_eq!(mode, AppMode::Installed);
+        assert_eq!(start, 14 + 11 + 1); // 26
+        // "📦 Installed" with spaces is 14 columns
+        assert_eq!(end - start, 14);
+        
+        // Upgrades tab should start where Installed ends + separator
+        let (start, end, mode) = tab_regions[2];
+        assert_eq!(mode, AppMode::Upgrades);
+        assert_eq!(start, 26 + 14 + 1); // 41
+        // "⬆️  Upgrades" (note TWO spaces after emoji) with outer spaces is 14 columns
+        assert_eq!(end - start, 14);
+        
+        // Verify no gaps or overlaps (accounting for separator)
+        for i in 0..tab_regions.len() - 1 {
+            let (_, end1, _) = tab_regions[i];
+            let (start2, _, _) = tab_regions[i + 1];
+            assert_eq!(start2, end1 + 1); // 1 char separator between tabs
+        }
+    }
+}
