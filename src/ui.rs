@@ -722,7 +722,7 @@ mod tests {
         let (start, end, mode) = tab_regions[2];
         assert_eq!(mode, AppMode::Upgrades);
         assert_eq!(start, 26 + 14 + 1); // 41
-        // "⬆️  Upgrades" (note TWO spaces after emoji) with outer spaces is 14 columns
+        // "⬆️  Upgrades" (note TWO spaces after emoji) with surrounding spaces is 14 columns
         assert_eq!(end - start, 14);
         
         // Verify no gaps or overlaps (accounting for separator)
