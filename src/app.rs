@@ -27,6 +27,7 @@ pub enum AppMessage {
     DetailLoaded { generation: u64, detail: PackageDetail },
     OperationComplete(OpResult),
     Error(String),
+    StatusUpdate(String),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -296,7 +297,7 @@ impl App {
                     
                     for (i, id) in ids.iter().enumerate() {
                         // Send progress update
-                        let _ = tx.send(AppMessage::Error(
+                        let _ = tx.send(AppMessage::StatusUpdate(
                             format!("Upgrading {}/{}: {}", i + 1, total, id)
                         ));
                         
@@ -411,6 +412,9 @@ impl App {
                     }
                     // Refresh the view after operation completes
                     self.refresh_view();
+                }
+                AppMessage::StatusUpdate(msg) => {
+                    self.set_status(msg);
                 }
                 AppMessage::Error(msg) => {
                     self.set_status(format!("Error: {msg}"));

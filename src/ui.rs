@@ -199,6 +199,8 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
             };
 
             let cells: Vec<Cell> = if app.mode == AppMode::Upgrades {
+                // In Upgrades view, the name field is truncated to 17 chars instead of 18
+                // to accommodate the extra width of the checkbox character (✓) when packages are selected
                 vec![
                     Cell::from(format!("{}{}", prefix, truncate(&pkg.name, 17))),
                     Cell::from(truncate(&pkg.id, 25)),
