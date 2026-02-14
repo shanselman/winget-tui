@@ -16,6 +16,8 @@ pub struct LayoutRegions {
     pub detail_panel: Rect,
     /// Y offset where the first data row starts in the package list (after header + border)
     pub list_content_y: u16,
+    /// Tab click regions: (start_x, end_x, mode)
+    pub tab_regions: Vec<(u16, u16, AppMode)>,
 }
 
 /// Messages sent from background tasks back to the UI
