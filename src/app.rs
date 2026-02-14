@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use ratatui::layout::Rect;
@@ -105,6 +105,8 @@ pub struct App {
     pub backend: Arc<dyn WingetBackend>,
     pub message_tx: tokio::sync::mpsc::UnboundedSender<AppMessage>,
     pub message_rx: tokio::sync::mpsc::UnboundedReceiver<AppMessage>,
+    /// Indices of selected packages for batch operations (in filtered_packages)
+    pub selected_packages: HashSet<usize>,
 }
 
 impl App {
@@ -134,6 +136,7 @@ impl App {
             backend,
             message_tx,
             message_rx,
+            selected_packages: HashSet::new(),
         }
     }
 
@@ -153,6 +156,8 @@ impl App {
         if self.selected >= self.filtered_packages.len() {
             self.selected = self.filtered_packages.len().saturating_sub(1);
         }
+        // Clear selected packages when the list changes
+        self.selected_packages.clear();
     }
 
     pub fn selected_package(&self) -> Option<&Package> {
@@ -166,6 +171,22 @@ impl App {
         let len = self.filtered_packages.len() as isize;
         let new = (self.selected as isize + delta).rem_euclid(len);
         self.selected = new as usize;
+    }
+
+    pub fn toggle_selection(&mut self) {
+        if !self.selected_packages.remove(&self.selected) {
+            self.selected_packages.insert(self.selected);
+        }
+    }
+
+    pub fn get_selected_package_ids(&self) -> Vec<String> {
+        let mut ids: Vec<String> = self.selected_packages
+            .iter()
+            .filter_map(|&idx| self.filtered_packages.get(idx))
+            .map(|pkg| pkg.id.clone())
+            .collect();
+        ids.sort(); // For consistent ordering
+        ids
     }
 
     pub fn set_status(&mut self, msg: impl Into<String>) {
@@ -267,6 +288,32 @@ impl App {
                 }
                 Operation::Uninstall { id } => backend.uninstall(id).await,
                 Operation::Upgrade { id } => backend.upgrade(id).await,
+                Operation::BatchUpgrade { ids } => {
+                    // Execute upgrades sequentially
+                    let mut successes = 0;
+                    let mut failures = 0;
+                    let total = ids.len();
+                    
+                    for (i, id) in ids.iter().enumerate() {
+                        // Send progress update
+                        let _ = tx.send(AppMessage::Error(
+                            format!("Upgrading {}/{}: {}", i + 1, total, id)
+                        ));
+                        
+                        match backend.upgrade(id).await {
+                            Ok(_) => successes += 1,
+                            Err(_) => failures += 1,
+                        }
+                    }
+                    
+                    if failures == 0 {
+                        Ok(format!("Successfully upgraded {} packages", successes))
+                    } else if successes == 0 {
+                        Err(anyhow::anyhow!("Failed to upgrade all {} packages", failures))
+                    } else {
+                        Ok(format!("Upgraded {} packages ({} failed)", successes, failures))
+                    }
+                }
             };
 
             let op_result = match result {
@@ -336,12 +383,17 @@ impl App {
                     self.detail_loading = false;
                 }
                 AppMessage::OperationComplete(result) => {
-                    // Invalidate cache for the affected package
+                    // Invalidate cache for the affected package(s)
                     match &result.operation {
                         Operation::Install { id, .. }
                         | Operation::Uninstall { id }
                         | Operation::Upgrade { id } => {
                             self.detail_cache.remove(id);
+                        }
+                        Operation::BatchUpgrade { ids } => {
+                            for id in ids {
+                                self.detail_cache.remove(id);
+                            }
                         }
                     }
                     if result.success {
@@ -353,6 +405,10 @@ impl App {
                         ));
                     }
                     self.loading = false;
+                    // Clear selections after batch operation
+                    if matches!(&result.operation, Operation::BatchUpgrade { .. }) {
+                        self.selected_packages.clear();
+                    }
                     // Refresh the view after operation completes
                     self.refresh_view();
                 }

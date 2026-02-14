@@ -196,6 +196,31 @@ fn handle_normal_mode(
             }
         }
 
+        // Batch upgrade (Shift+U)
+        KeyCode::Char('U') => {
+            if app.mode == AppMode::Upgrades && !app.selected_packages.is_empty() {
+                let ids = app.get_selected_package_ids();
+                let count = ids.len();
+                app.confirm = Some(ConfirmDialog {
+                    message: format!("Upgrade {} selected packages?", count),
+                    operation: Operation::BatchUpgrade { ids },
+                });
+            }
+        }
+
+        // Toggle selection (Space bar) - only in Upgrades view
+        KeyCode::Char(' ') => {
+            if app.mode == AppMode::Upgrades && !app.filtered_packages.is_empty() {
+                app.toggle_selection();
+                let count = app.selected_packages.len();
+                if count > 0 {
+                    app.set_status(format!("{} package{} selected", count, if count == 1 { "" } else { "s" }));
+                } else {
+                    app.set_status("No packages selected".to_string());
+                }
+            }
+        }
+
         // Enter - load detail
         KeyCode::Enter => {
             load_detail_for_selected(app);
