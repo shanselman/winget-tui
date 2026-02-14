@@ -213,6 +213,11 @@ impl App {
     }
 
     pub fn load_detail(&mut self, id: &str) {
+        // Always increment generation to invalidate any in-flight detail requests.
+        // Without this, returning from cache leaves the old generation active,
+        // and a stale async response can overwrite the correct cached detail.
+        self.detail_generation += 1;
+
         // Return cached detail immediately if available
         if let Some(cached) = self.detail_cache.get(id) {
             self.detail = Some(cached.clone());
@@ -232,7 +237,6 @@ impl App {
         }
 
         self.detail_loading = true;
-        self.detail_generation += 1;
         let generation = self.detail_generation;
         let backend = self.backend.clone();
         let tx = self.message_tx.clone();
