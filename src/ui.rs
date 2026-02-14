@@ -200,7 +200,7 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
             };
 
             let cells: Vec<Cell> = if app.mode == AppMode::Upgrades {
-                // In Upgrades view, the name field is truncated to 17 chars instead of 18
+                // In Upgrades view, the name field is truncated to 17 characters instead of 18
                 // to ensure consistent column width for all rows, accounting for the
                 // checkbox character (✓) that may appear in any row
                 vec![
