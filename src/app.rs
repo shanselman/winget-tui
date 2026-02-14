@@ -198,7 +198,7 @@ impl App {
                     }
                 }
                 AppMode::Installed => backend.list_installed(source_arg.as_deref()).await,
-                AppMode::Upgrades => backend.list_upgrades().await,
+                AppMode::Upgrades => backend.list_upgrades(source_arg.as_deref()).await,
             };
 
             match result {

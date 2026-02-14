@@ -399,8 +399,12 @@ impl WingetBackend for CliBackend {
         Ok(self.parse_packages_from_table(&output))
     }
 
-    async fn list_upgrades(&self) -> Result<Vec<Package>> {
-        let args = vec!["upgrade", "--accept-source-agreements"];
+    async fn list_upgrades(&self, source: Option<&str>) -> Result<Vec<Package>> {
+        let mut args = vec!["upgrade", "--accept-source-agreements"];
+        if let Some(src) = source {
+            args.push("--source");
+            args.push(src);
+        }
         let output = self.run_winget(&args).await?;
         Ok(self.parse_packages_from_table(&output))
     }

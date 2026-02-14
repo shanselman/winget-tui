@@ -11,8 +11,8 @@ pub trait WingetBackend: Send + Sync {
     /// List all installed packages, optionally filtered by source
     async fn list_installed(&self, source: Option<&str>) -> Result<Vec<Package>>;
 
-    /// List packages with available upgrades
-    async fn list_upgrades(&self) -> Result<Vec<Package>>;
+    /// List packages with available upgrades, optionally filtered by source
+    async fn list_upgrades(&self, source: Option<&str>) -> Result<Vec<Package>>;
 
     /// Show detailed info for a specific package
     async fn show(&self, id: &str) -> Result<PackageDetail>;

@@ -9,6 +9,8 @@ use ratatui::{
     },
 };
 
+use unicode_width::UnicodeWidthStr;
+
 use crate::app::{App, AppMode, ConfirmDialog, InputMode};
 
 pub fn draw(f: &mut Frame, app: &mut App) {
@@ -109,7 +111,7 @@ fn draw_filter_bar(f: &mut Frame, app: &mut App, area: Rect) {
 
     // Show cursor in search mode
     if app.input_mode == InputMode::Search {
-        let cursor_x = chunks[1].x + 4 + app.search_query.len() as u16;
+        let cursor_x = chunks[1].x + 4 + UnicodeWidthStr::width(app.search_query.as_str()) as u16;
         f.set_cursor_position((cursor_x, chunks[1].y));
     }
 }
