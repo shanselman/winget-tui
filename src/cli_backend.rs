@@ -93,10 +93,10 @@ impl CliBackend {
         lines[sep_idx + 1..]
             .iter()
             .filter(|l| !l.trim().is_empty())
-            // Stop at footer lines like "2 upgrades available." (digit(s) + space).
-            // Package names starting with digits like "7-Zip" have a non-space
-            // character after the digit, so they are NOT treated as footers.
-            .take_while(|l| {
+            // Skip footer lines like "2 upgrades available." (digit(s) + space).
+            // Uses filter (not take_while) so a false positive only skips one line
+            // instead of silently dropping all remaining packages.
+            .filter(|l| {
                 let bytes = l.trim_start().as_bytes();
                 let d = bytes.iter().take_while(|b| b.is_ascii_digit()).count();
                 !(d > 0 && d < bytes.len() && bytes[d] == b' ')
@@ -221,6 +221,12 @@ impl CliBackend {
 
         let id = id_idx.map(&get_field).unwrap_or_default();
         if id.is_empty() {
+            return None;
+        }
+        // Valid package IDs contain '.' (e.g. "Google.Chrome") or '\' (e.g.
+        // "ARP\Machine\X64\Git_is1"). This filters out text from footer lines
+        // that happen to land in the ID column (e.g. long localized messages).
+        if !id.contains('.') && !id.contains('\\') {
             return None;
         }
 
@@ -633,5 +639,40 @@ Docker Desktop                                     Docker.DockerDesktop         
         assert_eq!(packages[0].name, "7-Zip 25.01 (x64)");
         assert_eq!(packages[1].id, "CPUID.CPU-Z.MSI");
         assert_eq!(packages[2].id, "Docker.DockerDesktop");
+    }
+
+    #[test]
+    fn parse_table_with_truncated_ids() {
+        let backend = CliBackend::new();
+        // MSIX packages with truncated IDs (ending with …)
+        let output = "\
+Name                                  Id                                    Version
+---------------------------------------------------------------------------------------
+Bluesky                               MSIX\\bsky.app-C52C8C38_1.0.0.0_neutr\u{2026} 1.0.0.0
+Slack                                 SlackTechnologies.Slack               4.48.92.0
+";
+        let packages = backend.parse_packages_from_table(output);
+        assert_eq!(packages.len(), 2);
+        assert!(packages[0].is_truncated(), "truncated MSIX ID should be detected");
+        assert!(!packages[1].is_truncated(), "normal ID should not be truncated");
+    }
+
+    #[test]
+    fn parse_table_long_footer_not_treated_as_package() {
+        let backend = CliBackend::new();
+        // A long localized footer whose text extends into the ID column area.
+        // With filter (not take_while) + ID validation, this must not produce a package,
+        // AND Chrome after it must still be parsed.
+        let output = "\
+Name                           Id                          Version     Available   Source
+-------------------------------------------------------------------------------------------------
+Google Chrome                  Google.Chrome               131.0.6778  132.0.6834  winget
+2 Pakete verfuegen ueber Pins die ein Upgrade verhindern, ein Upgrade kann ueber winget durchgefuehrt
+Microsoft Visual Studio Code   Microsoft.VisualStudioCode  1.95.3      1.96.0      winget
+";
+        let packages = backend.parse_packages_from_table(output);
+        assert_eq!(packages.len(), 2, "footer must be skipped, but VS Code after it must be kept");
+        assert_eq!(packages[0].id, "Google.Chrome");
+        assert_eq!(packages[1].id, "Microsoft.VisualStudioCode");
     }
 }

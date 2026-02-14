@@ -56,6 +56,14 @@ pub struct Package {
     pub available_version: String,
 }
 
+impl Package {
+    /// Returns true if the package ID was truncated by winget (ends with '…').
+    /// Truncated IDs cannot be used with `winget show --exact`.
+    pub fn is_truncated(&self) -> bool {
+        self.id.ends_with('…') || self.name.ends_with('…')
+    }
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct PackageDetail {
     pub id: String,

@@ -207,8 +207,13 @@ fn handle_normal_mode(
 }
 
 fn load_detail_for_selected(app: &mut App) {
-    let id = app.selected_package().map(|p| p.id.clone());
-    if let Some(id) = id {
+    let pkg = app.selected_package();
+    // Skip detail fetch for truncated IDs — winget show --exact will fail
+    if let Some(pkg) = pkg {
+        if pkg.is_truncated() {
+            return;
+        }
+        let id = pkg.id.clone();
         app.load_detail(&id);
     }
 }
