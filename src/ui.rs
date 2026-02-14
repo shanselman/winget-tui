@@ -189,10 +189,11 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
             // Show checkbox for marked packages in Upgrades view, otherwise use arrow
             let prefix = if app.mode == AppMode::Upgrades {
                 let is_marked = app.selected_packages.contains(&i);
-                if is_marked {
-                    if is_selected { "►✓" } else { " ✓" }
-                } else {
-                    if is_selected { "► " } else { "  " }
+                match (is_selected, is_marked) {
+                    (true, true) => "►✓",
+                    (false, true) => " ✓",
+                    (true, false) => "► ",
+                    (false, false) => "  ",
                 }
             } else {
                 if is_selected { "► " } else { "  " }
@@ -200,8 +201,8 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
 
             let cells: Vec<Cell> = if app.mode == AppMode::Upgrades {
                 // In Upgrades view, the name field is truncated to 17 chars instead of 18
-                // to accommodate the checkbox character (✓) which takes additional width
-                // in the prefix for any package that might be selected
+                // to ensure consistent column width for all rows, accounting for the
+                // checkbox character (✓) that may appear in any row
                 vec![
                     Cell::from(format!("{}{}", prefix, truncate(&pkg.name, 17))),
                     Cell::from(truncate(&pkg.id, 25)),
@@ -498,10 +499,12 @@ fn draw_status_bar(f: &mut Frame, app: &App, area: Rect) {
     let keyhints = match app.input_mode {
         InputMode::Search => " Esc: cancel  Enter: search ",
         InputMode::Normal => {
-            if app.mode == AppMode::Upgrades && !app.selected_packages.is_empty() {
-                " Space: select  Shift+U: batch upgrade  ?: help "
-            } else if app.mode == AppMode::Upgrades {
-                " Space: select  ↑↓: nav  /: search  ?: help "
+            if app.mode == AppMode::Upgrades {
+                if app.selected_packages.is_empty() {
+                    " Space: select  ↑↓: nav  /: search  ?: help "
+                } else {
+                    " Space: select  Shift+U: batch upgrade  ?: help "
+                }
             } else {
                 " ↑↓: nav  ←→/Tab: view  /: search  f: filter  ?: help "
             }
