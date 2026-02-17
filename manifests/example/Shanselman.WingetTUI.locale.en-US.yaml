@@ -1,0 +1,41 @@
+# Created using wingetcreate
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.6.0.schema.json
+
+PackageIdentifier: Shanselman.WingetTUI
+PackageVersion: 0.1.3
+PackageLocale: en-US
+Publisher: Scott Hanselman
+PublisherUrl: https://hanselman.com
+PublisherSupportUrl: https://github.com/shanselman/winget-tui/issues
+Author: Scott Hanselman
+PackageName: winget-tui
+PackageUrl: https://github.com/shanselman/winget-tui
+License: MIT
+LicenseUrl: https://github.com/shanselman/winget-tui/blob/main/LICENSE
+ShortDescription: A terminal user interface for Windows Package Manager (winget)
+Description: |-
+  winget-tui is a terminal user interface for Windows Package Manager (winget).
+  Search, install, uninstall, and upgrade Windows packages without leaving your terminal.
+  
+  Features:
+  - Search & Discover packages across all winget sources
+  - View installed packages on your system
+  - Upgrade Management with available updates at a glance
+  - Source Filtering by winget, msstore, or all
+  - Package Details including publisher, description, license, homepage
+  - Keyboard-Driven with Vim-style navigation
+  - Non-Blocking operations that run in the background
+  - Single Binary with no runtime dependencies beyond winget itself
+Moniker: winget-tui
+Tags:
+  - cli
+  - package-manager
+  - terminal
+  - tui
+  - windows
+  - winget
+ReleaseNotes: |-
+  See release notes at https://github.com/shanselman/winget-tui/releases/tag/v0.1.3
+ReleaseNotesUrl: https://github.com/shanselman/winget-tui/releases/tag/v0.1.3
+ManifestType: defaultLocale
+ManifestVersion: 1.6.0

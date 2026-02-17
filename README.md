@@ -26,6 +26,25 @@ A terminal user interface for [Windows Package Manager (winget)](https://github.
 
 ## Installation
 
+### Via Winget (Coming Soon)
+
+Once available in the Windows Package Manager:
+
+```powershell
+winget install Shanselman.WingetTUI
+```
+
+See [WINGET_SUBMISSION.md](WINGET_SUBMISSION.md) for details on submitting to winget.
+
+### From Releases
+
+Download the latest release for your platform from the [Releases page](https://github.com/shanselman/winget-tui/releases):
+
+- **winget-tui-x64.exe** - Windows x64
+- **winget-tui-arm64.exe** - Windows ARM64
+
+No installation required - just download and run.
+
 ### From source
 
 ```sh
