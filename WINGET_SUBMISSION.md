@@ -168,10 +168,11 @@ Since winget-tui is a standalone executable (not a traditional installer), set:
 
 ```yaml
 InstallerType: portable
-NestedInstallerType: portable
 ```
 
-Or consider creating a simple MSI/MSIX package for better winget integration.
+Note: `NestedInstallerType` is not used with portable installers - it's only for zip/exe containers.
+
+Alternatively, consider creating a simple MSI/MSIX package for better winget integration and automatic PATH updates.
 
 ### Calculating SHA256 Hash
 
