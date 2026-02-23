@@ -147,9 +147,16 @@ fn draw_main_content(f: &mut Frame, app: &mut App, area: Rect) {
 
 fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
     let (icon, title) = match app.mode {
-        AppMode::Search => ("🔍", "Search Results"),
-        AppMode::Installed => ("📦", "Installed"),
-        AppMode::Upgrades => ("⬆️ ", "Upgrades"),
+        AppMode::Search => ("🔍", "Search Results".to_string()),
+        AppMode::Installed => ("📦", "Installed".to_string()),
+        AppMode::Upgrades => {
+            let sel = app.selected_packages.len();
+            if sel > 0 {
+                ("⬆️ ", format!("Upgrades — {} selected", sel))
+            } else {
+                ("⬆️ ", "Upgrades".to_string())
+            }
+        }
     };
 
     let header_cells = if app.mode == AppMode::Upgrades {
@@ -177,16 +184,35 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
         .enumerate()
         .map(|(i, pkg)| {
             let is_selected = i == app.selected;
+            let is_marked = app.mode == AppMode::Upgrades && app.selected_packages.contains(&i);
             let style = if is_selected {
                 Style::default()
                     .fg(Color::Black)
                     .bg(Color::Cyan)
                     .add_modifier(Modifier::BOLD)
+            } else if is_marked {
+                Style::default()
+                    .fg(Color::Green)
+                    .add_modifier(Modifier::BOLD)
             } else {
                 Style::default()
             };
 
-            let prefix = if is_selected { "► " } else { "  " };
+            let prefix = if app.mode == AppMode::Upgrades {
+                if is_marked && is_selected {
+                    "►☑ "
+                } else if is_marked {
+                    " ☑ "
+                } else if is_selected {
+                    "►☐ "
+                } else {
+                    " ☐ "
+                }
+            } else if is_selected {
+                "► "
+            } else {
+                "  "
+            };
 
             let cells: Vec<Cell> = if app.mode == AppMode::Upgrades {
                 vec![
@@ -417,6 +443,34 @@ fn draw_detail_panel(f: &mut Frame, app: &App, area: Rect) {
                         .add_modifier(Modifier::BOLD),
                 ));
                 actions.push(Span::raw(" Uninstall "));
+                // Batch selection hints
+                actions.push(Span::raw(" "));
+                actions.push(Span::styled(
+                    " Spc ",
+                    Style::default()
+                        .fg(Color::Black)
+                        .bg(Color::Magenta)
+                        .add_modifier(Modifier::BOLD),
+                ));
+                actions.push(Span::raw(" Select  "));
+                actions.push(Span::styled(
+                    " a ",
+                    Style::default()
+                        .fg(Color::Black)
+                        .bg(Color::Magenta)
+                        .add_modifier(Modifier::BOLD),
+                ));
+                actions.push(Span::raw(" All  "));
+                if !app.selected_packages.is_empty() {
+                    actions.push(Span::styled(
+                        " U ",
+                        Style::default()
+                            .fg(Color::Black)
+                            .bg(Color::Green)
+                            .add_modifier(Modifier::BOLD),
+                    ));
+                    actions.push(Span::raw(format!(" Upgrade {} ", app.selected_packages.len())));
+                }
             }
         }
         lines.push(Line::from(actions));
@@ -600,6 +654,18 @@ fn draw_help_overlay(f: &mut Frame) {
         Line::from(vec![
             Span::styled("  x           ", key),
             Span::raw("Uninstall selected package"),
+        ]),
+        Line::from(vec![
+            Span::styled("  Space       ", key),
+            Span::raw("Toggle select (Upgrades tab)"),
+        ]),
+        Line::from(vec![
+            Span::styled("  a           ", key),
+            Span::raw("Select / deselect all (Upgrades)"),
+        ]),
+        Line::from(vec![
+            Span::styled("  U           ", key),
+            Span::raw("Batch upgrade selected packages"),
         ]),
         Line::from(vec![
             Span::styled("  Enter       ", key),
