@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use ratatui::layout::Rect;
@@ -26,6 +26,7 @@ pub enum AppMessage {
     PackagesLoaded { generation: u64, packages: Vec<Package> },
     DetailLoaded { generation: u64, detail: PackageDetail },
     OperationComplete(OpResult),
+    StatusUpdate(String),
     Error(String),
 }
 
@@ -102,6 +103,8 @@ pub struct App {
     pub detail_generation: u64,
     /// Cache of package details to avoid repeated winget show calls
     pub detail_cache: HashMap<String, PackageDetail>,
+    /// Indices into filtered_packages that are selected for batch operations
+    pub selected_packages: HashSet<usize>,
     pub backend: Arc<dyn WingetBackend>,
     pub message_tx: tokio::sync::mpsc::UnboundedSender<AppMessage>,
     pub message_rx: tokio::sync::mpsc::UnboundedReceiver<AppMessage>,
@@ -131,6 +134,7 @@ impl App {
             view_generation: 0,
             detail_generation: 0,
             detail_cache: HashMap::new(),
+            selected_packages: HashSet::new(),
             backend,
             message_tx,
             message_rx,
@@ -153,6 +157,8 @@ impl App {
         if self.selected >= self.filtered_packages.len() {
             self.selected = self.filtered_packages.len().saturating_sub(1);
         }
+        // Clear multi-select since indices are now stale
+        self.selected_packages.clear();
     }
 
     pub fn selected_package(&self) -> Option<&Package> {
@@ -267,6 +273,33 @@ impl App {
                 }
                 Operation::Uninstall { id } => backend.uninstall(id).await,
                 Operation::Upgrade { id } => backend.upgrade(id).await,
+                Operation::BatchUpgrade { ids } => {
+                    // Execute sequentially to avoid Windows Installer conflicts
+                    let total = ids.len();
+                    let mut failures: Vec<String> = Vec::new();
+                    for (i, id) in ids.iter().enumerate() {
+                        let _ = tx.send(AppMessage::StatusUpdate(format!(
+                            "Upgrading {}/{}: {}...",
+                            i + 1,
+                            total,
+                            id
+                        )));
+                        if let Err(e) = backend.upgrade(id).await {
+                            failures.push(format!("{}: {}", id, e));
+                        }
+                    }
+                    if failures.is_empty() {
+                        Ok(format!("All {} packages upgraded successfully", total))
+                    } else {
+                        Err(anyhow::anyhow!(
+                            "{}/{} succeeded, {} failed: {}",
+                            total - failures.len(),
+                            total,
+                            failures.len(),
+                            failures.join("; ")
+                        ))
+                    }
+                }
             };
 
             let op_result = match result {
@@ -336,12 +369,18 @@ impl App {
                     self.detail_loading = false;
                 }
                 AppMessage::OperationComplete(result) => {
-                    // Invalidate cache for the affected package
+                    // Invalidate cache for the affected package(s)
                     match &result.operation {
                         Operation::Install { id, .. }
                         | Operation::Uninstall { id }
                         | Operation::Upgrade { id } => {
                             self.detail_cache.remove(id);
+                        }
+                        Operation::BatchUpgrade { ids } => {
+                            for id in ids {
+                                self.detail_cache.remove(id);
+                            }
+                            self.selected_packages.clear();
                         }
                     }
                     if result.success {
@@ -359,6 +398,9 @@ impl App {
                 AppMessage::Error(msg) => {
                     self.set_status(format!("Error: {msg}"));
                     self.loading = false;
+                }
+                AppMessage::StatusUpdate(msg) => {
+                    self.set_status(msg);
                 }
             }
         }

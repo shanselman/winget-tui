@@ -95,6 +95,7 @@ fn handle_normal_mode(
         KeyCode::Tab | KeyCode::Right => {
             app.mode = app.mode.cycle();
             app.selected = 0;
+            app.selected_packages.clear();
             app.detail = None;
             app.loading = true;
             app.set_status("Loading...");
@@ -103,6 +104,7 @@ fn handle_normal_mode(
         KeyCode::BackTab | KeyCode::Left => {
             app.mode = app.mode.cycle_back();
             app.selected = 0;
+            app.selected_packages.clear();
             app.detail = None;
             app.loading = true;
             app.set_status("Loading...");
@@ -193,6 +195,48 @@ fn handle_normal_mode(
                     message: format!("Upgrade {}?", id),
                     operation: Operation::Upgrade { id },
                 });
+            }
+        }
+
+        // Batch Upgrade (Shift+U) — upgrade all selected packages
+        KeyCode::Char('U') => {
+            if app.mode == AppMode::Upgrades && !app.selected_packages.is_empty() {
+                let ids: Vec<String> = app
+                    .selected_packages
+                    .iter()
+                    .filter_map(|&idx| app.filtered_packages.get(idx).map(|p| p.id.clone()))
+                    .collect();
+                let count = ids.len();
+                app.confirm = Some(ConfirmDialog {
+                    message: format!("Upgrade {} selected package{}?", count, if count == 1 { "" } else { "s" }),
+                    operation: Operation::BatchUpgrade { ids },
+                });
+            }
+        }
+
+        // Toggle selection (Space) — Upgrades mode only
+        KeyCode::Char(' ') => {
+            if app.mode == AppMode::Upgrades && !app.filtered_packages.is_empty() {
+                let idx = app.selected;
+                if app.selected_packages.contains(&idx) {
+                    app.selected_packages.remove(&idx);
+                } else {
+                    app.selected_packages.insert(idx);
+                }
+                // Move down after toggling for fast multi-select
+                app.move_selection(1);
+                load_detail_for_selected(app);
+            }
+        }
+
+        // Select all / deselect all (a) — Upgrades mode only
+        KeyCode::Char('a') => {
+            if app.mode == AppMode::Upgrades && !app.filtered_packages.is_empty() {
+                if app.selected_packages.len() == app.filtered_packages.len() {
+                    app.selected_packages.clear();
+                } else {
+                    app.selected_packages = (0..app.filtered_packages.len()).collect();
+                }
             }
         }
 
@@ -362,6 +406,7 @@ fn handle_tab_click(app: &mut App, col: u16) {
             if mode != app.mode {
                 app.mode = mode;
                 app.selected = 0;
+                app.selected_packages.clear();
                 app.detail = None;
                 app.loading = true;
                 app.set_status("Loading...");
