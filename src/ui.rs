@@ -503,7 +503,7 @@ fn draw_status_bar(f: &mut Frame, app: &App, area: Rect) {
         .constraints([
             Constraint::Length(14), // filter badge
             Constraint::Min(1),    // status message
-            Constraint::Length(50), // keyhints
+            Constraint::Length(56), // keyhints
         ])
         .split(area);
 
