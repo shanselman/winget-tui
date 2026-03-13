@@ -654,11 +654,13 @@ Name                                  Id                                    Vers
 ---------------------------------------------------------------------------------------
 Bluesky                               MSIX\\bsky.app-C52C8C38_1.0.0.0_neutr\u{2026} 1.0.0.0
 Slack                                 SlackTechnologies.Slack               4.48.92.0
+Microsoft Windows Desktop Runtime 10.\u{2026} Microsoft.DotNet.DesktopRuntime.10   10.0.4
 ";
         let packages = backend.parse_packages_from_table(output);
-        assert_eq!(packages.len(), 2);
+        assert_eq!(packages.len(), 3);
         assert!(packages[0].is_truncated(), "truncated MSIX ID should be detected");
         assert!(!packages[1].is_truncated(), "normal ID should not be truncated");
+        assert!(!packages[2].is_truncated(), "normal ID with truncated name should not be truncated");
     }
 
     #[test]

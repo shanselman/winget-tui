@@ -60,7 +60,7 @@ impl Package {
     /// Returns true if the package ID was truncated by winget (ends with '…').
     /// Truncated IDs cannot be used with `winget show --exact`.
     pub fn is_truncated(&self) -> bool {
-        self.id.ends_with('…') || self.name.ends_with('…')
+        self.id.ends_with('…')
     }
 }
 
