@@ -145,6 +145,34 @@ impl CliBackend {
         })
     }
 
+    /// Extract the field at column `idx` from `line`, using display-width column boundaries.
+    /// Returns an empty string if the index is out of range.
+    fn extract_field(line: &str, cols: &[(&str, usize)], idx: usize) -> String {
+        if idx >= cols.len() {
+            return String::new();
+        }
+        let col_start = cols[idx].1;
+        let col_end = if idx + 1 < cols.len() {
+            cols[idx + 1].1
+        } else {
+            usize::MAX
+        };
+
+        let mut result = String::new();
+        let mut width = 0usize;
+        for ch in line.chars() {
+            let cw = ch.width().unwrap_or(0);
+            if width + cw > col_start && width < col_end {
+                result.push(ch);
+            }
+            width += cw;
+            if width >= col_end {
+                break;
+            }
+        }
+        result.trim().to_string()
+    }
+
     /// Normalize a `winget show` key to a canonical English name (case-insensitive,
     /// with known translations for common locales).
     fn normalize_show_key(key: &str) -> &'static str {
@@ -167,31 +195,7 @@ impl CliBackend {
         // The header column positions are in display-width units (ASCII, so bytes == display width).
         // Data rows may contain multi-byte UTF-8 chars (e.g. '…') that are 1 display column
         // but 3 bytes, so we walk chars counting display width to find correct slice points.
-        let get_field = |idx: usize| -> String {
-            if idx >= cols.len() {
-                return String::new();
-            }
-            let col_start = cols[idx].1; // display-width offset
-            let col_end = if idx + 1 < cols.len() {
-                cols[idx + 1].1
-            } else {
-                usize::MAX
-            };
-
-            let mut result = String::new();
-            let mut width = 0usize;
-            for ch in line.chars() {
-                let cw = ch.width().unwrap_or(0);
-                if width + cw > col_start && width < col_end {
-                    result.push(ch);
-                }
-                width += cw;
-                if width >= col_end {
-                    break;
-                }
-            }
-            result.trim().to_string()
-        };
+        let field = |idx| Self::extract_field(line, cols, idx);
 
         // Find column indices by name — case-insensitive with known translations
         // to support non-English locales (e.g. German: ID, Verfügbar, Quelle)
@@ -224,7 +228,7 @@ impl CliBackend {
             }
         }
 
-        let id = id_idx.map(&get_field).unwrap_or_default();
+        let id = id_idx.map(&field).unwrap_or_default();
         if id.is_empty() {
             return None;
         }
@@ -236,11 +240,11 @@ impl CliBackend {
         }
 
         Some(Package {
-            name: name_idx.map(&get_field).unwrap_or_default(),
+            name: name_idx.map(&field).unwrap_or_default(),
             id,
-            version: ver_idx.map(&get_field).unwrap_or_default(),
-            source: source_idx.map(&get_field).unwrap_or_default(),
-            available_version: avail_idx.map(&get_field).unwrap_or_default(),
+            version: ver_idx.map(&field).unwrap_or_default(),
+            source: source_idx.map(&field).unwrap_or_default(),
+            available_version: avail_idx.map(&field).unwrap_or_default(),
         })
     }
 
@@ -331,30 +335,7 @@ impl CliBackend {
             .iter()
             .filter(|l| !l.trim().is_empty())
             .filter_map(|line| {
-                let get_field = |idx: usize| -> String {
-                    if idx >= col_positions.len() {
-                        return String::new();
-                    }
-                    let col_start = col_positions[idx].1;
-                    let col_end = if idx + 1 < col_positions.len() {
-                        col_positions[idx + 1].1
-                    } else {
-                        usize::MAX
-                    };
-                    let mut result = String::new();
-                    let mut width = 0usize;
-                    for ch in line.chars() {
-                        let cw = ch.width().unwrap_or(0);
-                        if width + cw > col_start && width < col_end {
-                            result.push(ch);
-                        }
-                        width += cw;
-                        if width >= col_end {
-                            break;
-                        }
-                    }
-                    result.trim().to_string()
-                };
+                let field = |idx| Self::extract_field(line, &col_positions, idx);
 
                 let mut name_idx =
                     Self::find_column_ci(&col_positions, &["name", "nom", "nombre", "nome"]);
@@ -368,15 +349,15 @@ impl CliBackend {
                     type_idx = Some(2);
                 }
 
-                let name = name_idx.map(&get_field).unwrap_or_default();
+                let name = name_idx.map(&field).unwrap_or_default();
                 if name.is_empty() {
                     return None;
                 }
 
                 Some(Source {
                     name,
-                    url: arg_idx.map(&get_field).unwrap_or_default(),
-                    source_type: type_idx.map(&get_field).unwrap_or_default(),
+                    url: arg_idx.map(&field).unwrap_or_default(),
+                    source_type: type_idx.map(&field).unwrap_or_default(),
                 })
             })
             .collect()
