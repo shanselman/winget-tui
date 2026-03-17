@@ -108,31 +108,28 @@ impl CliBackend {
     fn detect_columns(header: &str) -> Vec<(&str, usize)> {
         let mut cols = Vec::new();
         let mut display_pos = 0usize;
-        let mut byte_pos = 0usize;
+        let mut chars = header.char_indices().peekable();
 
-        let chars: Vec<char> = header.chars().collect();
-        let mut ci = 0;
-
-        while ci < chars.len() {
-            // Skip whitespace
-            while ci < chars.len() && chars[ci] == ' ' {
+        loop {
+            // Skip leading spaces
+            while chars.next_if(|&(_, c)| c == ' ').is_some() {
                 display_pos += 1;
-                byte_pos += 1;
-                ci += 1;
             }
-            if ci >= chars.len() {
-                break;
-            }
+            let (start_byte, _) = match chars.peek() {
+                Some(&p) => p,
+                None => break,
+            };
             let start_display = display_pos;
-            let start_byte = byte_pos;
-            // Read until whitespace
-            while ci < chars.len() && chars[ci] != ' ' {
-                display_pos += chars[ci].width().unwrap_or(0);
-                byte_pos += chars[ci].len_utf8();
-                ci += 1;
+            // Consume non-space chars, accumulating display width
+            while let Some(&(_, ch)) = chars.peek() {
+                if ch == ' ' {
+                    break;
+                }
+                display_pos += ch.width().unwrap_or(0);
+                chars.next();
             }
-            let name = &header[start_byte..byte_pos];
-            cols.push((name, start_display));
+            let end_byte = chars.peek().map(|&(idx, _)| idx).unwrap_or(header.len());
+            cols.push((&header[start_byte..end_byte], start_display));
         }
         cols
     }
