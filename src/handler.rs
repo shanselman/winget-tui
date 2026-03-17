@@ -262,6 +262,18 @@ fn load_detail_for_selected(app: &mut App) {
     }
 }
 
+/// Select the package row at the given terminal row coordinate and load its detail.
+fn select_package_at_row(app: &mut App, row: u16) {
+    let content_y = app.layout.list_content_y;
+    if row >= content_y {
+        let clicked_idx = (row - content_y) as usize + app.table_scroll_offset;
+        if clicked_idx < app.filtered_packages.len() {
+            app.selected = clicked_idx;
+            load_detail_for_selected(app);
+        }
+    }
+}
+
 fn handle_mouse(
     app: &mut App,
     mouse: crossterm::event::MouseEvent,
@@ -315,14 +327,7 @@ fn handle_mouse(
                     return Ok(false);
                 }
 
-                let content_y = app.layout.list_content_y;
-                if row >= content_y {
-                    let clicked_idx = (row - content_y) as usize + app.table_scroll_offset;
-                    if clicked_idx < app.filtered_packages.len() {
-                        app.selected = clicked_idx;
-                        load_detail_for_selected(app);
-                    }
-                }
+                select_package_at_row(app, row);
                 return Ok(false);
             }
         }
@@ -341,18 +346,10 @@ fn handle_mouse(
             }
         }
 
-        // Double-click to show detail
+        // Right-click on a package shows context (loads detail)
         MouseEventKind::Down(MouseButton::Right) => {
-            // Right-click on a package shows context (loads detail)
             if in_rect(col, row, app.layout.package_list) {
-                let content_y = app.layout.list_content_y;
-                if row >= content_y {
-                    let clicked_idx = (row - content_y) as usize + app.table_scroll_offset;
-                    if clicked_idx < app.filtered_packages.len() {
-                        app.selected = clicked_idx;
-                        load_detail_for_selected(app);
-                    }
-                }
+                select_package_at_row(app, row);
             }
         }
 
