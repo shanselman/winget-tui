@@ -1,11 +1,14 @@
 {
   "last_run": "2026-03-17",
-  "run_id": "23181175348",
+  "run_id": "23194266377",
   "prs_created": [
-    {"branch": "repo-assist/eng-fmt-check-2026-03-17"},
-    {"branch": "repo-assist/improve-mouse-selection-dedup"}
+    {"branch": "repo-assist/eng-fmt-check-2026-03-17", "run": "23181175348"},
+    {"branch": "repo-assist/improve-mouse-selection-dedup", "run": "23181175348"},
+    {"branch": "repo-assist/improve-extract-field", "run": "23194266377"},
+    {"branch": "repo-assist/perf-detect-columns", "run": "23194266377"}
   ],
   "monthly_month": "2026-03",
-  "community_prs": [18, 19, 21, 22],
-  "notes": "First run. No open issues. Two Repo Assist PRs created. Windows-only project."
+  "monthly_issue": 25,
+  "community_prs_closed": [18, 19, 21, 22],
+  "notes": "Community PRs 18/21/22 merged into 0.2.1. Previous two Repo Assist branches (fmt-check, mouse-selection) never pushed. This run: two new PRs (extract-field refactor, perf detect-columns). No open issues except monthly summary."
 }
