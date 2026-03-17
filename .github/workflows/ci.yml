@@ -15,6 +15,7 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
+          components: rustfmt
           targets: x86_64-pc-windows-msvc,aarch64-pc-windows-msvc
 
       - name: Cache cargo
@@ -28,6 +29,9 @@ jobs:
 
       - name: Check
         run: cargo check --all-targets
+
+      - name: Format
+        run: cargo fmt -- --check
 
       - name: Test
         run: cargo test

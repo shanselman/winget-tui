@@ -1,12 +1,12 @@
 use ratatui::{
-    Frame,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::{
-        Block, BorderType, Borders, Cell, Clear, Paragraph, Row, Scrollbar,
-        ScrollbarOrientation, ScrollbarState, Table, TableState, Wrap,
+        Block, BorderType, Borders, Cell, Clear, Paragraph, Row, Scrollbar, ScrollbarOrientation,
+        ScrollbarState, Table, TableState, Wrap,
     },
+    Frame,
 };
 
 use unicode_width::UnicodeWidthStr;
@@ -19,7 +19,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
         .constraints([
             Constraint::Length(1), // tab bar
             Constraint::Length(1), // filter + search
-            Constraint::Min(5),   // main content
+            Constraint::Min(5),    // main content
             Constraint::Length(1), // status bar
         ])
         .split(f.area());
@@ -70,10 +70,7 @@ fn draw_tab_bar(f: &mut Frame, app: &mut App, area: Rect) {
             let tab_width = UnicodeWidthStr::width(tab_text.as_str()) as u16;
             tab_regions.push((current_x, current_x + tab_width, *mode));
             current_x += tab_width + 1; // +1 for separator space
-            vec![
-                Span::styled(tab_text, style),
-                Span::raw(" "),
-            ]
+            vec![Span::styled(tab_text, style), Span::raw(" ")]
         })
         .collect();
 
@@ -165,17 +162,13 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
         vec!["Name", "ID", "Version", "Source"]
     };
 
-    let header = Row::new(
-        header_cells
-            .iter()
-            .map(|h| {
-                Cell::from(*h).style(
-                    Style::default()
-                        .fg(Color::Cyan)
-                        .add_modifier(Modifier::BOLD),
-                )
-            }),
-    )
+    let header = Row::new(header_cells.iter().map(|h| {
+        Cell::from(*h).style(
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
+        )
+    }))
     .height(1);
 
     let rows: Vec<Row> = app
@@ -219,9 +212,10 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
                     Cell::from(format!("{}{}", prefix, truncate(&pkg.name, 18))),
                     Cell::from(truncate(&pkg.id, 25)),
                     Cell::from(pkg.version.clone()),
-                    Cell::from(
-                        Span::styled(&pkg.available_version, Style::default().fg(Color::Green)),
-                    ),
+                    Cell::from(Span::styled(
+                        &pkg.available_version,
+                        Style::default().fg(Color::Green),
+                    )),
                     Cell::from(pkg.source.clone()),
                 ]
             } else {
@@ -257,8 +251,15 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
     let block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
-        .title(format!(" {icon} {title} ({}) ", app.filtered_packages.len()))
-        .title_style(Style::default().fg(Color::White).add_modifier(Modifier::BOLD));
+        .title(format!(
+            " {icon} {title} ({}) ",
+            app.filtered_packages.len()
+        ))
+        .title_style(
+            Style::default()
+                .fg(Color::White)
+                .add_modifier(Modifier::BOLD),
+        );
 
     // Loading / empty state
     let loading_msg = if app.loading {
@@ -266,9 +267,7 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
     } else if app.filtered_packages.is_empty() {
         Some(
             match app.mode {
-                AppMode::Search if app.search_query.is_empty() => {
-                    " Type / to search for packages"
-                }
+                AppMode::Search if app.search_query.is_empty() => " Type / to search for packages",
                 AppMode::Search => " No results found",
                 AppMode::Installed => " No packages found",
                 AppMode::Upgrades => " ✅ All packages are up to date!",
@@ -300,8 +299,8 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
 
     // Scrollbar
     if app.filtered_packages.len() > (area.height as usize).saturating_sub(3) {
-        let mut scrollbar_state = ScrollbarState::new(app.filtered_packages.len())
-            .position(app.selected);
+        let mut scrollbar_state =
+            ScrollbarState::new(app.filtered_packages.len()).position(app.selected);
         let scrollbar = Scrollbar::new(ScrollbarOrientation::VerticalRight)
             .begin_symbol(Some("↑"))
             .end_symbol(Some("↓"))
@@ -309,7 +308,10 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
             .thumb_symbol("█");
         f.render_stateful_widget(
             scrollbar,
-            area.inner(ratatui::layout::Margin { vertical: 1, horizontal: 0 }),
+            area.inner(ratatui::layout::Margin {
+                vertical: 1,
+                horizontal: 0,
+            }),
             &mut scrollbar_state,
         );
     }
@@ -326,7 +328,11 @@ fn draw_detail_panel(f: &mut Frame, app: &App, area: Rect) {
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
         .title(title)
-        .title_style(Style::default().fg(Color::White).add_modifier(Modifier::BOLD));
+        .title_style(
+            Style::default()
+                .fg(Color::White)
+                .add_modifier(Modifier::BOLD),
+        );
 
     if let Some(detail) = &app.detail {
         let label_style = Style::default()
@@ -381,10 +387,7 @@ fn draw_detail_panel(f: &mut Frame, app: &App, area: Rect) {
             lines.push(Line::from(Span::styled("  Description", label_style)));
             lines.push(Line::from(vec![
                 Span::raw("  "),
-                Span::styled(
-                    &detail.description,
-                    Style::default().fg(Color::Gray),
-                ),
+                Span::styled(&detail.description, Style::default().fg(Color::Gray)),
             ]));
         }
 
@@ -469,23 +472,25 @@ fn draw_detail_panel(f: &mut Frame, app: &App, area: Rect) {
                             .bg(Color::Green)
                             .add_modifier(Modifier::BOLD),
                     ));
-                    actions.push(Span::raw(format!(" Upgrade {} ", app.selected_packages.len())));
+                    actions.push(Span::raw(format!(
+                        " Upgrade {} ",
+                        app.selected_packages.len()
+                    )));
                 }
             }
         }
         lines.push(Line::from(actions));
 
-        let p = Paragraph::new(lines).block(block).wrap(Wrap { trim: false });
+        let p = Paragraph::new(lines)
+            .block(block)
+            .wrap(Wrap { trim: false });
         f.render_widget(p, area);
     } else {
         let msg = if app.filtered_packages.is_empty() {
             "  No package selected".to_string()
         } else if app.loading {
             format!("  {} Loading...", app.spinner())
-        } else if app
-            .selected_package()
-            .is_some_and(|p| p.is_truncated())
-        {
+        } else if app.selected_package().is_some_and(|p| p.is_truncated()) {
             "  ⚠ Package ID is truncated — details unavailable".to_string()
         } else {
             "  Select a package to view details".to_string()
@@ -502,7 +507,7 @@ fn draw_status_bar(f: &mut Frame, app: &App, area: Rect) {
         .direction(Direction::Horizontal)
         .constraints([
             Constraint::Length(14), // filter badge
-            Constraint::Min(1),    // status message
+            Constraint::Min(1),     // status message
             Constraint::Length(50), // keyhints
         ])
         .split(area);
@@ -510,9 +515,7 @@ fn draw_status_bar(f: &mut Frame, app: &App, area: Rect) {
     // Filter badge
     let filter_style = match app.source_filter {
         crate::models::SourceFilter::All => Style::default().fg(Color::White).bg(Color::DarkGray),
-        crate::models::SourceFilter::Winget => {
-            Style::default().fg(Color::Black).bg(Color::Blue)
-        }
+        crate::models::SourceFilter::Winget => Style::default().fg(Color::Black).bg(Color::Blue),
         crate::models::SourceFilter::MsStore => {
             Style::default().fg(Color::Black).bg(Color::Magenta)
         }
@@ -526,13 +529,14 @@ fn draw_status_bar(f: &mut Frame, app: &App, area: Rect) {
     } else {
         format!(" {}", app.status_message)
     };
-    let status_style = if app.status_message.contains("failed") || app.status_message.contains("Error") {
-        Style::default().fg(Color::Red).bg(Color::DarkGray)
-    } else if app.loading {
-        Style::default().fg(Color::Yellow).bg(Color::DarkGray)
-    } else {
-        Style::default().fg(Color::White).bg(Color::DarkGray)
-    };
+    let status_style =
+        if app.status_message.contains("failed") || app.status_message.contains("Error") {
+            Style::default().fg(Color::Red).bg(Color::DarkGray)
+        } else if app.loading {
+            Style::default().fg(Color::Yellow).bg(Color::DarkGray)
+        } else {
+            Style::default().fg(Color::White).bg(Color::DarkGray)
+        };
     let status = Paragraph::new(status_text).style(status_style);
     f.render_widget(status, chunks[1]);
 
@@ -586,7 +590,9 @@ fn draw_confirm_dialog(f: &mut Frame, confirm: &ConfirmDialog) {
         ]),
     ];
 
-    let p = Paragraph::new(lines).block(block).wrap(Wrap { trim: false });
+    let p = Paragraph::new(lines)
+        .block(block)
+        .wrap(Wrap { trim: false });
     f.render_widget(p, area);
 }
 
@@ -691,10 +697,7 @@ fn draw_help_overlay(f: &mut Frame) {
             Span::styled("  q / Esc     ", key),
             Span::raw("Quit / Close dialog"),
         ]),
-        Line::from(vec![
-            Span::styled("  Ctrl+C      ", key),
-            Span::raw("Quit"),
-        ]),
+        Line::from(vec![Span::styled("  Ctrl+C      ", key), Span::raw("Quit")]),
         Line::raw(""),
     ];
 

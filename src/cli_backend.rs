@@ -1,4 +1,4 @@
-use anyhow::{Context, Result, bail};
+use anyhow::{bail, Context, Result};
 use async_trait::async_trait;
 use unicode_width::UnicodeWidthChar;
 
@@ -151,8 +151,9 @@ impl CliBackend {
         match key.to_lowercase().as_str() {
             "version" | "packageversion" => "version",
             "publisher" | "herausgeber" | "éditeur" | "editore" | "editor" => "publisher",
-            "description" | "beschreibung" | "descripción" | "descrição" | "descrizione"
-                => "description",
+            "description" | "beschreibung" | "descripción" | "descrição" | "descrizione" => {
+                "description"
+            }
             "homepage" | "startseite" => "homepage",
             "publisher url" | "herausgeber-url" => "publisher_url",
             "license" | "lizenz" | "licence" | "licencia" | "licença" | "licenza" => "license",
@@ -196,15 +197,19 @@ impl CliBackend {
         // to support non-English locales (e.g. German: ID, Verfügbar, Quelle)
         let mut name_idx = Self::find_column_ci(cols, &["name", "nom", "nombre", "nome"]);
         let mut id_idx = Self::find_column_ci(cols, &["id", "id."]);
-        let mut ver_idx = Self::find_column_ci(cols, &[
-            "version", "versión", "versão", "versione",
-        ]);
-        let mut source_idx = Self::find_column_ci(cols, &[
-            "source", "quelle", "origen", "fonte", "origine",
-        ]);
-        let mut avail_idx = Self::find_column_ci(cols, &[
-            "available", "verfügbar", "disponible", "disponível", "disponibile",
-        ]);
+        let mut ver_idx = Self::find_column_ci(cols, &["version", "versión", "versão", "versione"]);
+        let mut source_idx =
+            Self::find_column_ci(cols, &["source", "quelle", "origen", "fonte", "origine"]);
+        let mut avail_idx = Self::find_column_ci(
+            cols,
+            &[
+                "available",
+                "verfügbar",
+                "disponible",
+                "disponível",
+                "disponibile",
+            ],
+        );
 
         // Positional fallback for unrecognized locales (e.g. CJK)
         if id_idx.is_none() && cols.len() >= 4 {
@@ -351,7 +356,8 @@ impl CliBackend {
                     result.trim().to_string()
                 };
 
-                let mut name_idx = Self::find_column_ci(&col_positions, &["name", "nom", "nombre", "nome"]);
+                let mut name_idx =
+                    Self::find_column_ci(&col_positions, &["name", "nom", "nombre", "nome"]);
                 let mut arg_idx = Self::find_column_ci(&col_positions, &["argument"]);
                 let mut type_idx = Self::find_column_ci(&col_positions, &["type", "typ", "tipo"]);
 
@@ -417,7 +423,13 @@ impl WingetBackend for CliBackend {
     }
 
     async fn install(&self, id: &str, version: Option<&str>) -> Result<String> {
-        let mut args = vec!["install", "--id", id, "--accept-source-agreements", "--accept-package-agreements"];
+        let mut args = vec![
+            "install",
+            "--id",
+            id,
+            "--accept-source-agreements",
+            "--accept-package-agreements",
+        ];
         if let Some(v) = version {
             args.push("--version");
             args.push(v);
@@ -431,8 +443,14 @@ impl WingetBackend for CliBackend {
     }
 
     async fn upgrade(&self, id: &str) -> Result<String> {
-        self.run_winget_strict(&["upgrade", "--id", id, "--accept-source-agreements", "--accept-package-agreements"])
-            .await
+        self.run_winget_strict(&[
+            "upgrade",
+            "--id",
+            id,
+            "--accept-source-agreements",
+            "--accept-package-agreements",
+        ])
+        .await
     }
 
     async fn list_sources(&self) -> Result<Vec<Source>> {
@@ -537,7 +555,10 @@ Quelle: winget
         assert_eq!(detail.name, "Google Chrome");
         assert_eq!(detail.version, "132.0.6834");
         assert_eq!(detail.publisher, "Google LLC");
-        assert_eq!(detail.description, "Ein schneller, sicherer und kostenloser Webbrowser");
+        assert_eq!(
+            detail.description,
+            "Ein schneller, sicherer und kostenloser Webbrowser"
+        );
         assert_eq!(detail.homepage, "https://www.google.com/chrome");
         assert_eq!(detail.license, "Proprietary");
     }
@@ -569,7 +590,11 @@ vc_clip                        vc_clip.vc_dir              2026.01.29           
 2 Pakete verfügen über Pins, die ein Upgrade verhindern. Verwenden Sie den Befehl \"winget pin\", um Pins anzuzeigen und zu bearbeiten. Wenn Sie das --include-pinned-Argument verwenden, werden möglicherweise weitere Ergebnisse angezeigt.
 ";
         let packages = backend.parse_packages_from_table(output);
-        assert_eq!(packages.len(), 2, "should parse only the package rows, not the pin message");
+        assert_eq!(
+            packages.len(),
+            2,
+            "should parse only the package rows, not the pin message"
+        );
         assert_eq!(packages[0].id, "Microsoft.Sysinternals.R...");
         assert_eq!(packages[0].version, "1.61");
         assert_eq!(packages[0].available_version, "1.62");
@@ -587,7 +612,11 @@ Google Chrome                  Google.Chrome               131.0.6778  132.0.683
 2 packages have pins that prevent upgrade. Use the \"winget pin\" command to view and edit pins. If you use the --include-pinned argument, additional results may be displayed.
 ";
         let packages = backend.parse_packages_from_table(output);
-        assert_eq!(packages.len(), 1, "should parse only the package rows, not the pin message");
+        assert_eq!(
+            packages.len(),
+            1,
+            "should parse only the package rows, not the pin message"
+        );
         assert_eq!(packages[0].id, "Google.Chrome");
         assert_eq!(packages[0].available_version, "132.0.6834");
     }
@@ -604,7 +633,11 @@ Microsoft Visual Studio Code   Microsoft.VisualStudioCode  1.95.3      1.96.0   
 2 upgrades available.
 ";
         let packages = backend.parse_packages_from_table(output);
-        assert_eq!(packages.len(), 2, "should parse package rows, stopping at footer");
+        assert_eq!(
+            packages.len(),
+            2,
+            "should parse package rows, stopping at footer"
+        );
         assert_eq!(packages[0].id, "Google.Chrome");
         assert_eq!(packages[1].id, "Microsoft.VisualStudioCode");
     }
@@ -657,8 +690,14 @@ Slack                                 SlackTechnologies.Slack               4.48
 ";
         let packages = backend.parse_packages_from_table(output);
         assert_eq!(packages.len(), 2);
-        assert!(packages[0].is_truncated(), "truncated MSIX ID should be detected");
-        assert!(!packages[1].is_truncated(), "normal ID should not be truncated");
+        assert!(
+            packages[0].is_truncated(),
+            "truncated MSIX ID should be detected"
+        );
+        assert!(
+            !packages[1].is_truncated(),
+            "normal ID should not be truncated"
+        );
     }
 
     #[test]
@@ -675,7 +714,11 @@ Google Chrome                  Google.Chrome               131.0.6778  132.0.683
 Microsoft Visual Studio Code   Microsoft.VisualStudioCode  1.95.3      1.96.0      winget
 ";
         let packages = backend.parse_packages_from_table(output);
-        assert_eq!(packages.len(), 2, "footer must be skipped, but VS Code after it must be kept");
+        assert_eq!(
+            packages.len(),
+            2,
+            "footer must be skipped, but VS Code after it must be kept"
+        );
         assert_eq!(packages[0].id, "Google.Chrome");
         assert_eq!(packages[1].id, "Microsoft.VisualStudioCode");
     }

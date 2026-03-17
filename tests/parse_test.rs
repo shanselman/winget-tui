@@ -4,7 +4,11 @@
 #[tokio::test]
 async fn test_winget_list_parsing() {
     let output = tokio::process::Command::new("winget")
-        .args(&["list", "--accept-source-agreements", "--disable-interactivity"])
+        .args(&[
+            "list",
+            "--accept-source-agreements",
+            "--disable-interactivity",
+        ])
         .output()
         .await
         .expect("winget not found");
@@ -32,14 +36,16 @@ async fn test_winget_list_parsing() {
         let is_sep = trimmed.len() > 10
             && trimmed.chars().all(|c| c == '-' || c == ' ')
             && trimmed.contains('-');
-        println!("  [{i}] len={:3} sep={is_sep} | {:?}", l.len(), &l[..l.len().min(90)]);
+        println!(
+            "  [{i}] len={:3} sep={is_sep} | {:?}",
+            l.len(),
+            &l[..l.len().min(90)]
+        );
     }
 
     let sep_idx = lines.iter().position(|l| {
         let trimmed = l.trim();
-        trimmed.len() > 10
-            && trimmed.chars().all(|c| c == '-' || c == ' ')
-            && trimmed.contains('-')
+        trimmed.len() > 10 && trimmed.chars().all(|c| c == '-' || c == ' ') && trimmed.contains('-')
     });
 
     let sep_idx = sep_idx.expect("No separator found");

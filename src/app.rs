@@ -23,8 +23,14 @@ pub struct LayoutRegions {
 /// Messages sent from background tasks back to the UI
 #[derive(Debug)]
 pub enum AppMessage {
-    PackagesLoaded { generation: u64, packages: Vec<Package> },
-    DetailLoaded { generation: u64, detail: PackageDetail },
+    PackagesLoaded {
+        generation: u64,
+        packages: Vec<Package>,
+    },
+    DetailLoaded {
+        generation: u64,
+        detail: PackageDetail,
+    },
     OperationComplete(OpResult),
     StatusUpdate(String),
     Error(String),
@@ -211,7 +217,10 @@ impl App {
 
             match result {
                 Ok(packages) => {
-                    let _ = tx.send(AppMessage::PackagesLoaded { generation, packages });
+                    let _ = tx.send(AppMessage::PackagesLoaded {
+                        generation,
+                        packages,
+                    });
                 }
                 Err(e) => {
                     let _ = tx.send(AppMessage::Error(e.to_string()));
@@ -268,9 +277,7 @@ impl App {
 
         tokio::spawn(async move {
             let result = match &op {
-                Operation::Install { id, version } => {
-                    backend.install(id, version.as_deref()).await
-                }
+                Operation::Install { id, version } => backend.install(id, version.as_deref()).await,
                 Operation::Uninstall { id } => backend.uninstall(id).await,
                 Operation::Upgrade { id } => backend.upgrade(id).await,
                 Operation::BatchUpgrade { ids } => {
@@ -322,7 +329,10 @@ impl App {
     pub fn process_messages(&mut self) {
         while let Ok(msg) = self.message_rx.try_recv() {
             match msg {
-                AppMessage::PackagesLoaded { generation, packages } => {
+                AppMessage::PackagesLoaded {
+                    generation,
+                    packages,
+                } => {
                     // Discard stale results from a previous view/search
                     if generation < self.view_generation {
                         continue;
@@ -349,10 +359,26 @@ impl App {
                     // Merge: if winget show returned empty fields, keep pre-populated data
                     let merged = if let Some(existing) = &self.detail {
                         PackageDetail {
-                            id: if detail.id.is_empty() { existing.id.clone() } else { detail.id.clone() },
-                            name: if detail.name.is_empty() { existing.name.clone() } else { detail.name.clone() },
-                            version: if detail.version.is_empty() { existing.version.clone() } else { detail.version.clone() },
-                            source: if detail.source.is_empty() { existing.source.clone() } else { detail.source.clone() },
+                            id: if detail.id.is_empty() {
+                                existing.id.clone()
+                            } else {
+                                detail.id.clone()
+                            },
+                            name: if detail.name.is_empty() {
+                                existing.name.clone()
+                            } else {
+                                detail.name.clone()
+                            },
+                            version: if detail.version.is_empty() {
+                                existing.version.clone()
+                            } else {
+                                detail.version.clone()
+                            },
+                            source: if detail.source.is_empty() {
+                                existing.source.clone()
+                            } else {
+                                detail.source.clone()
+                            },
                             publisher: detail.publisher.clone(),
                             description: detail.description.clone(),
                             homepage: detail.homepage.clone(),

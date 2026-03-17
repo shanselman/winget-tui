@@ -43,11 +43,7 @@ pub struct Package {
     pub id: String,
     #[serde(alias = "PackageName", alias = "Name")]
     pub name: String,
-    #[serde(
-        alias = "PackageVersion",
-        alias = "Version",
-        default
-    )]
+    #[serde(alias = "PackageVersion", alias = "Version", default)]
     pub version: String,
     #[serde(alias = "Source", default)]
     pub source: String,

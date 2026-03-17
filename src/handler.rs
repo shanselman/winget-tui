@@ -1,4 +1,6 @@
-use crossterm::event::{self, Event, KeyCode, KeyEventKind, KeyModifiers, MouseButton, MouseEventKind};
+use crossterm::event::{
+    self, Event, KeyCode, KeyEventKind, KeyModifiers, MouseButton, MouseEventKind,
+};
 
 use crate::app::{App, AppMode, ConfirmDialog, InputMode};
 use crate::models::Operation;
@@ -168,10 +170,7 @@ fn handle_normal_mode(
                 let id = pkg.id.clone();
                 app.confirm = Some(ConfirmDialog {
                     message: format!("Install {}?", id),
-                    operation: Operation::Install {
-                        id,
-                        version: None,
-                    },
+                    operation: Operation::Install { id, version: None },
                 });
             }
         }
@@ -208,7 +207,11 @@ fn handle_normal_mode(
                     .collect();
                 let count = ids.len();
                 app.confirm = Some(ConfirmDialog {
-                    message: format!("Upgrade {} selected package{}?", count, if count == 1 { "" } else { "s" }),
+                    message: format!(
+                        "Upgrade {} selected package{}?",
+                        count,
+                        if count == 1 { "" } else { "s" }
+                    ),
                     operation: Operation::BatchUpgrade { ids },
                 });
             }
@@ -274,10 +277,7 @@ fn select_package_at_row(app: &mut App, row: u16) {
     }
 }
 
-fn handle_mouse(
-    app: &mut App,
-    mouse: crossterm::event::MouseEvent,
-) -> anyhow::Result<bool> {
+fn handle_mouse(app: &mut App, mouse: crossterm::event::MouseEvent) -> anyhow::Result<bool> {
     let col = mouse.column;
     let row = mouse.row;
 
@@ -390,10 +390,7 @@ fn scrollbar_jump(app: &mut App, row: u16) {
 
 /// Check if a coordinate is within a Rect
 fn in_rect(col: u16, row: u16, rect: ratatui::layout::Rect) -> bool {
-    col >= rect.x
-        && col < rect.x + rect.width
-        && row >= rect.y
-        && row < rect.y + rect.height
+    col >= rect.x && col < rect.x + rect.width && row >= rect.y && row < rect.y + rect.height
 }
 
 /// Determine which tab was clicked based on x position
