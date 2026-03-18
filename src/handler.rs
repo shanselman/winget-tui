@@ -248,6 +248,17 @@ fn handle_normal_mode(
             load_detail_for_selected(app);
         }
 
+        // Open homepage in default browser
+        KeyCode::Char('o') => {
+            if let Some(detail) = &app.detail {
+                if !detail.homepage.is_empty() {
+                    let url = detail.homepage.clone();
+                    open_url(&url);
+                    app.set_status(format!("Opening {}…", url));
+                }
+            }
+        }
+
         _ => {}
     }
     Ok(false)
@@ -391,6 +402,24 @@ fn scrollbar_jump(app: &mut App, row: u16) {
 /// Check if a coordinate is within a Rect
 fn in_rect(col: u16, row: u16, rect: ratatui::layout::Rect) -> bool {
     col >= rect.x && col < rect.x + rect.width && row >= rect.y && row < rect.y + rect.height
+}
+
+/// Open a URL in the system default browser.
+fn open_url(url: &str) {
+    #[cfg(target_os = "windows")]
+    {
+        let _ = std::process::Command::new("cmd")
+            .args(["/c", "start", "", url])
+            .spawn();
+    }
+    #[cfg(target_os = "macos")]
+    {
+        let _ = std::process::Command::new("open").arg(url).spawn();
+    }
+    #[cfg(not(any(target_os = "windows", target_os = "macos")))]
+    {
+        let _ = std::process::Command::new("xdg-open").arg(url).spawn();
+    }
 }
 
 /// Determine which tab was clicked based on x position
