@@ -1,6 +1,7 @@
 # Rust build artifacts
 /target
 *.pdb
+*.exe
 
 # IDE / editor
 .vs/
