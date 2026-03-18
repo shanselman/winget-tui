@@ -35,18 +35,20 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Install GitVersion
-        uses: gittools/actions/gitversion/setup@v4
+        uses: gittools/actions/gitversion/setup@e0d584e657c606912e8fd522aeed29025975705f  # v4
         with:
           versionSpec: '6.4.x'
 
       - name: GitVersion
-        uses: gittools/actions/gitversion/execute@v4
+        uses: gittools/actions/gitversion/execute@e0d584e657c606912e8fd522aeed29025975705f  # v4
         id: gitversion
 
       - name: Set version
         shell: pwsh
+        env:
+          SEMVER: ${{ steps.gitversion.outputs.semVer }}
         run: |
-          $version = '${{ steps.gitversion.outputs.semVer }}'
+          $version = $env:SEMVER
           Write-Host "Version: $version"
           echo "VERSION=$version" >> $env:GITHUB_ENV
 
@@ -58,13 +60,13 @@ jobs:
 
       - name: Azure Login
         if: startsWith(github.ref, 'refs/tags/')
-        uses: azure/login@v2
+        uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5  # v2
         with:
           creds: '{"clientId":"${{ secrets.AZURE_CLIENT_ID }}","clientSecret":"${{ secrets.AZURE_CLIENT_SECRET }}","subscriptionId":"${{ secrets.AZURE_SUBSCRIPTION_ID }}","tenantId":"${{ secrets.AZURE_TENANT_ID }}"}'
 
       - name: Sign executables with Trusted Signing
         if: startsWith(github.ref, 'refs/tags/')
-        uses: azure/trusted-signing-action@v1
+        uses: azure/trusted-signing-action@db7a3a6bd3912025c705162fb7475389f5b69ec6  # v1
         with:
           azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
@@ -108,7 +110,7 @@ jobs:
           merge-multiple: true
 
       - name: Create Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe  # v2
         with:
           files: artifacts/*.exe
           generate_release_notes: true
