@@ -9,6 +9,14 @@ use crate::models::{Package, PackageDetail, Source};
 
 pub struct CliBackend;
 
+/// Strip ASCII control characters (0x00–0x1F, 0x7F) except tab and newline.
+/// Prevents ANSI escape injection from malicious package metadata.
+fn sanitize_text(s: &str) -> String {
+    s.chars()
+        .filter(|&c| c == '\t' || c == '\n' || (c >= ' ' && c != '\x7F'))
+        .collect()
+}
+
 impl CliBackend {
     pub fn new() -> Self {
         Self
@@ -240,11 +248,11 @@ impl CliBackend {
         }
 
         Some(Package {
-            name: name_idx.map(&field).unwrap_or_default(),
-            id,
-            version: ver_idx.map(&field).unwrap_or_default(),
-            source: source_idx.map(&field).unwrap_or_default(),
-            available_version: avail_idx.map(&field).unwrap_or_default(),
+            name: sanitize_text(&name_idx.map(&field).unwrap_or_default()),
+            id: sanitize_text(&id),
+            version: sanitize_text(&ver_idx.map(&field).unwrap_or_default()),
+            source: sanitize_text(&source_idx.map(&field).unwrap_or_default()),
+            available_version: sanitize_text(&avail_idx.map(&field).unwrap_or_default()),
         })
     }
 
@@ -266,11 +274,13 @@ impl CliBackend {
                 if bracket_end > bracket_start && !trimmed.contains(':') {
                     let before_bracket = trimmed[..bracket_start].trim();
                     // Skip the prefix word ("Found", "Gefunden", etc.)
-                    detail.name = before_bracket
-                        .split_once(' ')
-                        .map(|(_, name)| name.trim().to_string())
-                        .unwrap_or_default();
-                    detail.id = trimmed[bracket_start + 1..bracket_end].to_string();
+                    detail.name = sanitize_text(
+                        &before_bracket
+                            .split_once(' ')
+                            .map(|(_, name)| name.trim().to_string())
+                            .unwrap_or_default(),
+                    );
+                    detail.id = sanitize_text(&trimmed[bracket_start + 1..bracket_end].to_string());
                     i += 1;
                     continue;
                 }
@@ -282,8 +292,8 @@ impl CliBackend {
                     let key = key.trim();
                     let value = value.trim().to_string();
                     match Self::normalize_show_key(key) {
-                        "version" => detail.version = value,
-                        "publisher" => detail.publisher = value,
+                        "version" => detail.version = sanitize_text(&value),
+                        "publisher" => detail.publisher = sanitize_text(&value),
                         "description" => {
                             // Description value may be on this line or on indented continuation lines
                             let mut desc = value;
@@ -294,16 +304,16 @@ impl CliBackend {
                                 }
                                 desc.push_str(lines[i].trim());
                             }
-                            detail.description = desc;
+                            detail.description = sanitize_text(&desc);
                         }
-                        "homepage" => detail.homepage = value,
+                        "homepage" => detail.homepage = sanitize_text(&value),
                         "publisher_url" => {
                             if detail.homepage.is_empty() {
-                                detail.homepage = value;
+                                detail.homepage = sanitize_text(&value);
                             }
                         }
-                        "license" => detail.license = value,
-                        "source" => detail.source = value,
+                        "license" => detail.license = sanitize_text(&value),
+                        "source" => detail.source = sanitize_text(&value),
                         _ => {}
                     }
                 }
@@ -707,5 +717,32 @@ Microsoft Visual Studio Code   Microsoft.VisualStudioCode  1.95.3      1.96.0   
         );
         assert_eq!(packages[0].id, "Google.Chrome");
         assert_eq!(packages[1].id, "Microsoft.VisualStudioCode");
+    }
+
+    #[test]
+    fn sanitize_strips_ansi_escape_from_package_name() {
+        // Direct test of sanitize_text helper
+        let dirty = "Evil\x1b]52;c;payload\x07App";
+        let clean = super::sanitize_text(dirty);
+        assert!(!clean.contains('\x1b'), "ESC must be stripped");
+        assert!(!clean.contains('\x07'), "BEL must be stripped");
+        assert_eq!(clean, "Evil]52;c;payloadApp");
+
+        // Verify tab and newline are preserved
+        assert_eq!(super::sanitize_text("a\tb\nc"), "a\tb\nc");
+
+        // End-to-end: package table with embedded escape in name
+        let backend = CliBackend::new();
+        let output = "\
+Name                           Id                          Version   Source
+----------------------------------------------------------------------------------
+Google\x1b[2JChrome            Google.Chrome               131.0     winget
+";
+        let packages = backend.parse_packages_from_table(output);
+        assert_eq!(packages.len(), 1);
+        assert!(
+            !packages[0].name.contains('\x1b'),
+            "ANSI escape must be stripped from parsed package name"
+        );
     }
 }
