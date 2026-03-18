@@ -1,11 +1,1 @@
-{
-  "last_run": "2026-03-18",
-  "run_id": "23223690877",
-  "prs_created": [
-    {"b": "repo-assist/improve-extract-field-472e1b61fc0fc1d4"},
-    {"b": "repo-assist/perf-detect-columns-13e38ed7ff98c612"},
-    {"b": "repo-assist/feat-open-homepage-2026-03-18"}
-  ],
-  "monthly_issue": 25,
-  "notes": "No community issues. Latest PR: 'o' opens homepage in browser. 3 pending branches await maintainer."
-}
+{"last_run":"2026-03-18","run_id":"23244810531","monthly_issue":25,"branches":["repo-assist/eng-improvements-2026-03-18","repo-assist/feat-open-homepage-2026-03-18-fc71df261c435d06","repo-assist/perf-detect-columns-13e38ed7ff98c612","repo-assist/improve-extract-field-472e1b61fc0fc1d4"],"notes":"4 pending branches. Latest: ci/audit+parse_test cfg fix."}
