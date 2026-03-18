@@ -479,6 +479,18 @@ fn draw_detail_panel(f: &mut Frame, app: &App, area: Rect) {
                 }
             }
         }
+        // Open homepage hint when available
+        if !detail.homepage.is_empty() {
+            actions.push(Span::raw("  "));
+            actions.push(Span::styled(
+                " o ",
+                Style::default()
+                    .fg(Color::Black)
+                    .bg(Color::Blue)
+                    .add_modifier(Modifier::BOLD),
+            ));
+            actions.push(Span::raw(" Open homepage "));
+        }
         lines.push(Line::from(actions));
 
         let p = Paragraph::new(lines)
@@ -676,6 +688,10 @@ fn draw_help_overlay(f: &mut Frame) {
         Line::from(vec![
             Span::styled("  Enter       ", key),
             Span::raw("Show package details"),
+        ]),
+        Line::from(vec![
+            Span::styled("  o           ", key),
+            Span::raw("Open homepage in browser"),
         ]),
         Line::raw(""),
         Line::from(Span::styled(" 🖱 Mouse", section)),
