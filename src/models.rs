@@ -18,13 +18,6 @@ impl SourceFilter {
         }
     }
 
-    pub fn matches(&self, source: &str) -> bool {
-        match self {
-            Self::All => true,
-            Self::Winget => source.eq_ignore_ascii_case("winget"),
-            Self::MsStore => source.eq_ignore_ascii_case("msstore"),
-        }
-    }
 }
 
 impl fmt::Display for SourceFilter {
