@@ -98,6 +98,10 @@ impl CliBackend {
         let header = lines[sep_idx - 1];
         let col_positions = Self::detect_columns(header);
 
+        // Resolve column indices once for the whole table; individual row parsing
+        // reuses this result instead of re-running find_column_ci on every row.
+        let col_indices = Self::resolve_package_columns(&col_positions);
+
         lines[sep_idx + 1..]
             .iter()
             .filter(|l| !l.trim().is_empty())
@@ -109,7 +113,7 @@ impl CliBackend {
                 let d = bytes.iter().take_while(|b| b.is_ascii_digit()).count();
                 !(d > 0 && d < bytes.len() && bytes[d] == b' ')
             })
-            .filter_map(|line| self.parse_table_row(line, &col_positions))
+            .filter_map(|line| Self::parse_table_row(line, &col_positions, col_indices))
             .collect()
     }
 
@@ -151,6 +155,55 @@ impl CliBackend {
             let lower = col_name.to_lowercase();
             names.iter().any(|n| lower == *n)
         })
+    }
+
+    /// Resolve column indices from a parsed header once per table.
+    ///
+    /// `find_column_ci` (which calls `to_lowercase()` per column) was previously
+    /// called five times inside `parse_table_row`, meaning O(rows × columns)
+    /// allocations for a table with N rows. By resolving indices here — once per
+    /// table — and reusing the result across all data rows, we reduce that to
+    /// O(columns) allocations regardless of row count.
+    fn resolve_package_columns(
+        cols: &[(&str, usize)],
+    ) -> (
+        Option<usize>,
+        Option<usize>,
+        Option<usize>,
+        Option<usize>,
+        Option<usize>,
+    ) {
+        let mut name_idx = Self::find_column_ci(cols, &["name", "nom", "nombre", "nome"]);
+        let mut id_idx = Self::find_column_ci(cols, &["id", "id."]);
+        let mut ver_idx =
+            Self::find_column_ci(cols, &["version", "versión", "versão", "versione"]);
+        let mut source_idx =
+            Self::find_column_ci(cols, &["source", "quelle", "origen", "fonte", "origine"]);
+        let mut avail_idx = Self::find_column_ci(
+            cols,
+            &[
+                "available",
+                "verfügbar",
+                "disponible",
+                "disponível",
+                "disponibile",
+            ],
+        );
+
+        // Positional fallback for unrecognized locales (e.g. CJK)
+        if id_idx.is_none() && cols.len() >= 4 {
+            name_idx = name_idx.or(Some(0));
+            id_idx = Some(1);
+            ver_idx = ver_idx.or(Some(2));
+            if cols.len() >= 5 {
+                avail_idx = avail_idx.or(Some(3));
+                source_idx = source_idx.or(Some(4));
+            } else {
+                source_idx = source_idx.or(Some(3));
+            }
+        }
+
+        (name_idx, id_idx, ver_idx, source_idx, avail_idx)
     }
 
     /// Extract the field at column `idx` from `line`, using display-width column boundaries.
@@ -198,43 +251,22 @@ impl CliBackend {
         }
     }
 
-    fn parse_table_row(&self, line: &str, cols: &[(&str, usize)]) -> Option<Package> {
+    fn parse_table_row(
+        line: &str,
+        cols: &[(&str, usize)],
+        (name_idx, id_idx, ver_idx, source_idx, avail_idx): (
+            Option<usize>,
+            Option<usize>,
+            Option<usize>,
+            Option<usize>,
+            Option<usize>,
+        ),
+    ) -> Option<Package> {
         // Extract fields using display-width columns (not byte offsets).
         // The header column positions are in display-width units (ASCII, so bytes == display width).
         // Data rows may contain multi-byte UTF-8 chars (e.g. '…') that are 1 display column
         // but 3 bytes, so we walk chars counting display width to find correct slice points.
         let field = |idx| Self::extract_field(line, cols, idx);
-
-        // Find column indices by name — case-insensitive with known translations
-        // to support non-English locales (e.g. German: ID, Verfügbar, Quelle)
-        let mut name_idx = Self::find_column_ci(cols, &["name", "nom", "nombre", "nome"]);
-        let mut id_idx = Self::find_column_ci(cols, &["id", "id."]);
-        let mut ver_idx = Self::find_column_ci(cols, &["version", "versión", "versão", "versione"]);
-        let mut source_idx =
-            Self::find_column_ci(cols, &["source", "quelle", "origen", "fonte", "origine"]);
-        let mut avail_idx = Self::find_column_ci(
-            cols,
-            &[
-                "available",
-                "verfügbar",
-                "disponible",
-                "disponível",
-                "disponibile",
-            ],
-        );
-
-        // Positional fallback for unrecognized locales (e.g. CJK)
-        if id_idx.is_none() && cols.len() >= 4 {
-            name_idx = name_idx.or(Some(0));
-            id_idx = Some(1);
-            ver_idx = ver_idx.or(Some(2));
-            if cols.len() >= 5 {
-                avail_idx = avail_idx.or(Some(3));
-                source_idx = source_idx.or(Some(4));
-            } else {
-                source_idx = source_idx.or(Some(3));
-            }
-        }
 
         let id = id_idx.map(&field).unwrap_or_default();
         if id.is_empty() {
