@@ -731,6 +731,9 @@ Microsoft Visual Studio Code   Microsoft.VisualStudioCode  1.95.3      1.96.0   
         // Verify tab and newline are preserved
         assert_eq!(super::sanitize_text("a\tb\nc"), "a\tb\nc");
 
+        // Verify DEL (0x7F) is stripped
+        assert_eq!(super::sanitize_text("a\x7fb"), "ab");
+
         // End-to-end: package table with embedded escape in name
         let backend = CliBackend::new();
         let output = "\
@@ -744,5 +747,116 @@ Google\x1b[2JChrome            Google.Chrome               131.0     winget
             !packages[0].name.contains('\x1b'),
             "ANSI escape must be stripped from parsed package name"
         );
+    }
+
+    #[test]
+    fn parse_table_empty_output_returns_empty() {
+        let backend = CliBackend::new();
+        assert!(backend.parse_packages_from_table("").is_empty());
+        assert!(backend.parse_packages_from_table("\n\n").is_empty());
+    }
+
+    #[test]
+    fn parse_table_no_separator_returns_empty() {
+        let backend = CliBackend::new();
+        // Output with a header but no separator line
+        let output = "\
+Name                           Id                          Version   Source
+Google Chrome                  Google.Chrome               131.0     winget
+";
+        assert!(backend.parse_packages_from_table(output).is_empty());
+    }
+
+    #[test]
+    fn parse_show_output_multiline_description() {
+        let backend = CliBackend::new();
+        // winget wraps long descriptions across indented continuation lines
+        let output = "\
+Found Visual Studio Code [Microsoft.VisualStudioCode]
+Version: 1.96.0
+Publisher: Microsoft Corporation
+Description: Visual Studio Code is a lightweight but powerful source code editor
+  which runs on your desktop and is available for Windows, macOS and Linux.
+  It comes with built-in support for JavaScript, TypeScript and Node.js.
+License: MIT
+Source: winget
+";
+        let detail = backend.parse_show_output(output);
+        assert_eq!(detail.id, "Microsoft.VisualStudioCode");
+        assert_eq!(detail.name, "Visual Studio Code");
+        assert!(
+            detail.description.contains("lightweight"),
+            "first line of description must be present"
+        );
+        assert!(
+            detail.description.contains("Windows, macOS and Linux"),
+            "continuation line must be joined"
+        );
+        assert!(
+            detail.description.contains("JavaScript"),
+            "second continuation line must be joined"
+        );
+        // Description must not bleed into license
+        assert_eq!(detail.license, "MIT");
+    }
+
+    #[test]
+    fn parse_show_output_publisher_url_fallback_for_homepage() {
+        let backend = CliBackend::new();
+        // When Homepage is absent but Publisher URL is present, use Publisher URL
+        let output = "\
+Found 7-Zip [7zip.7zip]
+Version: 25.01
+Publisher: Igor Pavlov
+Publisher Url: https://www.7-zip.org
+License: LGPL-2.1
+Source: winget
+";
+        let detail = backend.parse_show_output(output);
+        assert_eq!(detail.id, "7zip.7zip");
+        assert_eq!(detail.homepage, "https://www.7-zip.org");
+    }
+
+    #[test]
+    fn parse_show_output_homepage_takes_priority_over_publisher_url() {
+        let backend = CliBackend::new();
+        let output = "\
+Found Git [Git.Git]
+Version: 2.47.0
+Publisher: The Git Development Community
+Homepage: https://git-scm.com
+Publisher Url: https://git-scm.com/about
+License: GPL-2.0
+Source: winget
+";
+        let detail = backend.parse_show_output(output);
+        // Homepage key wins over Publisher Url
+        assert_eq!(detail.homepage, "https://git-scm.com");
+    }
+
+    #[test]
+    fn parse_sources_from_table_english() {
+        let backend = CliBackend::new();
+        let output = "\
+Name    Argument                                         Type
+-------------------------------------------------------------
+winget  https://cdn.winget.microsoft.com/cache           Microsoft.PreIndexed.Package
+msstore https://storeedgefd.dsx.mp.microsoft.com/v9.0    Microsoft.Rest
+";
+        let sources = backend.parse_sources_from_table(output);
+        assert_eq!(sources.len(), 2);
+        assert_eq!(sources[0].name, "winget");
+        assert_eq!(
+            sources[0].url,
+            "https://cdn.winget.microsoft.com/cache"
+        );
+        assert_eq!(sources[0].source_type, "Microsoft.PreIndexed.Package");
+        assert_eq!(sources[1].name, "msstore");
+    }
+
+    #[test]
+    fn parse_sources_from_table_empty_returns_empty() {
+        let backend = CliBackend::new();
+        assert!(backend.parse_sources_from_table("").is_empty());
     }
 }
