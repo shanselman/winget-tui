@@ -116,31 +116,29 @@ impl CliBackend {
     fn detect_columns(header: &str) -> Vec<(&str, usize)> {
         let mut cols = Vec::new();
         let mut display_pos = 0usize;
-        let mut byte_pos = 0usize;
+        let mut iter = header.char_indices().peekable();
 
-        let chars: Vec<char> = header.chars().collect();
-        let mut ci = 0;
-
-        while ci < chars.len() {
-            // Skip whitespace
-            while ci < chars.len() && chars[ci] == ' ' {
+        loop {
+            // Skip whitespace (ASCII space = 1 display column = 1 byte)
+            while iter.peek().map_or(false, |&(_, c)| c == ' ') {
+                iter.next();
                 display_pos += 1;
-                byte_pos += 1;
-                ci += 1;
             }
-            if ci >= chars.len() {
-                break;
-            }
+            let &(start_byte, _) = match iter.peek() {
+                Some(v) => v,
+                None => break,
+            };
             let start_display = display_pos;
-            let start_byte = byte_pos;
-            // Read until whitespace
-            while ci < chars.len() && chars[ci] != ' ' {
-                display_pos += chars[ci].width().unwrap_or(0);
-                byte_pos += chars[ci].len_utf8();
-                ci += 1;
+            // Read non-space characters, tracking display width
+            while let Some(&(_, c)) = iter.peek() {
+                if c == ' ' {
+                    break;
+                }
+                display_pos += c.width().unwrap_or(0);
+                iter.next();
             }
-            let name = &header[start_byte..byte_pos];
-            cols.push((name, start_display));
+            let end_byte = iter.peek().map_or(header.len(), |&(b, _)| b);
+            cols.push((&header[start_byte..end_byte], start_display));
         }
         cols
     }
