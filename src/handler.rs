@@ -253,8 +253,7 @@ fn handle_normal_mode(
             if let Some(detail) = &app.detail {
                 if !detail.homepage.is_empty() {
                     let url = detail.homepage.clone();
-                    if url.starts_with("http://") || url.starts_with("https://") {
-                        open_url(&url);
+                    if open_url(&url) {
                         app.set_status(format!("Opening {}…", url));
                     } else {
                         app.set_status("Blocked: URL must start with http:// or https://");
@@ -410,9 +409,11 @@ fn in_rect(col: u16, row: u16, rect: ratatui::layout::Rect) -> bool {
 
 /// Open a URL in the system default browser.
 /// Only accepts http:// and https:// URLs to prevent command injection.
-fn open_url(url: &str) {
+/// Returns `true` if the URL was accepted and the browser was launched,
+/// `false` if the URL was rejected.
+fn open_url(url: &str) -> bool {
     if !url.starts_with("http://") && !url.starts_with("https://") {
-        return;
+        return false;
     }
     #[cfg(target_os = "windows")]
     {
@@ -426,6 +427,27 @@ fn open_url(url: &str) {
     #[cfg(not(any(target_os = "windows", target_os = "macos")))]
     {
         let _ = std::process::Command::new("xdg-open").arg(url).spawn();
+    }
+    true
+}
+
+#[cfg(test)]
+mod tests {
+    use super::open_url;
+
+    #[test]
+    fn open_url_rejects_non_http_schemes() {
+        assert!(!open_url("javascript:alert(1)"), "javascript: must be blocked");
+        assert!(!open_url("file:///etc/passwd"), "file: must be blocked");
+        assert!(!open_url(""), "empty string must be rejected");
+        assert!(!open_url("ftp://example.com"), "ftp: must be blocked");
+        assert!(!open_url("data:text/html,<h1>hi</h1>"), "data: must be blocked");
+    }
+
+    #[test]
+    fn open_url_accepts_http_and_https() {
+        assert!(open_url("http://example.com"), "http:// must be accepted");
+        assert!(open_url("https://example.com"), "https:// must be accepted");
     }
 }
 
