@@ -1,1 +1,1 @@
-{"last_run":"2026-03-22","run_id":"23392483945","monthly_issue":25,"prs":["fix-clippy-warnings-2026-03-22","improve-precompute-cols-2026-03-21","perf-detect-columns-no-alloc-2026-03-21","improve-apply-filter-simplify-2026-03-21","ci-linux-job-2026-03-21"],"next":"#35 text filter. Dups #36-46 open."}
+{"r":"2026-03-22","id":"23402923755","mi":25,"prs":["test-app-2026-03-22","open-url-2026-03-22","clippy-2026-03-22","precompute-2026-03-21","detect-2026-03-21","filter-2026-03-21","ci-2026-03-21"],"next":"#35 filter. Dups #36-46."}
