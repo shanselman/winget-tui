@@ -42,18 +42,16 @@ impl CliBackend {
         let stdout = String::from_utf8_lossy(&output.stdout).to_string();
         let stderr = String::from_utf8_lossy(&output.stderr).to_string();
 
-        if !output.status.success() {
-            if strict || stdout.trim().is_empty() {
-                // In strict mode, always fail. In lenient mode, fail only if
-                // there's no stdout (winget returns non-zero for "no results"
-                // but still prints a table).
-                let detail = if stderr.trim().is_empty() {
-                    stdout.trim().to_string()
-                } else {
-                    stderr.trim().to_string()
-                };
-                bail!("winget failed: {}", detail);
-            }
+        if !output.status.success() && (strict || stdout.trim().is_empty()) {
+            // In strict mode, always fail. In lenient mode, fail only if
+            // there's no stdout (winget returns non-zero for "no results"
+            // but still prints a table).
+            let detail = if stderr.trim().is_empty() {
+                stdout.trim().to_string()
+            } else {
+                stderr.trim().to_string()
+            };
+            bail!("winget failed: {}", detail);
         }
 
         // winget uses \r to overwrite progress spinners in-place, and outputs
@@ -280,7 +278,7 @@ impl CliBackend {
                             .map(|(_, name)| name.trim().to_string())
                             .unwrap_or_default(),
                     );
-                    detail.id = sanitize_text(&trimmed[bracket_start + 1..bracket_end].to_string());
+                    detail.id = sanitize_text(&trimmed[bracket_start + 1..bracket_end]);
                     i += 1;
                     continue;
                 }
