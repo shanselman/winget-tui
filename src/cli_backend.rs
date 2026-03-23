@@ -745,4 +745,100 @@ Google\x1b[2JChrome            Google.Chrome               131.0     winget
             "ANSI escape must be stripped from parsed package name"
         );
     }
+
+    #[test]
+    fn parse_table_empty_output_returns_empty() {
+        let backend = CliBackend::new();
+        assert!(backend.parse_packages_from_table("").is_empty());
+        assert!(backend.parse_packages_from_table("   \n  \n").is_empty());
+    }
+
+    #[test]
+    fn parse_table_no_separator_returns_empty() {
+        let backend = CliBackend::new();
+        let output = "Name   Id   Version\nGoogle.Chrome  1.0";
+        assert!(backend.parse_packages_from_table(output).is_empty());
+    }
+
+    #[test]
+    fn parse_show_output_multiline_description() {
+        let backend = CliBackend::new();
+        let output = "\
+Found Some App [App.Id]
+Version: 2.0
+Publisher: ACME Corp
+Description: First line of description
+  continues on second line
+  and a third line
+License: MIT
+";
+        let detail = backend.parse_show_output(output);
+        assert_eq!(detail.id, "App.Id");
+        assert_eq!(
+            detail.description,
+            "First line of description continues on second line and a third line"
+        );
+        assert_eq!(
+            detail.license, "MIT",
+            "License after description must not be swallowed"
+        );
+    }
+
+    #[test]
+    fn parse_show_output_publisher_url_fallback_for_homepage() {
+        let backend = CliBackend::new();
+        let output = "\
+Found My App [My.App]
+Version: 1.0
+Publisher: My Corp
+Publisher Url: https://example.com
+License: MIT
+";
+        let detail = backend.parse_show_output(output);
+        assert_eq!(
+            detail.homepage, "https://example.com",
+            "Publisher Url should be used as homepage when Homepage key is absent"
+        );
+    }
+
+    #[test]
+    fn parse_show_output_homepage_takes_priority_over_publisher_url() {
+        let backend = CliBackend::new();
+        let output = "\
+Found My App [My.App]
+Version: 1.0
+Publisher: My Corp
+Publisher Url: https://publisher.example.com
+Homepage: https://product.example.com
+License: MIT
+";
+        let detail = backend.parse_show_output(output);
+        assert_eq!(
+            detail.homepage, "https://product.example.com",
+            "Homepage key should win over Publisher Url"
+        );
+    }
+
+    #[test]
+    fn parse_sources_from_table_english() {
+        let backend = CliBackend::new();
+        let output = "\
+Name    Argument                                      Type
+--------------------------------------------------------------
+winget  https://cdn.winget.microsoft.com/cache        Microsoft.PreIndexed.Package
+msstore https://storeedgefd.dsx.mp.microsoft.com/v9.0 Microsoft.Rest
+";
+        let sources = backend.parse_sources_from_table(output);
+        assert_eq!(sources.len(), 2);
+        assert_eq!(sources[0].name, "winget");
+        assert_eq!(sources[0].url, "https://cdn.winget.microsoft.com/cache");
+        assert_eq!(sources[0].source_type, "Microsoft.PreIndexed.Package");
+        assert_eq!(sources[1].name, "msstore");
+    }
+
+    #[test]
+    fn parse_sources_from_table_empty_returns_empty() {
+        let backend = CliBackend::new();
+        assert!(backend.parse_sources_from_table("").is_empty());
+    }
 }

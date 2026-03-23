@@ -432,3 +432,181 @@ impl App {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::{Package, PackageDetail, Source};
+    use anyhow::Result;
+    use async_trait::async_trait;
+
+    /// Minimal no-op backend for unit tests that don't exercise I/O.
+    struct NullBackend;
+
+    #[async_trait]
+    impl crate::backend::WingetBackend for NullBackend {
+        async fn search(&self, _q: &str, _s: Option<&str>) -> Result<Vec<Package>> {
+            Ok(vec![])
+        }
+        async fn list_installed(&self, _s: Option<&str>) -> Result<Vec<Package>> {
+            Ok(vec![])
+        }
+        async fn list_upgrades(&self, _s: Option<&str>) -> Result<Vec<Package>> {
+            Ok(vec![])
+        }
+        async fn show(&self, _id: &str) -> Result<PackageDetail> {
+            Ok(PackageDetail::default())
+        }
+        async fn install(&self, _id: &str, _v: Option<&str>) -> Result<String> {
+            Ok(String::new())
+        }
+        async fn uninstall(&self, _id: &str) -> Result<String> {
+            Ok(String::new())
+        }
+        async fn upgrade(&self, _id: &str) -> Result<String> {
+            Ok(String::new())
+        }
+        async fn list_sources(&self) -> Result<Vec<Source>> {
+            Ok(vec![])
+        }
+    }
+
+    fn make_package(id: &str, source: &str) -> Package {
+        Package {
+            id: id.to_string(),
+            name: id.to_string(),
+            version: "1.0".to_string(),
+            source: source.to_string(),
+            available_version: String::new(),
+        }
+    }
+
+    fn make_app() -> App {
+        App::new(Arc::new(NullBackend))
+    }
+
+    #[test]
+    fn app_mode_cycle_forward() {
+        assert_eq!(AppMode::Search.cycle(), AppMode::Installed);
+        assert_eq!(AppMode::Installed.cycle(), AppMode::Upgrades);
+        assert_eq!(AppMode::Upgrades.cycle(), AppMode::Search);
+    }
+
+    #[test]
+    fn app_mode_cycle_back() {
+        assert_eq!(AppMode::Search.cycle_back(), AppMode::Upgrades);
+        assert_eq!(AppMode::Installed.cycle_back(), AppMode::Search);
+        assert_eq!(AppMode::Upgrades.cycle_back(), AppMode::Installed);
+    }
+
+    #[test]
+    fn move_selection_forward_wraps() {
+        let mut app = make_app();
+        app.filtered_packages = vec![
+            make_package("A.A", "winget"),
+            make_package("B.B", "winget"),
+            make_package("C.C", "winget"),
+        ];
+        app.selected = 2;
+        app.move_selection(1);
+        assert_eq!(app.selected, 0, "should wrap from last to first");
+    }
+
+    #[test]
+    fn move_selection_backward_wraps() {
+        let mut app = make_app();
+        app.filtered_packages = vec![make_package("A.A", "winget"), make_package("B.B", "winget")];
+        app.selected = 0;
+        app.move_selection(-1);
+        assert_eq!(app.selected, 1, "should wrap from first to last");
+    }
+
+    #[test]
+    fn move_selection_noop_on_empty() {
+        let mut app = make_app();
+        app.selected = 0;
+        app.move_selection(1); // must not panic
+        assert_eq!(app.selected, 0);
+    }
+
+    #[test]
+    fn move_selection_large_delta_wraps() {
+        let mut app = make_app();
+        app.filtered_packages = vec![
+            make_package("A.A", "winget"),
+            make_package("B.B", "winget"),
+            make_package("C.C", "winget"),
+        ];
+        app.selected = 0;
+        app.move_selection(7); // 7 % 3 == 1
+        assert_eq!(app.selected, 1);
+    }
+
+    #[test]
+    fn apply_filter_all_keeps_all_packages() {
+        let mut app = make_app();
+        app.packages = vec![
+            make_package("A.A", "winget"),
+            make_package("B.B", "msstore"),
+        ];
+        app.source_filter = SourceFilter::All;
+        app.apply_filter();
+        assert_eq!(app.filtered_packages.len(), 2);
+    }
+
+    #[test]
+    fn apply_filter_clamps_selection_to_last() {
+        let mut app = make_app();
+        app.packages = vec![make_package("A.A", "winget")];
+        app.selected = 5; // out of bounds
+        app.source_filter = SourceFilter::All;
+        app.apply_filter();
+        assert_eq!(app.selected, 0, "selection should be clamped to last index");
+    }
+
+    #[test]
+    fn apply_filter_selection_zero_when_empty() {
+        let mut app = make_app();
+        app.packages = vec![];
+        app.selected = 3;
+        app.source_filter = SourceFilter::All;
+        app.apply_filter();
+        assert_eq!(app.selected, 0);
+        assert!(app.filtered_packages.is_empty());
+    }
+
+    #[test]
+    fn apply_filter_clears_selected_packages() {
+        let mut app = make_app();
+        app.packages = vec![make_package("A.A", "winget"), make_package("B.B", "winget")];
+        app.selected_packages.insert(0);
+        app.selected_packages.insert(1);
+        app.source_filter = SourceFilter::All;
+        app.apply_filter();
+        assert!(
+            app.selected_packages.is_empty(),
+            "multi-select should be cleared after filter"
+        );
+    }
+
+    #[test]
+    fn selected_package_returns_none_when_empty() {
+        let app = make_app();
+        assert!(app.selected_package().is_none());
+    }
+
+    #[test]
+    fn selected_package_returns_correct_package() {
+        let mut app = make_app();
+        app.filtered_packages = vec![make_package("A.A", "winget"), make_package("B.B", "winget")];
+        app.selected = 1;
+        assert_eq!(app.selected_package().map(|p| p.id.as_str()), Some("B.B"));
+    }
+
+    #[test]
+    fn spinner_returns_braille_dot_char() {
+        let app = make_app();
+        let known_frames: &[char] = &['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+        assert!(known_frames.contains(&app.spinner()));
+    }
+}
