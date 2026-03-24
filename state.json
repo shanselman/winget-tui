@@ -1,1 +1,1 @@
-{"r":"2026-03-24","mi":25,"todo":"All major issues addressed in PRs. Pending: maintainer review of 3 open PRs and closure of ~20 duplicate issues. Consider client-side text filter (#35) next."}
+{"r":"2026-03-24","id":"23489518969","mi":25,"pr":"feat-local-text-filter-2026-03-24","note":"Text filter PR created. Dups #27,34-55 need closing."}
