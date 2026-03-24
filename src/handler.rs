@@ -253,8 +253,7 @@ fn handle_normal_mode(
             if let Some(detail) = &app.detail {
                 if !detail.homepage.is_empty() {
                     let url = detail.homepage.clone();
-                    if url.starts_with("http://") || url.starts_with("https://") {
-                        open_url(&url);
+                    if open_url(&url) {
                         app.set_status(format!("Opening {}…", url));
                     } else {
                         app.set_status("Blocked: URL must start with http:// or https://");
@@ -410,9 +409,10 @@ fn in_rect(col: u16, row: u16, rect: ratatui::layout::Rect) -> bool {
 
 /// Open a URL in the system default browser.
 /// Only accepts http:// and https:// URLs to prevent command injection.
-fn open_url(url: &str) {
+/// Returns `true` if the URL was accepted and opening was attempted, `false` if blocked.
+fn open_url(url: &str) -> bool {
     if !url.starts_with("http://") && !url.starts_with("https://") {
-        return;
+        return false;
     }
     #[cfg(target_os = "windows")]
     {
@@ -427,6 +427,7 @@ fn open_url(url: &str) {
     {
         let _ = std::process::Command::new("xdg-open").arg(url).spawn();
     }
+    true
 }
 
 /// Determine which tab was clicked based on x position
