@@ -1,1 +1,1 @@
-{"r":"2026-03-23","id":"23437351277","mi":25,"prs":["fix-clippy-2026-03-23","test-models-and-app-2026-03-23"],"dups":"#27,34-52 need closing by maintainer","tests_done":true,"clippy_done":true}
+{"r":"2026-03-24","id":"23467555203","mi":25,"prs":["fix-clippy-2026-03-23","test-models-and-app-2026-03-23","improve-open-url-returns-bool-2026-03-24"],"dups":"#27,34-54 need closing by maintainer","tests_done":true,"clippy_done":true,"open_url_done":true}
