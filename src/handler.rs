@@ -58,10 +58,17 @@ fn handle_search_input(app: &mut App, key: KeyCode) -> anyhow::Result<bool> {
     match key {
         KeyCode::Esc => {
             app.input_mode = InputMode::Normal;
+            // Clear the local text filter when exiting search in Installed/Upgrades
+            if matches!(app.mode, AppMode::Installed | AppMode::Upgrades) {
+                app.search_query.clear();
+                app.apply_filter();
+            }
         }
         KeyCode::Enter => {
             app.input_mode = InputMode::Normal;
-            if !app.search_query.is_empty() {
+            if matches!(app.mode, AppMode::Installed | AppMode::Upgrades) {
+                // Filter is already applied client-side — nothing more to do.
+            } else if !app.search_query.is_empty() {
                 app.mode = AppMode::Search;
                 app.loading = true;
                 app.set_status("Searching...");
@@ -70,9 +77,17 @@ fn handle_search_input(app: &mut App, key: KeyCode) -> anyhow::Result<bool> {
         }
         KeyCode::Backspace => {
             app.search_query.pop();
+            // Reapply filter live for local modes
+            if matches!(app.mode, AppMode::Installed | AppMode::Upgrades) {
+                app.apply_filter();
+            }
         }
         KeyCode::Char(c) => {
             app.search_query.push(c);
+            // Reapply filter live for local modes
+            if matches!(app.mode, AppMode::Installed | AppMode::Upgrades) {
+                app.apply_filter();
+            }
         }
         _ => {}
     }
@@ -96,6 +111,7 @@ fn handle_normal_mode(
         }
         KeyCode::Tab | KeyCode::Right => {
             app.mode = app.mode.cycle();
+            app.search_query.clear();
             app.selected = 0;
             app.selected_packages.clear();
             app.detail = None;
@@ -105,6 +121,7 @@ fn handle_normal_mode(
         }
         KeyCode::BackTab | KeyCode::Left => {
             app.mode = app.mode.cycle_back();
+            app.search_query.clear();
             app.selected = 0;
             app.selected_packages.clear();
             app.detail = None;
@@ -435,6 +452,7 @@ fn handle_tab_click(app: &mut App, col: u16) {
         if col >= start_x && col < end_x {
             if mode != app.mode {
                 app.mode = mode;
+                app.search_query.clear();
                 app.selected = 0;
                 app.selected_packages.clear();
                 app.detail = None;

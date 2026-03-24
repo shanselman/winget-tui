@@ -148,9 +148,14 @@ impl App {
     }
 
     pub fn apply_filter(&mut self) {
+        // Client-side text filter is active when in Installed/Upgrades mode with a non-empty query.
+        let text_query = self.search_query.to_ascii_lowercase();
+        let local_text_filter = matches!(self.mode, AppMode::Installed | AppMode::Upgrades)
+            && !text_query.is_empty();
+
         // When a source filter is active, winget already filters server-side
         // (and omits the Source column), so accept all returned packages.
-        self.filtered_packages = if self.source_filter == SourceFilter::All {
+        let source_filtered: Vec<Package> = if self.source_filter == SourceFilter::All {
             self.packages
                 .iter()
                 .filter(|p| self.source_filter.matches(&p.source))
@@ -159,6 +164,19 @@ impl App {
         } else {
             self.packages.clone()
         };
+
+        self.filtered_packages = if local_text_filter {
+            source_filtered
+                .into_iter()
+                .filter(|p| {
+                    p.name.to_ascii_lowercase().contains(&text_query)
+                        || p.id.to_ascii_lowercase().contains(&text_query)
+                })
+                .collect()
+        } else {
+            source_filtered
+        };
+
         // Keep selection in bounds
         if self.selected >= self.filtered_packages.len() {
             self.selected = self.filtered_packages.len().saturating_sub(1);
@@ -430,5 +448,166 @@ impl App {
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::Arc;
+
+    use anyhow::Result;
+    use async_trait::async_trait;
+
+    use crate::backend::WingetBackend;
+    use crate::models::{Package, PackageDetail, Source, SourceFilter};
+
+    use super::{App, AppMode};
+
+    struct StubBackend;
+
+    #[async_trait]
+    impl WingetBackend for StubBackend {
+        async fn search(&self, _: &str, _: Option<&str>) -> Result<Vec<Package>> {
+            Ok(vec![])
+        }
+        async fn list_installed(&self, _: Option<&str>) -> Result<Vec<Package>> {
+            Ok(vec![])
+        }
+        async fn list_upgrades(&self, _: Option<&str>) -> Result<Vec<Package>> {
+            Ok(vec![])
+        }
+        async fn show(&self, _: &str) -> Result<PackageDetail> {
+            Ok(PackageDetail::default())
+        }
+        async fn install(&self, _: &str, _: Option<&str>) -> Result<String> {
+            Ok(String::new())
+        }
+        async fn uninstall(&self, _: &str) -> Result<String> {
+            Ok(String::new())
+        }
+        async fn upgrade(&self, _: &str) -> Result<String> {
+            Ok(String::new())
+        }
+        async fn list_sources(&self) -> Result<Vec<Source>> {
+            Ok(vec![])
+        }
+    }
+
+    fn make_pkg(id: &str, name: &str) -> Package {
+        Package {
+            id: id.to_string(),
+            name: name.to_string(),
+            version: "1.0".to_string(),
+            source: "winget".to_string(),
+            available_version: String::new(),
+        }
+    }
+
+    fn app_with_packages(mode: AppMode, pkgs: Vec<Package>) -> App {
+        let mut app = App::new(Arc::new(StubBackend));
+        app.mode = mode;
+        app.packages = pkgs;
+        app
+    }
+
+    #[test]
+    fn local_text_filter_matches_by_name() {
+        let mut app = app_with_packages(
+            AppMode::Installed,
+            vec![
+                make_pkg("Google.Chrome", "Google Chrome"),
+                make_pkg("Microsoft.Edge", "Microsoft Edge"),
+            ],
+        );
+        app.search_query = "chrome".to_string();
+        app.apply_filter();
+        assert_eq!(app.filtered_packages.len(), 1);
+        assert_eq!(app.filtered_packages[0].id, "Google.Chrome");
+    }
+
+    #[test]
+    fn local_text_filter_matches_by_id() {
+        let mut app = app_with_packages(
+            AppMode::Upgrades,
+            vec![
+                make_pkg("Google.Chrome", "Google Chrome"),
+                make_pkg("Microsoft.Edge", "Microsoft Edge"),
+            ],
+        );
+        app.search_query = "microsoft".to_string();
+        app.apply_filter();
+        assert_eq!(app.filtered_packages.len(), 1);
+        assert_eq!(app.filtered_packages[0].id, "Microsoft.Edge");
+    }
+
+    #[test]
+    fn local_text_filter_is_case_insensitive() {
+        let mut app = app_with_packages(
+            AppMode::Installed,
+            vec![make_pkg("Google.Chrome", "Google Chrome")],
+        );
+        app.search_query = "CHROME".to_string();
+        app.apply_filter();
+        assert_eq!(app.filtered_packages.len(), 1);
+    }
+
+    #[test]
+    fn local_text_filter_empty_query_shows_all() {
+        let mut app = app_with_packages(
+            AppMode::Installed,
+            vec![
+                make_pkg("Google.Chrome", "Google Chrome"),
+                make_pkg("Microsoft.Edge", "Microsoft Edge"),
+            ],
+        );
+        app.search_query = String::new();
+        app.apply_filter();
+        assert_eq!(app.filtered_packages.len(), 2);
+    }
+
+    #[test]
+    fn local_text_filter_not_applied_in_search_mode() {
+        // In Search mode, the query is for winget search — apply_filter should
+        // not do client-side filtering.
+        let mut app = app_with_packages(
+            AppMode::Search,
+            vec![
+                make_pkg("Google.Chrome", "Google Chrome"),
+                make_pkg("Microsoft.Edge", "Microsoft Edge"),
+            ],
+        );
+        app.source_filter = SourceFilter::All;
+        app.search_query = "chrome".to_string();
+        app.apply_filter();
+        // Both packages should remain; text filtering is not applied in Search mode.
+        assert_eq!(app.filtered_packages.len(), 2);
+    }
+
+    #[test]
+    fn local_text_filter_no_match_returns_empty() {
+        let mut app = app_with_packages(
+            AppMode::Installed,
+            vec![make_pkg("Google.Chrome", "Google Chrome")],
+        );
+        app.search_query = "firefox".to_string();
+        app.apply_filter();
+        assert_eq!(app.filtered_packages.len(), 0);
+    }
+
+    #[test]
+    fn selection_clamped_when_filter_reduces_list() {
+        let mut app = app_with_packages(
+            AppMode::Installed,
+            vec![
+                make_pkg("A", "Apple"),
+                make_pkg("B", "Banana"),
+                make_pkg("C", "Cherry"),
+            ],
+        );
+        app.selected = 2; // pointing at "Cherry"
+        app.search_query = "apple".to_string();
+        app.apply_filter();
+        assert_eq!(app.filtered_packages.len(), 1);
+        assert_eq!(app.selected, 0); // clamped to last valid index
     }
 }
