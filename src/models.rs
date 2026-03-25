@@ -115,3 +115,99 @@ pub struct OpResult {
     pub success: bool,
     pub message: String,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn source_filter_cycle_wraps_around() {
+        assert_eq!(SourceFilter::All.cycle(), SourceFilter::Winget);
+        assert_eq!(SourceFilter::Winget.cycle(), SourceFilter::MsStore);
+        assert_eq!(SourceFilter::MsStore.cycle(), SourceFilter::All);
+    }
+
+    #[test]
+    fn source_filter_matches_case_insensitive() {
+        assert!(SourceFilter::All.matches("winget"));
+        assert!(SourceFilter::All.matches("msstore"));
+        assert!(SourceFilter::All.matches("anything"));
+        assert!(SourceFilter::Winget.matches("winget"));
+        assert!(SourceFilter::Winget.matches("Winget"));
+        assert!(SourceFilter::Winget.matches("WINGET"));
+        assert!(!SourceFilter::Winget.matches("msstore"));
+        assert!(SourceFilter::MsStore.matches("msstore"));
+        assert!(SourceFilter::MsStore.matches("MSSTORE"));
+        assert!(!SourceFilter::MsStore.matches("winget"));
+    }
+
+    #[test]
+    fn source_filter_display() {
+        assert_eq!(SourceFilter::All.to_string(), "All");
+        assert_eq!(SourceFilter::Winget.to_string(), "winget");
+        assert_eq!(SourceFilter::MsStore.to_string(), "msstore");
+    }
+
+    #[test]
+    fn package_is_truncated_detects_ellipsis() {
+        let truncated = Package {
+            id: "Some.Package\u{2026}".to_string(),
+            name: "Some Package".to_string(),
+            version: "1.0".to_string(),
+            source: "winget".to_string(),
+            available_version: String::new(),
+        };
+        assert!(truncated.is_truncated());
+
+        let normal = Package {
+            id: "Some.Package".to_string(),
+            name: "Some Package".to_string(),
+            version: "1.0".to_string(),
+            source: "winget".to_string(),
+            available_version: String::new(),
+        };
+        assert!(!normal.is_truncated());
+    }
+
+    #[test]
+    fn operation_display_install_with_version() {
+        let op = Operation::Install {
+            id: "Google.Chrome".to_string(),
+            version: Some("132.0".to_string()),
+        };
+        assert_eq!(op.to_string(), "Installing Google.Chrome v132.0");
+    }
+
+    #[test]
+    fn operation_display_install_without_version() {
+        let op = Operation::Install {
+            id: "Google.Chrome".to_string(),
+            version: None,
+        };
+        assert_eq!(op.to_string(), "Installing Google.Chrome");
+    }
+
+    #[test]
+    fn operation_display_uninstall() {
+        let op = Operation::Uninstall {
+            id: "Google.Chrome".to_string(),
+        };
+        assert_eq!(op.to_string(), "Uninstalling Google.Chrome");
+    }
+
+    #[test]
+    fn operation_display_upgrade() {
+        let op = Operation::Upgrade {
+            id: "Google.Chrome".to_string(),
+        };
+        assert_eq!(op.to_string(), "Upgrading Google.Chrome");
+    }
+
+    #[test]
+    fn operation_display_batch_upgrade() {
+        let op = Operation::BatchUpgrade {
+            ids: vec!["A".to_string(), "B".to_string(), "C".to_string()],
+        };
+        assert_eq!(op.to_string(), "Batch upgrading 3 packages");
+    }
+}

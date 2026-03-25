@@ -432,3 +432,206 @@ impl App {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::sync::Arc;
+
+    use async_trait::async_trait;
+
+    use super::*;
+    use crate::backend::WingetBackend;
+    use crate::models::{Package, PackageDetail, Source, SourceFilter};
+
+    struct MockBackend;
+
+    #[async_trait]
+    impl WingetBackend for MockBackend {
+        async fn search(&self, _: &str, _: Option<&str>) -> anyhow::Result<Vec<Package>> {
+            Ok(vec![])
+        }
+        async fn list_installed(&self, _: Option<&str>) -> anyhow::Result<Vec<Package>> {
+            Ok(vec![])
+        }
+        async fn list_upgrades(&self, _: Option<&str>) -> anyhow::Result<Vec<Package>> {
+            Ok(vec![])
+        }
+        async fn show(&self, _: &str) -> anyhow::Result<PackageDetail> {
+            Ok(PackageDetail::default())
+        }
+        async fn install(&self, _: &str, _: Option<&str>) -> anyhow::Result<String> {
+            Ok(String::new())
+        }
+        async fn uninstall(&self, _: &str) -> anyhow::Result<String> {
+            Ok(String::new())
+        }
+        async fn upgrade(&self, _: &str) -> anyhow::Result<String> {
+            Ok(String::new())
+        }
+        async fn list_sources(&self) -> anyhow::Result<Vec<Source>> {
+            Ok(vec![])
+        }
+    }
+
+    fn make_app() -> App {
+        App::new(Arc::new(MockBackend))
+    }
+
+    fn make_pkg(id: &str, source: &str) -> Package {
+        Package {
+            id: id.to_string(),
+            name: id.to_string(),
+            version: "1.0".to_string(),
+            source: source.to_string(),
+            available_version: String::new(),
+        }
+    }
+
+    #[test]
+    fn app_mode_cycle_wraps_around() {
+        assert_eq!(AppMode::Search.cycle(), AppMode::Installed);
+        assert_eq!(AppMode::Installed.cycle(), AppMode::Upgrades);
+        assert_eq!(AppMode::Upgrades.cycle(), AppMode::Search);
+    }
+
+    #[test]
+    fn app_mode_cycle_back_wraps_around() {
+        assert_eq!(AppMode::Search.cycle_back(), AppMode::Upgrades);
+        assert_eq!(AppMode::Installed.cycle_back(), AppMode::Search);
+        assert_eq!(AppMode::Upgrades.cycle_back(), AppMode::Installed);
+    }
+
+    #[test]
+    fn app_mode_label() {
+        assert_eq!(AppMode::Search.label(), "Search");
+        assert_eq!(AppMode::Installed.label(), "Installed");
+        assert_eq!(AppMode::Upgrades.label(), "Upgrades");
+    }
+
+    #[test]
+    fn set_status_updates_message() {
+        let mut app = make_app();
+        app.set_status("Ready");
+        assert_eq!(app.status_message, "Ready");
+    }
+
+    #[test]
+    fn spinner_cycles_through_ten_distinct_frames() {
+        let mut app = make_app();
+        let frames: Vec<char> = (0..10)
+            .map(|_| {
+                let c = app.spinner();
+                app.tick += 1;
+                c
+            })
+            .collect();
+        let unique: std::collections::HashSet<char> = frames.into_iter().collect();
+        assert_eq!(
+            unique.len(),
+            10,
+            "spinner should cycle through 10 distinct frames"
+        );
+    }
+
+    #[test]
+    fn apply_filter_all_keeps_all_packages() {
+        let mut app = make_app();
+        app.source_filter = SourceFilter::All;
+        app.packages = vec![
+            make_pkg("A", "winget"),
+            make_pkg("B", "msstore"),
+            make_pkg("C", "other"),
+        ];
+        app.apply_filter();
+        assert_eq!(app.filtered_packages.len(), 3);
+    }
+
+    #[test]
+    fn apply_filter_clears_multi_select() {
+        let mut app = make_app();
+        app.packages = vec![make_pkg("A", "winget"), make_pkg("B", "winget")];
+        app.apply_filter();
+        app.selected_packages.insert(0);
+        app.apply_filter();
+        assert!(
+            app.selected_packages.is_empty(),
+            "multi-select should clear on re-filter"
+        );
+    }
+
+    #[test]
+    fn apply_filter_clamps_selection_to_valid_range() {
+        let mut app = make_app();
+        app.packages = vec![
+            make_pkg("A", "winget"),
+            make_pkg("B", "winget"),
+            make_pkg("C", "winget"),
+        ];
+        app.apply_filter();
+        app.selected = 2;
+        app.packages = vec![make_pkg("A", "winget")];
+        app.apply_filter();
+        assert_eq!(app.selected, 0, "selection should clamp when list shrinks");
+    }
+
+    #[test]
+    fn move_selection_advances_forward() {
+        let mut app = make_app();
+        app.packages = vec![
+            make_pkg("A", "winget"),
+            make_pkg("B", "winget"),
+            make_pkg("C", "winget"),
+        ];
+        app.apply_filter();
+        app.selected = 0;
+        app.move_selection(1);
+        assert_eq!(app.selected, 1);
+    }
+
+    #[test]
+    fn move_selection_wraps_past_end() {
+        let mut app = make_app();
+        app.packages = vec![
+            make_pkg("A", "winget"),
+            make_pkg("B", "winget"),
+            make_pkg("C", "winget"),
+        ];
+        app.apply_filter();
+        app.selected = 2;
+        app.move_selection(1);
+        assert_eq!(app.selected, 0, "should wrap to start");
+    }
+
+    #[test]
+    fn move_selection_wraps_before_start() {
+        let mut app = make_app();
+        app.packages = vec![make_pkg("A", "winget"), make_pkg("B", "winget")];
+        app.apply_filter();
+        app.selected = 0;
+        app.move_selection(-1);
+        assert_eq!(app.selected, 1, "should wrap to end");
+    }
+
+    #[test]
+    fn move_selection_is_noop_on_empty_list() {
+        let mut app = make_app();
+        app.selected = 0;
+        app.move_selection(1);
+        assert_eq!(app.selected, 0);
+    }
+
+    #[test]
+    fn selected_package_returns_correct_package() {
+        let mut app = make_app();
+        app.packages = vec![make_pkg("A", "winget"), make_pkg("B", "winget")];
+        app.apply_filter();
+        app.selected = 1;
+        assert_eq!(app.selected_package().unwrap().id, "B");
+    }
+
+    #[test]
+    fn selected_package_returns_none_on_empty_list() {
+        let app = make_app();
+        assert!(app.selected_package().is_none());
+    }
+}
