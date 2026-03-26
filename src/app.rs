@@ -150,15 +150,7 @@ impl App {
     pub fn apply_filter(&mut self) {
         // When a source filter is active, winget already filters server-side
         // (and omits the Source column), so accept all returned packages.
-        self.filtered_packages = if self.source_filter == SourceFilter::All {
-            self.packages
-                .iter()
-                .filter(|p| self.source_filter.matches(&p.source))
-                .cloned()
-                .collect()
-        } else {
-            self.packages.clone()
-        };
+        self.filtered_packages = self.packages.clone();
         // Keep selection in bounds
         if self.selected >= self.filtered_packages.len() {
             self.selected = self.filtered_packages.len().saturating_sub(1);
