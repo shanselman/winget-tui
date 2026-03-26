@@ -1,1 +1,1 @@
-{"r":"2026-03-26","id":"23572008164","mi":25,"prs":["perf-precompute-column-indices-2026-03-26"],"dups":"#27,34-59 need closing","perf_done":true,"all_issues_bot_created":true}
+{"r":"2026-03-26","id":"23594515843","prs":["perf-col-idx","src-filter-arg","dep-update"],"monthly":"2026-03","done":["perf","tests","clippy","linux-ci","local-filter","refactor","dep-update"]}
