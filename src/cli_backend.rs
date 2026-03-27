@@ -54,25 +54,33 @@ impl CliBackend {
             bail!("winget failed: {}", detail);
         }
 
-        // winget uses \r to overwrite progress spinners in-place, and outputs
-        // \r\n line endings on Windows. Resolve carriage returns: first normalize
-        // line endings, then for lines with embedded \r (progress overwrites),
-        // keep only the last segment.
-        let cleaned: String = stdout
-            .replace("\r\n", "\n")
-            .split('\n')
-            .map(|line| {
-                if line.contains('\r') {
-                    // Progress overwrite: keep final segment after last \r
-                    line.rsplit('\r').next().unwrap_or(line)
-                } else {
-                    line
-                }
-            })
-            .collect::<Vec<_>>()
-            .join("\n");
+        Ok(Self::clean_output(&stdout))
+    }
 
-        Ok(cleaned)
+    /// Normalize winget stdout: convert `\r\n` line endings and resolve
+    /// progress-spinner overwrites. winget writes spinners by emitting `\r`
+    /// followed by new content on the same line; only the segment after the
+    /// final `\r` is meaningful. `str::lines()` strips `\r\n` for us, so we
+    /// only need to handle embedded `\r` characters within a line.
+    ///
+    /// Uses a single pre-reserved allocation instead of the three-allocation
+    /// pipeline (`replace` → `collect::<Vec<_>>` → `join`).
+    fn clean_output(stdout: &str) -> String {
+        let mut cleaned = String::with_capacity(stdout.len());
+        for line in stdout.lines() {
+            if !cleaned.is_empty() {
+                cleaned.push('\n');
+            }
+            // If the line contains an embedded \r (progress overwrite), keep
+            // only the segment that follows the last one.
+            let content = if let Some(pos) = line.rfind('\r') {
+                &line[pos + 1..]
+            } else {
+                line
+            };
+            cleaned.push_str(content);
+        }
+        cleaned
     }
 
     fn parse_packages_from_table(&self, output: &str) -> Vec<Package> {
@@ -451,6 +459,38 @@ impl WingetBackend for CliBackend {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // ── clean_output ─────────────────────────────────────────────────────────
+
+    #[test]
+    fn clean_output_crlf_line_endings() {
+        assert_eq!(CliBackend::clean_output("a\r\nb\r\n"), "a\nb");
+    }
+
+    #[test]
+    fn clean_output_lf_line_endings() {
+        assert_eq!(CliBackend::clean_output("a\nb\n"), "a\nb");
+    }
+
+    #[test]
+    fn clean_output_spinner_overwrite() {
+        // Progress spinners emit \r to reset the cursor; keep the last segment.
+        assert_eq!(CliBackend::clean_output("-\rdata line\r\n"), "data line");
+    }
+
+    #[test]
+    fn clean_output_mixed_crlf_and_spinners() {
+        let input = "header\r\n-\rspinner\ractual data\r\nnormal line\r\n";
+        assert_eq!(CliBackend::clean_output(input), "header\nactual data\nnormal line");
+    }
+
+    #[test]
+    fn clean_output_no_trailing_newline() {
+        // Output without a trailing newline should work as well.
+        assert_eq!(CliBackend::clean_output("a\r\nb"), "a\nb");
+    }
+
+    // ── parse_packages_from_table ─────────────────────────────────────────────
 
     #[test]
     fn parse_english_upgrade_table() {
