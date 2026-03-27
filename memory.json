@@ -1,1 +1,1 @@
-{"r":"2026-03-27","id":"23625665710","prs":["perf-col-idx","src-filter-arg","dep-update","perf-clean-output"],"monthly":"2026-03","done":["perf","tests","clippy","linux-ci","local-filter","refactor","dep-update","perf-clean-output"]}
+{"r":"2026-03-27","run":"23646139793","monthly":"2026-03","branches":["perf-clean-output","src-filter-arg","dep-update","fix-truncated-id"],"pr":{"fix-truncated-id":"repo-assist/fix-truncated-id-detail-load-2026-03-27"}}
