@@ -222,6 +222,12 @@ impl App {
     }
 
     pub fn load_detail(&mut self, id: &str) {
+        // Truncated IDs (e.g. "MSIX\\bsky.app-C52C8C38…") cannot be used with
+        // `winget show --exact`. Skip them silently to avoid spurious error messages.
+        if id.ends_with('…') {
+            return;
+        }
+
         // Always increment generation to invalidate any in-flight detail requests.
         // Without this, returning from cache leaves the old generation active,
         // and a stale async response can overwrite the correct cached detail.
