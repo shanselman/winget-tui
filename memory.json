@@ -1,1 +1,1 @@
-{"r":"2026-03-27","run":"23646139793","monthly":"2026-03","branches":["perf-clean-output","src-filter-arg","dep-update","fix-truncated-id"],"pr":{"fix-truncated-id":"repo-assist/fix-truncated-id-detail-load-2026-03-27"}}
+{"r":"2026-03-28","run":"23673675294","monthly":"2026-03","branches":["perf-clean-output","src-filter-arg","dep-update","fix-truncated-id","fix-truncated-op-guard","improve-switch-mode"]}
