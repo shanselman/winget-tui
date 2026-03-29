@@ -350,32 +350,7 @@ impl App {
                     }
                     // Merge: if winget show returned empty fields, keep pre-populated data
                     let merged = if let Some(existing) = &self.detail {
-                        PackageDetail {
-                            id: if detail.id.is_empty() {
-                                existing.id.clone()
-                            } else {
-                                detail.id.clone()
-                            },
-                            name: if detail.name.is_empty() {
-                                existing.name.clone()
-                            } else {
-                                detail.name.clone()
-                            },
-                            version: if detail.version.is_empty() {
-                                existing.version.clone()
-                            } else {
-                                detail.version.clone()
-                            },
-                            source: if detail.source.is_empty() {
-                                existing.source.clone()
-                            } else {
-                                detail.source.clone()
-                            },
-                            publisher: detail.publisher.clone(),
-                            description: detail.description.clone(),
-                            homepage: detail.homepage.clone(),
-                            license: detail.license.clone(),
-                        }
+                        detail.merge_over(existing)
                     } else {
                         detail
                     };
