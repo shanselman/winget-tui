@@ -167,33 +167,51 @@ fn handle_normal_mode(
         // Install
         KeyCode::Char('i') => {
             if let Some(pkg) = app.selected_package() {
-                let id = pkg.id.clone();
-                app.confirm = Some(ConfirmDialog {
-                    message: format!("Install {}?", id),
-                    operation: Operation::Install { id, version: None },
-                });
+                if pkg.is_truncated() {
+                    app.set_status(
+                        "Cannot install: package ID was truncated by winget — use winget directly",
+                    );
+                } else {
+                    let id = pkg.id.clone();
+                    app.confirm = Some(ConfirmDialog {
+                        message: format!("Install {}?", id),
+                        operation: Operation::Install { id, version: None },
+                    });
+                }
             }
         }
 
         // Uninstall
         KeyCode::Char('x') => {
             if let Some(pkg) = app.selected_package() {
-                let id = pkg.id.clone();
-                app.confirm = Some(ConfirmDialog {
-                    message: format!("Uninstall {}?", id),
-                    operation: Operation::Uninstall { id },
-                });
+                if pkg.is_truncated() {
+                    app.set_status(
+                        "Cannot uninstall: package ID was truncated by winget — use winget directly",
+                    );
+                } else {
+                    let id = pkg.id.clone();
+                    app.confirm = Some(ConfirmDialog {
+                        message: format!("Uninstall {}?", id),
+                        operation: Operation::Uninstall { id },
+                    });
+                }
             }
         }
 
         // Upgrade
         KeyCode::Char('u') => {
             if let Some(pkg) = app.selected_package() {
-                let id = pkg.id.clone();
-                app.confirm = Some(ConfirmDialog {
-                    message: format!("Upgrade {}?", id),
-                    operation: Operation::Upgrade { id },
-                });
+                if pkg.is_truncated() {
+                    app.set_status(
+                        "Cannot upgrade: package ID was truncated by winget — use winget directly",
+                    );
+                } else {
+                    let id = pkg.id.clone();
+                    app.confirm = Some(ConfirmDialog {
+                        message: format!("Upgrade {}?", id),
+                        operation: Operation::Upgrade { id },
+                    });
+                }
             }
         }
 
@@ -203,17 +221,28 @@ fn handle_normal_mode(
                 let ids: Vec<String> = app
                     .selected_packages
                     .iter()
-                    .filter_map(|&idx| app.filtered_packages.get(idx).map(|p| p.id.clone()))
+                    .filter_map(|&idx| {
+                        app.filtered_packages
+                            .get(idx)
+                            .filter(|p| !p.is_truncated())
+                            .map(|p| p.id.clone())
+                    })
                     .collect();
-                let count = ids.len();
-                app.confirm = Some(ConfirmDialog {
-                    message: format!(
-                        "Upgrade {} selected package{}?",
-                        count,
-                        if count == 1 { "" } else { "s" }
-                    ),
-                    operation: Operation::BatchUpgrade { ids },
-                });
+                if ids.is_empty() {
+                    app.set_status(
+                        "Cannot upgrade: all selected packages have truncated IDs — use winget directly",
+                    );
+                } else {
+                    let count = ids.len();
+                    app.confirm = Some(ConfirmDialog {
+                        message: format!(
+                            "Upgrade {} selected package{}?",
+                            count,
+                            if count == 1 { "" } else { "s" }
+                        ),
+                        operation: Operation::BatchUpgrade { ids },
+                    });
+                }
             }
         }
 
