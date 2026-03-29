@@ -107,3 +107,34 @@ pub struct OpResult {
     pub success: bool,
     pub message: String,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn pkg(id: &str) -> Package {
+        Package {
+            id: id.to_string(),
+            name: "Test".to_string(),
+            version: "1.0".to_string(),
+            source: "winget".to_string(),
+            available_version: String::new(),
+        }
+    }
+
+    #[test]
+    fn is_truncated_normal_id() {
+        assert!(!pkg("Google.Chrome").is_truncated());
+    }
+
+    #[test]
+    fn is_truncated_ellipsis_suffix() {
+        assert!(pkg("MSIX\\bsky.app-C52C8C38_1.0.0.0_neutr\u{2026}").is_truncated());
+    }
+
+    #[test]
+    fn is_truncated_name_ellipsis_not_id() {
+        // A package whose name is truncated but whose ID is complete must not be flagged
+        assert!(!pkg("Microsoft.DotNet.DesktopRuntime.10").is_truncated());
+    }
+}
