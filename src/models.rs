@@ -64,6 +64,35 @@ pub struct PackageDetail {
     pub source: String,
 }
 
+impl PackageDetail {
+    /// Merge `self` (freshly loaded) with `base` (pre-populated stub), returning a combined
+    /// detail where non-empty fields from `self` take precedence over `base`.
+    ///
+    /// This pattern is used when `winget show` completes: the stub from the package list
+    /// provides instant `id`, `name`, `version`, and `source` before the async call returns,
+    /// while the full response fills in `publisher`, `description`, `homepage`, and `license`.
+    /// If winget returns empty values for any field, the stub's values are preserved.
+    pub fn merge_over(self, base: &PackageDetail) -> PackageDetail {
+        let pick = |fresh: String, fallback: &String| -> String {
+            if fresh.is_empty() {
+                fallback.clone()
+            } else {
+                fresh
+            }
+        };
+        PackageDetail {
+            id: pick(self.id, &base.id),
+            name: pick(self.name, &base.name),
+            version: pick(self.version, &base.version),
+            source: pick(self.source, &base.source),
+            publisher: pick(self.publisher, &base.publisher),
+            description: pick(self.description, &base.description),
+            homepage: pick(self.homepage, &base.homepage),
+            license: pick(self.license, &base.license),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Deserialize)]
 #[allow(dead_code)]
 pub struct Source {
@@ -106,4 +135,60 @@ pub struct OpResult {
     pub operation: Operation,
     pub success: bool,
     pub message: String,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn merge_over_prefers_non_empty_fresh_fields() {
+        let fresh = PackageDetail {
+            id: "Google.Chrome".to_string(),
+            name: "Google Chrome".to_string(),
+            version: "132.0".to_string(),
+            publisher: "Google LLC".to_string(),
+            description: "A fast browser".to_string(),
+            homepage: "https://google.com".to_string(),
+            license: "Proprietary".to_string(),
+            source: "winget".to_string(),
+        };
+        let base = PackageDetail {
+            id: "OLD.ID".to_string(),
+            name: "Old Name".to_string(),
+            version: "1.0".to_string(),
+            source: "msstore".to_string(),
+            ..PackageDetail::default()
+        };
+        let merged = fresh.merge_over(&base);
+        assert_eq!(merged.id, "Google.Chrome");
+        assert_eq!(merged.name, "Google Chrome");
+        assert_eq!(merged.version, "132.0");
+        assert_eq!(merged.publisher, "Google LLC");
+        assert_eq!(merged.source, "winget");
+    }
+
+    #[test]
+    fn merge_over_falls_back_to_base_for_empty_fields() {
+        // winget show returned empty id/name/version/source — base values are preserved
+        let fresh = PackageDetail {
+            publisher: "Google LLC".to_string(),
+            description: "A fast browser".to_string(),
+            ..PackageDetail::default()
+        };
+        let base = PackageDetail {
+            id: "Google.Chrome".to_string(),
+            name: "Google Chrome".to_string(),
+            version: "132.0".to_string(),
+            source: "winget".to_string(),
+            ..PackageDetail::default()
+        };
+        let merged = fresh.merge_over(&base);
+        assert_eq!(merged.id, "Google.Chrome", "base id should be preserved");
+        assert_eq!(merged.name, "Google Chrome", "base name should be preserved");
+        assert_eq!(merged.version, "132.0", "base version should be preserved");
+        assert_eq!(merged.source, "winget", "base source should be preserved");
+        assert_eq!(merged.publisher, "Google LLC", "fresh publisher should win");
+        assert_eq!(merged.description, "A fast browser", "fresh description should win");
+    }
 }
