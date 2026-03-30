@@ -72,25 +72,30 @@ impl CliBackend {
             bail!("winget failed: {}", detail);
         }
 
-        // winget uses \r to overwrite progress spinners in-place, and outputs
-        // \r\n line endings on Windows. Resolve carriage returns: first normalize
-        // line endings, then for lines with embedded \r (progress overwrites),
-        // keep only the last segment.
-        let cleaned: String = stdout
-            .replace("\r\n", "\n")
-            .split('\n')
-            .map(|line| {
-                if line.contains('\r') {
-                    // Progress overwrite: keep final segment after last \r
-                    line.rsplit('\r').next().unwrap_or(line)
-                } else {
-                    line
-                }
-            })
-            .collect::<Vec<_>>()
-            .join("\n");
+        Ok(Self::clean_output(&stdout))
+    }
 
-        Ok(cleaned)
+    /// Normalize winget stdout: resolve `\r\n` line endings and progress-spinner
+    /// overwrites (`\r` mid-line, keeping only the segment after the last one).
+    ///
+    /// Uses a single pre-allocated `String` instead of the three-allocation
+    /// pipeline (`replace` → `collect::<Vec<_>>` → `join`) that the naive
+    /// implementation requires. `str::lines()` already strips `\r\n` for us,
+    /// so we only need to handle embedded `\r` characters within a line.
+    fn clean_output(stdout: &str) -> String {
+        let mut cleaned = String::with_capacity(stdout.len());
+        for line in stdout.lines() {
+            if !cleaned.is_empty() {
+                cleaned.push('\n');
+            }
+            let content = if let Some(pos) = line.rfind('\r') {
+                &line[pos + 1..]
+            } else {
+                line
+            };
+            cleaned.push_str(content);
+        }
+        cleaned
     }
 
     fn parse_packages_from_table(&self, output: &str) -> Vec<Package> {
@@ -774,5 +779,31 @@ Google\x1b[2JChrome            Google.Chrome               131.0     winget
             !packages[0].name.contains('\x1b'),
             "ANSI escape must be stripped from parsed package name"
         );
+    }
+
+    #[test]
+    fn clean_output_strips_crlf_and_progress_overwrites() {
+        // \r\n line endings are normalized to \n
+        let input = "line1\r\nline2\r\nline3\r\n";
+        assert_eq!(super::CliBackend::clean_output(input), "line1\nline2\nline3");
+
+        // Embedded \r progress overwrites — keep final segment after last \r
+        let input = "-\rloading\r\\ \rpackages table";
+        assert_eq!(super::CliBackend::clean_output(input), "packages table");
+
+        // Mixed: \r\n lines mixed with embedded-\r progress spinner lines
+        let input = "spinning\rHeader\r\nName    Id\r\n-\r\\  \r|  \r-\r   data row\r\n";
+        let result = super::CliBackend::clean_output(input);
+        // "spinning\rHeader" → "Header"
+        // "Name    Id" → unchanged
+        // "-\r\\  \r|  \r-\r   data row" → "   data row"
+        assert_eq!(result, "Header\nName    Id\n   data row");
+
+        // No \r at all — output unchanged
+        let plain = "line1\nline2\nline3\n";
+        assert_eq!(super::CliBackend::clean_output(plain), "line1\nline2\nline3");
+
+        // Empty input
+        assert_eq!(super::CliBackend::clean_output(""), "");
     }
 }
