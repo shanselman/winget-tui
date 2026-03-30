@@ -99,6 +99,7 @@ fn handle_normal_mode(
             app.selected = 0;
             app.selected_packages.clear();
             app.detail = None;
+            app.detail_loading = false;
             app.loading = true;
             app.set_status("Loading...");
             app.refresh_view();
@@ -108,6 +109,7 @@ fn handle_normal_mode(
             app.selected = 0;
             app.selected_packages.clear();
             app.detail = None;
+            app.detail_loading = false;
             app.loading = true;
             app.set_status("Loading...");
             app.refresh_view();
@@ -437,6 +439,7 @@ fn handle_tab_click(app: &mut App, col: u16) {
                 app.selected = 0;
                 app.selected_packages.clear();
                 app.detail = None;
+                app.detail_loading = false;
                 app.loading = true;
                 app.set_status("Loading...");
                 app.refresh_view();
