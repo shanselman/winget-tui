@@ -107,3 +107,103 @@ pub struct OpResult {
     pub success: bool,
     pub message: String,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ── SourceFilter ──────────────────────────────────────────────────────────
+
+    #[test]
+    fn source_filter_cycle() {
+        assert_eq!(SourceFilter::All.cycle(), SourceFilter::Winget);
+        assert_eq!(SourceFilter::Winget.cycle(), SourceFilter::MsStore);
+        assert_eq!(SourceFilter::MsStore.cycle(), SourceFilter::All);
+    }
+
+    #[test]
+    fn source_filter_display() {
+        assert_eq!(SourceFilter::All.to_string(), "All");
+        assert_eq!(SourceFilter::Winget.to_string(), "winget");
+        assert_eq!(SourceFilter::MsStore.to_string(), "msstore");
+    }
+
+    // ── Package::is_truncated ─────────────────────────────────────────────────
+
+    #[test]
+    fn package_is_truncated_detects_ellipsis() {
+        let truncated = Package {
+            id: "MSIX\\bsky.app-C52C8C38_1.0.0.0_neutral\u{2026}".to_string(),
+            name: "Bluesky".to_string(),
+            version: "1.0.0".to_string(),
+            source: "winget".to_string(),
+            available_version: String::new(),
+        };
+        assert!(truncated.is_truncated());
+    }
+
+    #[test]
+    fn package_is_truncated_false_for_normal_id() {
+        let normal = Package {
+            id: "Google.Chrome".to_string(),
+            name: "Google Chrome".to_string(),
+            version: "131.0".to_string(),
+            source: "winget".to_string(),
+            available_version: String::new(),
+        };
+        assert!(!normal.is_truncated());
+    }
+
+    // ── Operation::Display ────────────────────────────────────────────────────
+
+    #[test]
+    fn operation_display_install_with_version() {
+        let op = Operation::Install {
+            id: "Google.Chrome".to_string(),
+            version: Some("132.0".to_string()),
+        };
+        assert_eq!(op.to_string(), "Installing Google.Chrome v132.0");
+    }
+
+    #[test]
+    fn operation_display_install_without_version() {
+        let op = Operation::Install {
+            id: "Google.Chrome".to_string(),
+            version: None,
+        };
+        assert_eq!(op.to_string(), "Installing Google.Chrome");
+    }
+
+    #[test]
+    fn operation_display_uninstall() {
+        let op = Operation::Uninstall {
+            id: "Google.Chrome".to_string(),
+        };
+        assert_eq!(op.to_string(), "Uninstalling Google.Chrome");
+    }
+
+    #[test]
+    fn operation_display_upgrade() {
+        let op = Operation::Upgrade {
+            id: "Google.Chrome".to_string(),
+        };
+        assert_eq!(op.to_string(), "Upgrading Google.Chrome");
+    }
+
+    #[test]
+    fn operation_display_batch_upgrade() {
+        let op = Operation::BatchUpgrade {
+            ids: vec![
+                "Google.Chrome".to_string(),
+                "Microsoft.VisualStudioCode".to_string(),
+            ],
+        };
+        assert_eq!(op.to_string(), "Batch upgrading 2 packages");
+    }
+
+    #[test]
+    fn operation_display_batch_upgrade_zero() {
+        let op = Operation::BatchUpgrade { ids: vec![] };
+        assert_eq!(op.to_string(), "Batch upgrading 0 packages");
+    }
+}
