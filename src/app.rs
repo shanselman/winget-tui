@@ -188,11 +188,7 @@ impl App {
         let tx = self.message_tx.clone();
         let mode = self.mode;
         let query = self.search_query.clone();
-        let source_arg = match &self.source_filter {
-            SourceFilter::Winget => Some("winget".to_string()),
-            SourceFilter::MsStore => Some("msstore".to_string()),
-            SourceFilter::All => None,
-        };
+        let source_arg = self.source_filter.as_arg();
 
         tokio::spawn(async move {
             let result = match mode {
@@ -200,11 +196,11 @@ impl App {
                     if query.is_empty() {
                         Ok(Vec::new())
                     } else {
-                        backend.search(&query, source_arg.as_deref()).await
+                        backend.search(&query, source_arg).await
                     }
                 }
-                AppMode::Installed => backend.list_installed(source_arg.as_deref()).await,
-                AppMode::Upgrades => backend.list_upgrades(source_arg.as_deref()).await,
+                AppMode::Installed => backend.list_installed(source_arg).await,
+                AppMode::Upgrades => backend.list_upgrades(source_arg).await,
             };
 
             match result {

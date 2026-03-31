@@ -17,6 +17,16 @@ impl SourceFilter {
             Self::MsStore => Self::All,
         }
     }
+
+    /// Returns the winget `--source` argument value for this filter,
+    /// or `None` when all sources should be included.
+    pub fn as_arg(&self) -> Option<&'static str> {
+        match self {
+            Self::All => None,
+            Self::Winget => Some("winget"),
+            Self::MsStore => Some("msstore"),
+        }
+    }
 }
 
 impl fmt::Display for SourceFilter {
