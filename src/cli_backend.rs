@@ -775,4 +775,134 @@ Google\x1b[2JChrome            Google.Chrome               131.0     winget
             "ANSI escape must be stripped from parsed package name"
         );
     }
+
+    // ── parse_sources_from_table ──────────────────────────────────────────────
+
+    #[test]
+    fn parse_sources_english() {
+        let backend = CliBackend::new();
+        let output = "\
+Name    Argument                             Type
+----------------------------------------------------
+winget  https://winget.azureedge.net/cache   Microsoft.PreIndexed.Package
+msstore https://storeedgefd.dsx.mp.microsoft.com/v9.0  Microsoft.Rest
+";
+        let sources = backend.parse_sources_from_table(output);
+        assert_eq!(sources.len(), 2);
+        assert_eq!(sources[0].name, "winget");
+        assert_eq!(sources[0].url, "https://winget.azureedge.net/cache");
+        assert_eq!(sources[0].source_type, "Microsoft.PreIndexed.Package");
+        assert_eq!(sources[1].name, "msstore");
+    }
+
+    #[test]
+    fn parse_sources_empty_output_returns_empty() {
+        let backend = CliBackend::new();
+        let sources = backend.parse_sources_from_table("");
+        assert!(sources.is_empty(), "empty output should yield no sources");
+    }
+
+    #[test]
+    fn parse_sources_no_separator_returns_empty() {
+        let backend = CliBackend::new();
+        let output = "winget  https://example.com  SomeType\n";
+        let sources = backend.parse_sources_from_table(output);
+        assert!(sources.is_empty(), "missing separator should yield no sources");
+    }
+
+    #[test]
+    fn parse_sources_positional_fallback_for_unknown_locale() {
+        let backend = CliBackend::new();
+        // Headers in an unrecognized language trigger positional fallback
+        let output = "\
+Nom     Argument                    Type
+--------------------------------------------
+winget  https://winget.example.com  SomeType
+";
+        // "Nom" is French for "Name" — not in the known list, triggers positional
+        let sources = backend.parse_sources_from_table(output);
+        // The positional fallback assigns col 0=name, col 1=arg, col 2=type
+        assert_eq!(sources.len(), 1);
+        assert_eq!(sources[0].name, "winget");
+        assert_eq!(sources[0].url, "https://winget.example.com");
+        assert_eq!(sources[0].source_type, "SomeType");
+    }
+
+    // ── parse_show_output edge cases ──────────────────────────────────────────
+
+    #[test]
+    fn parse_show_output_multiline_description() {
+        let backend = CliBackend::new();
+        // Description spans multiple indented continuation lines
+        let output = "\
+Found Visual Studio Code [Microsoft.VisualStudioCode]
+Version: 1.96.0
+Publisher: Microsoft Corporation
+Description: Visual Studio Code is a code editor redefined and optimized
+  for building and debugging modern web and cloud applications.
+  Visual Studio Code is free and available on your favorite platform.
+License: Freeware
+";
+        let detail = backend.parse_show_output(output);
+        assert_eq!(detail.id, "Microsoft.VisualStudioCode");
+        assert_eq!(detail.version, "1.96.0");
+        assert!(
+            detail.description.contains("redefined and optimized"),
+            "first description line should be present"
+        );
+        assert!(
+            detail.description.contains("favorite platform"),
+            "continuation lines should be appended to description"
+        );
+    }
+
+    #[test]
+    fn parse_show_output_publisher_url_fallback_for_homepage() {
+        let backend = CliBackend::new();
+        // When Homepage is absent, Publisher Url should fill it
+        let output = "\
+Found Some App [SomePublisher.SomeApp]
+Version: 2.0.0
+Publisher: Some Publisher
+Publisher Url: https://somepublisher.example.com
+License: MIT
+";
+        let detail = backend.parse_show_output(output);
+        assert_eq!(detail.id, "SomePublisher.SomeApp");
+        assert_eq!(
+            detail.homepage, "https://somepublisher.example.com",
+            "Publisher Url should be used as homepage when Homepage is absent"
+        );
+    }
+
+    #[test]
+    fn parse_show_output_homepage_not_overwritten_by_publisher_url() {
+        let backend = CliBackend::new();
+        // When Homepage is already set, Publisher Url must NOT overwrite it
+        let output = "\
+Found Some App [SomePublisher.SomeApp]
+Version: 2.0.0
+Publisher: Some Publisher
+Homepage: https://explicit-homepage.example.com
+Publisher Url: https://somepublisher.example.com
+License: MIT
+";
+        let detail = backend.parse_show_output(output);
+        assert_eq!(
+            detail.homepage, "https://explicit-homepage.example.com",
+            "explicit Homepage must take precedence over Publisher Url"
+        );
+    }
+
+    #[test]
+    fn parse_table_no_separator_returns_empty() {
+        let backend = CliBackend::new();
+        // No separator line → should return empty Vec, not panic
+        let output = "\
+Name         Id             Version
+Google Chrome  Google.Chrome  131.0
+";
+        let packages = backend.parse_packages_from_table(output);
+        assert!(packages.is_empty(), "missing separator should return empty Vec");
+    }
 }
