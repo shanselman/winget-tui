@@ -220,14 +220,8 @@ impl CliBackend {
         let mut map = PackageCols {
             name: Self::find_column_ci(cols, &["name", "nom", "nombre", "nome"]),
             id: Self::find_column_ci(cols, &["id", "id."]),
-            version: Self::find_column_ci(
-                cols,
-                &["version", "versión", "versão", "versione"],
-            ),
-            source: Self::find_column_ci(
-                cols,
-                &["source", "quelle", "origen", "fonte", "origine"],
-            ),
+            version: Self::find_column_ci(cols, &["version", "versión", "versão", "versione"]),
+            source: Self::find_column_ci(cols, &["source", "quelle", "origen", "fonte", "origine"]),
             available: Self::find_column_ci(
                 cols,
                 &[
@@ -254,7 +248,12 @@ impl CliBackend {
         map
     }
 
-    fn parse_table_row(&self, line: &str, cols: &[(&str, usize)], pcols: PackageCols) -> Option<Package> {
+    fn parse_table_row(
+        &self,
+        line: &str,
+        cols: &[(&str, usize)],
+        pcols: PackageCols,
+    ) -> Option<Package> {
         // Extract fields using display-width columns (not byte offsets).
         // The header column positions are in display-width units (ASCII, so bytes == display width).
         // Data rows may contain multi-byte UTF-8 chars (e.g. '…') that are 1 display column
