@@ -339,6 +339,11 @@ fn draw_detail_panel(f: &mut Frame, app: &App, area: Rect) {
             .fg(Color::Yellow)
             .add_modifier(Modifier::BOLD);
 
+        let available_version = app
+            .selected_package()
+            .map(|p| p.available_version.as_str())
+            .unwrap_or("");
+
         let mut lines = vec![
             Line::from(vec![
                 Span::styled("  Name      ", label_style),
@@ -352,6 +357,25 @@ fn draw_detail_panel(f: &mut Frame, app: &App, area: Rect) {
                 Span::styled("  Version   ", label_style),
                 Span::raw(&detail.version),
             ]),
+        ];
+
+        if !available_version.is_empty() {
+            lines.push(Line::from(vec![
+                Span::styled("  Available ", label_style),
+                Span::styled(
+                    available_version.to_string(),
+                    Style::default()
+                        .fg(Color::Green)
+                        .add_modifier(Modifier::BOLD),
+                ),
+                Span::styled(
+                    " ⬆",
+                    Style::default().fg(Color::Green),
+                ),
+            ]));
+        }
+
+        lines.extend([
             Line::from(vec![
                 Span::styled("  Publisher ", label_style),
                 Span::raw(&detail.publisher),
@@ -360,7 +384,7 @@ fn draw_detail_panel(f: &mut Frame, app: &App, area: Rect) {
                 Span::styled("  Source    ", label_style),
                 Span::raw(&detail.source),
             ]),
-        ];
+        ]);
 
         if !detail.license.is_empty() {
             lines.push(Line::from(vec![
@@ -395,9 +419,7 @@ fn draw_detail_panel(f: &mut Frame, app: &App, area: Rect) {
 
         // Show context-appropriate actions
         let mut actions: Vec<Span> = vec![Span::raw("  ")];
-        let has_upgrade = app
-            .selected_package()
-            .is_some_and(|p| !p.available_version.is_empty());
+        let has_upgrade = !available_version.is_empty();
         match app.mode {
             AppMode::Search => {
                 actions.push(Span::styled(
