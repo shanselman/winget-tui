@@ -222,6 +222,15 @@ impl App {
     }
 
     pub fn load_detail(&mut self, id: &str) {
+        // Truncated IDs (ending with '…') come from MSIX packages whose ID was
+        // clipped by winget. `winget show --exact <truncated>` always fails, so skip
+        // the async fetch entirely. The pre-populated stub from the package list is
+        // still shown in the detail panel; only the full publisher/description/etc.
+        // fields are missing.
+        if id.ends_with('…') {
+            return;
+        }
+
         // Always increment generation to invalidate any in-flight detail requests.
         // Without this, returning from cache leaves the old generation active,
         // and a stale async response can overwrite the correct cached detail.
@@ -422,5 +431,88 @@ impl App {
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::Arc;
+
+    use anyhow::Result;
+    use async_trait::async_trait;
+
+    use super::*;
+    use crate::backend::WingetBackend;
+    use crate::models::{Package, PackageDetail, Source};
+
+    /// Minimal backend that records `show` calls
+    struct SpyBackend {
+        show_calls: std::sync::Mutex<Vec<String>>,
+    }
+
+    impl SpyBackend {
+        fn new() -> Arc<Self> {
+            Arc::new(Self {
+                show_calls: std::sync::Mutex::new(Vec::new()),
+            })
+        }
+
+        fn show_calls(&self) -> Vec<String> {
+            self.show_calls.lock().unwrap().clone()
+        }
+    }
+
+    #[async_trait]
+    impl WingetBackend for SpyBackend {
+        async fn search(&self, _: &str, _: Option<&str>) -> Result<Vec<Package>> {
+            Ok(vec![])
+        }
+        async fn list_installed(&self, _: Option<&str>) -> Result<Vec<Package>> {
+            Ok(vec![])
+        }
+        async fn list_upgrades(&self, _: Option<&str>) -> Result<Vec<Package>> {
+            Ok(vec![])
+        }
+        async fn show(&self, id: &str) -> Result<PackageDetail> {
+            self.show_calls.lock().unwrap().push(id.to_string());
+            Ok(PackageDetail::default())
+        }
+        async fn install(&self, _: &str, _: Option<&str>) -> Result<String> {
+            Ok(String::new())
+        }
+        async fn uninstall(&self, _: &str) -> Result<String> {
+            Ok(String::new())
+        }
+        async fn upgrade(&self, _: &str) -> Result<String> {
+            Ok(String::new())
+        }
+        async fn list_sources(&self) -> Result<Vec<Source>> {
+            Ok(vec![])
+        }
+    }
+
+    fn make_app(backend: Arc<dyn WingetBackend>) -> App {
+        App::new(backend)
+    }
+
+    #[test]
+    fn load_detail_skips_truncated_id() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy.clone() as Arc<dyn WingetBackend>);
+        let truncated = "MSIX\\bsky.app-C52C8C38_1.0.0.0_neutr\u{2026}";
+        app.load_detail(truncated);
+        // detail_generation must NOT have been incremented (we returned before touching it)
+        assert_eq!(app.detail_generation, 0, "generation should be unchanged for truncated id");
+        // No show call should have been enqueued
+        assert!(spy.show_calls().is_empty(), "winget show must not be called for truncated id");
+    }
+
+    #[tokio::test]
+    async fn load_detail_proceeds_for_normal_id() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy.clone() as Arc<dyn WingetBackend>);
+        app.load_detail("Google.Chrome");
+        // detail_generation was incremented — an async fetch was started
+        assert_eq!(app.detail_generation, 1, "generation should advance for a normal id");
     }
 }
