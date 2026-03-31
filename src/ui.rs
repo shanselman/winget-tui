@@ -9,7 +9,7 @@ use ratatui::{
     Frame,
 };
 
-use unicode_width::UnicodeWidthStr;
+use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 
 use crate::app::{App, AppMode, ConfirmDialog, InputMode};
 
@@ -743,11 +743,63 @@ fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
         .split(popup_layout[1])[1]
 }
 
+/// Truncate `s` to at most `max` **display columns**, appending '…' if truncated.
+/// Uses Unicode display widths so CJK characters (width 2) are counted correctly.
 fn truncate(s: &str, max: usize) -> String {
-    if s.chars().count() <= max {
-        s.to_string()
-    } else {
-        let truncated: String = s.chars().take(max - 1).collect();
-        format!("{truncated}…")
+    if UnicodeWidthStr::width(s) <= max {
+        return s.to_string();
+    }
+    // Reserve one column for the '…' ellipsis.
+    let budget = max.saturating_sub(1);
+    let mut display_width = 0usize;
+    let mut result = String::new();
+    for ch in s.chars() {
+        let cw = UnicodeWidthChar::width(ch).unwrap_or(0);
+        if display_width + cw > budget {
+            break;
+        }
+        display_width += cw;
+        result.push(ch);
+    }
+    format!("{result}…")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn truncate_ascii_within_limit() {
+        assert_eq!(truncate("hello", 10), "hello");
+    }
+
+    #[test]
+    fn truncate_ascii_at_exact_limit() {
+        assert_eq!(truncate("hello", 5), "hello");
+    }
+
+    #[test]
+    fn truncate_ascii_over_limit() {
+        // "hello world" = 11 chars; max=8 → keep 7 + '…'
+        assert_eq!(truncate("hello world", 8), "hello w…");
+    }
+
+    #[test]
+    fn truncate_cjk_within_limit() {
+        // Each CJK char is 2 display columns; "你好" = 4 cols, max=5
+        assert_eq!(truncate("你好", 5), "你好");
+    }
+
+    #[test]
+    fn truncate_cjk_over_limit() {
+        // "你好世界" = 8 display cols; max=5 → keep 2 cols (one CJK) + '…'
+        // budget=4 → "你好" (4 cols) fits, "你好世" would be 6 > 4
+        assert_eq!(truncate("你好世界", 5), "你好…");
+    }
+
+    #[test]
+    fn truncate_mixed_ascii_cjk() {
+        // "hi你好" = 2 + 4 = 6 cols; max=5 → keep "hi你" (4 cols) + '…'
+        assert_eq!(truncate("hi你好", 5), "hi你…");
     }
 }
