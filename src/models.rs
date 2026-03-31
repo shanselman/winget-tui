@@ -292,10 +292,16 @@ mod tests {
         };
         let merged = fresh.merge_over(&base);
         assert_eq!(merged.id, "Google.Chrome", "base id should be preserved");
-        assert_eq!(merged.name, "Google Chrome", "base name should be preserved");
+        assert_eq!(
+            merged.name, "Google Chrome",
+            "base name should be preserved"
+        );
         assert_eq!(merged.version, "132.0", "base version should be preserved");
         assert_eq!(merged.source, "winget", "base source should be preserved");
         assert_eq!(merged.publisher, "Google LLC", "fresh publisher should win");
-        assert_eq!(merged.description, "A fast browser", "fresh description should win");
+        assert_eq!(
+            merged.description, "A fast browser",
+            "fresh description should win"
+        );
     }
 }

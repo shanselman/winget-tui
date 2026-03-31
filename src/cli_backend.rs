@@ -811,7 +811,10 @@ msstore https://storeedgefd.dsx.mp.microsoft.com/v9.0  Microsoft.Rest
         let backend = CliBackend::new();
         let output = "winget  https://example.com  SomeType\n";
         let sources = backend.parse_sources_from_table(output);
-        assert!(sources.is_empty(), "missing separator should yield no sources");
+        assert!(
+            sources.is_empty(),
+            "missing separator should yield no sources"
+        );
     }
 
     #[test]
@@ -907,7 +910,10 @@ Name         Id             Version
 Google Chrome  Google.Chrome  131.0
 ";
         let packages = backend.parse_packages_from_table(output);
-        assert!(packages.is_empty(), "missing separator should return empty Vec");
+        assert!(
+            packages.is_empty(),
+            "missing separator should return empty Vec"
+        );
     }
 
     // ── clean_output ─────────────────────────────────────────────────────────
@@ -916,7 +922,10 @@ Google Chrome  Google.Chrome  131.0
     fn clean_output_strips_crlf_and_progress_overwrites() {
         // \r\n line endings are normalized to \n
         let input = "line1\r\nline2\r\nline3\r\n";
-        assert_eq!(super::CliBackend::clean_output(input), "line1\nline2\nline3");
+        assert_eq!(
+            super::CliBackend::clean_output(input),
+            "line1\nline2\nline3"
+        );
 
         // Embedded \r progress overwrites — keep final segment after last \r
         let input = "-\rloading\r\\ \rpackages table";
@@ -932,7 +941,10 @@ Google Chrome  Google.Chrome  131.0
 
         // No \r at all — output unchanged
         let plain = "line1\nline2\nline3\n";
-        assert_eq!(super::CliBackend::clean_output(plain), "line1\nline2\nline3");
+        assert_eq!(
+            super::CliBackend::clean_output(plain),
+            "line1\nline2\nline3"
+        );
 
         // Empty input
         assert_eq!(super::CliBackend::clean_output(""), "");

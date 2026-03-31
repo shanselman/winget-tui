@@ -368,10 +368,7 @@ fn draw_detail_panel(f: &mut Frame, app: &App, area: Rect) {
                         .fg(Color::Green)
                         .add_modifier(Modifier::BOLD),
                 ),
-                Span::styled(
-                    " ⬆",
-                    Style::default().fg(Color::Green),
-                ),
+                Span::styled(" ⬆", Style::default().fg(Color::Green)),
             ]));
         }
 

@@ -473,9 +473,15 @@ mod tests {
         let truncated = "MSIX\\bsky.app-C52C8C38_1.0.0.0_neutr\u{2026}";
         app.load_detail(truncated);
         // detail_generation must NOT have been incremented (we returned before touching it)
-        assert_eq!(app.detail_generation, 0, "generation should be unchanged for truncated id");
+        assert_eq!(
+            app.detail_generation, 0,
+            "generation should be unchanged for truncated id"
+        );
         // No show call should have been enqueued
-        assert!(spy.show_calls().is_empty(), "winget show must not be called for truncated id");
+        assert!(
+            spy.show_calls().is_empty(),
+            "winget show must not be called for truncated id"
+        );
     }
 
     #[tokio::test]
@@ -484,6 +490,9 @@ mod tests {
         let mut app = make_app(spy.clone() as Arc<dyn WingetBackend>);
         app.load_detail("Google.Chrome");
         // detail_generation was incremented — an async fetch was started
-        assert_eq!(app.detail_generation, 1, "generation should advance for a normal id");
+        assert_eq!(
+            app.detail_generation, 1,
+            "generation should advance for a normal id"
+        );
     }
 }
