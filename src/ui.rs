@@ -765,6 +765,13 @@ fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
 /// Truncate `s` to at most `max` **display columns**, appending '…' if truncated.
 /// Uses Unicode display widths so CJK characters (width 2) are counted correctly.
 fn truncate(s: &str, max: usize) -> String {
+    // Fast path: every Unicode code point occupies at least as many bytes as
+    // display columns (ASCII: 1 byte = 1 col; multi-byte sequences: ≥2 bytes,
+    // 1–2 display cols).  So if byte length ≤ max the string fits for certain,
+    // avoiding the O(n) Unicode scan for the common case of short ASCII strings.
+    if s.len() <= max {
+        return s.to_string();
+    }
     if UnicodeWidthStr::width(s) <= max {
         return s.to_string();
     }

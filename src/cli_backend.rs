@@ -199,7 +199,16 @@ impl CliBackend {
                 break;
             }
         }
-        result.trim().to_string()
+        // Trim in place to avoid the extra allocation that `.trim().to_string()` would
+        // require: trim the trailing whitespace first (O(k) scan from the end), then
+        // drain any leading whitespace in a single shift.
+        let new_len = result.trim_end().len();
+        result.truncate(new_len);
+        let leading = result.len() - result.trim_start().len();
+        if leading > 0 {
+            result.drain(..leading);
+        }
+        result
     }
 
     /// Normalize a `winget show` key to a canonical English name (case-insensitive,
