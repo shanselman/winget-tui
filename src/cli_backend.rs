@@ -98,22 +98,32 @@ impl CliBackend {
         cleaned
     }
 
+    /// Find the index of the table separator line (a long line of dashes) in `lines`.
+    ///
+    /// Returns `None` if no separator is found or if it sits at index 0 (no header
+    /// line above it).  The caller can index `lines[sep - 1]` for the header and
+    /// `lines[sep + 1..]` for the data rows.
+    fn find_table_separator(lines: &[&str]) -> Option<usize> {
+        lines
+            .iter()
+            .position(|l| {
+                let trimmed = l.trim();
+                trimmed.len() > 10
+                    && trimmed.chars().all(|c| c == '-' || c == ' ')
+                    && trimmed.contains('-')
+            })
+            .filter(|&i| i > 0)
+    }
+
     fn parse_packages_from_table(&self, output: &str) -> Vec<Package> {
         // winget table output has a header line followed by a separator (all dashes)
         // then data rows. Column positions are determined by the header.
         // winget also emits short progress lines like "-", "\", "|" before the table.
         let lines: Vec<&str> = output.lines().collect();
 
-        // Find the real separator line: must be mostly dashes and long enough to be a table separator
-        let sep_idx = lines.iter().position(|l| {
-            let trimmed = l.trim();
-            trimmed.len() > 10
-                && trimmed.chars().all(|c| c == '-' || c == ' ')
-                && trimmed.contains('-')
-        });
-        let sep_idx = match sep_idx {
-            Some(i) if i > 0 => i,
-            _ => return Vec::new(),
+        let sep_idx = match Self::find_table_separator(&lines) {
+            Some(i) => i,
+            None => return Vec::new(),
         };
 
         let header = lines[sep_idx - 1];
@@ -372,15 +382,9 @@ impl CliBackend {
     #[allow(dead_code)]
     fn parse_sources_from_table(&self, output: &str) -> Vec<Source> {
         let lines: Vec<&str> = output.lines().collect();
-        let sep_idx = lines.iter().position(|l| {
-            let trimmed = l.trim();
-            trimmed.len() > 10
-                && trimmed.chars().all(|c| c == '-' || c == ' ')
-                && trimmed.contains('-')
-        });
-        let sep_idx = match sep_idx {
-            Some(i) if i > 0 => i,
-            _ => return Vec::new(),
+        let sep_idx = match Self::find_table_separator(&lines) {
+            Some(i) => i,
+            None => return Vec::new(),
         };
 
         let header = lines[sep_idx - 1];
@@ -487,6 +491,45 @@ impl WingetBackend for CliBackend {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // ── find_table_separator ──────────────────────────────────────────────────
+
+    #[test]
+    fn find_separator_normal() {
+        let lines = vec![
+            "Name                 Id       Version",
+            "-------------------------------------",
+            "Google Chrome        G.C      1.0",
+        ];
+        assert_eq!(CliBackend::find_table_separator(&lines), Some(1));
+    }
+
+    #[test]
+    fn find_separator_with_progress_prefix() {
+        // winget emits short spinner lines before the real table
+        let lines = vec![
+            "-",
+            "\\",
+            "|",
+            "Name                 Id       Version",
+            "-------------------------------------",
+            "Google Chrome        G.C      1.0",
+        ];
+        assert_eq!(CliBackend::find_table_separator(&lines), Some(4));
+    }
+
+    #[test]
+    fn find_separator_missing() {
+        let lines = vec!["Name  Id  Version", "Google Chrome  G.C  1.0"];
+        assert_eq!(CliBackend::find_table_separator(&lines), None);
+    }
+
+    #[test]
+    fn find_separator_at_index_zero_returns_none() {
+        // Separator at index 0 has no header above it; should be rejected.
+        let lines = vec!["-------------------------------------", "Google Chrome  G.C  1.0"];
+        assert_eq!(CliBackend::find_table_separator(&lines), None);
+    }
 
     #[test]
     fn parse_english_upgrade_table() {
