@@ -51,6 +51,7 @@ winget-tui
 | `PgUp` / `PgDn` | Jump 20 items |
 | `Home` / `End` | Jump to first / last |
 | `Tab` | Cycle views (Search → Installed → Upgrades) |
+| `Shift+Tab` | Cycle views backwards |
 | `/` or `s` | Focus search input |
 | `Enter` | Submit search / show details |
 | `f` | Cycle source filter (All → winget → msstore) |
@@ -58,6 +59,10 @@ winget-tui
 | `i` | Install selected package |
 | `u` | Upgrade selected package |
 | `x` | Uninstall selected package |
+| `o` | Open package homepage in browser |
+| `Space` | Toggle selection for batch upgrade (Upgrades view) |
+| `a` | Select / deselect all packages (Upgrades view) |
+| `U` | Batch upgrade all selected packages (Upgrades view) |
 | `?` | Toggle help overlay |
 | `q` / `Esc` | Quit / close dialog |
 | `Ctrl+C` | Quit |
