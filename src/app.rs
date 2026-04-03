@@ -73,7 +73,10 @@ impl AppMode {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum InputMode {
     Normal,
+    /// Typing a winget remote search query (Search tab)
     Search,
+    /// Typing a client-side name/ID filter (Installed / Upgrades tabs)
+    Filter,
 }
 
 /// Confirmation dialog state
@@ -88,6 +91,8 @@ pub struct App {
     pub input_mode: InputMode,
     pub source_filter: SourceFilter,
     pub search_query: String,
+    /// Client-side substring filter for Installed / Upgrades views (empty = show all)
+    pub local_filter: String,
     pub packages: Vec<Package>,
     pub filtered_packages: Vec<Package>,
     pub selected: usize,
@@ -124,6 +129,7 @@ impl App {
             input_mode: InputMode::Normal,
             source_filter: SourceFilter::All,
             search_query: String::new(),
+            local_filter: String::new(),
             packages: Vec::new(),
             filtered_packages: Vec::new(),
             selected: 0,
@@ -150,7 +156,19 @@ impl App {
     pub fn apply_filter(&mut self) {
         // When a source filter is active, winget already filters server-side
         // (and omits the Source column), so accept all returned packages.
-        self.filtered_packages = self.packages.clone();
+        // Additionally apply any client-side local_filter substring match.
+        let lf = self.local_filter.to_lowercase();
+        self.filtered_packages = if lf.is_empty() {
+            self.packages.clone()
+        } else {
+            self.packages
+                .iter()
+                .filter(|p| {
+                    p.name.to_lowercase().contains(&lf) || p.id.to_lowercase().contains(&lf)
+                })
+                .cloned()
+                .collect()
+        };
         // Keep selection in bounds
         if self.selected >= self.filtered_packages.len() {
             self.selected = self.filtered_packages.len().saturating_sub(1);
@@ -494,5 +512,77 @@ mod tests {
             app.detail_generation, 1,
             "generation should advance for a normal id"
         );
+    }
+
+    fn pkg(name: &str, id: &str) -> Package {
+        Package {
+            name: name.to_string(),
+            id: id.to_string(),
+            version: String::new(),
+            source: String::new(),
+            available_version: String::new(),
+        }
+    }
+
+    #[test]
+    fn apply_filter_empty_shows_all() {
+        let mut app = make_app(SpyBackend::new() as Arc<dyn WingetBackend>);
+        app.packages = vec![
+            pkg("Chrome", "Google.Chrome"),
+            pkg("Firefox", "Mozilla.Firefox"),
+        ];
+        app.local_filter = String::new();
+        app.apply_filter();
+        assert_eq!(app.filtered_packages.len(), 2);
+    }
+
+    #[test]
+    fn apply_filter_by_name_case_insensitive() {
+        let mut app = make_app(SpyBackend::new() as Arc<dyn WingetBackend>);
+        app.packages = vec![
+            pkg("Chrome", "Google.Chrome"),
+            pkg("Firefox", "Mozilla.Firefox"),
+        ];
+        app.local_filter = "chro".to_string();
+        app.apply_filter();
+        assert_eq!(app.filtered_packages.len(), 1);
+        assert_eq!(app.filtered_packages[0].id, "Google.Chrome");
+    }
+
+    #[test]
+    fn apply_filter_by_id_case_insensitive() {
+        let mut app = make_app(SpyBackend::new() as Arc<dyn WingetBackend>);
+        app.packages = vec![
+            pkg("Chrome", "Google.Chrome"),
+            pkg("Firefox", "Mozilla.Firefox"),
+        ];
+        app.local_filter = "MOZILLA".to_string();
+        app.apply_filter();
+        assert_eq!(app.filtered_packages.len(), 1);
+        assert_eq!(app.filtered_packages[0].id, "Mozilla.Firefox");
+    }
+
+    #[test]
+    fn apply_filter_no_match_returns_empty() {
+        let mut app = make_app(SpyBackend::new() as Arc<dyn WingetBackend>);
+        app.packages = vec![pkg("Chrome", "Google.Chrome")];
+        app.local_filter = "zzz".to_string();
+        app.apply_filter();
+        assert!(app.filtered_packages.is_empty());
+    }
+
+    #[test]
+    fn apply_filter_clearing_restores_all() {
+        let mut app = make_app(SpyBackend::new() as Arc<dyn WingetBackend>);
+        app.packages = vec![
+            pkg("Chrome", "Google.Chrome"),
+            pkg("Firefox", "Mozilla.Firefox"),
+        ];
+        app.local_filter = "chrome".to_string();
+        app.apply_filter();
+        assert_eq!(app.filtered_packages.len(), 1);
+        app.local_filter.clear();
+        app.apply_filter();
+        assert_eq!(app.filtered_packages.len(), 2);
     }
 }

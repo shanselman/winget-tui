@@ -103,24 +103,43 @@ fn draw_filter_bar(f: &mut Frame, app: &mut App, area: Rect) {
     let filter = Paragraph::new(filter_text).style(Style::default().fg(Color::Yellow));
     f.render_widget(filter, chunks[0]);
 
-    // Search input
-    let search_style = if app.input_mode == InputMode::Search {
+    // Search/filter input — behaviour differs by view:
+    //   Search view  → shows the remote search query (InputMode::Search)
+    //   Other views  → shows the client-side name/ID filter (InputMode::Filter)
+    let is_filter_active = app.input_mode == InputMode::Filter;
+    let is_search_active = app.input_mode == InputMode::Search;
+    let is_active = is_filter_active || is_search_active;
+
+    let search_style = if is_active {
         Style::default().fg(Color::White).bg(Color::DarkGray)
     } else {
         Style::default().fg(Color::DarkGray)
     };
 
-    let search_text = if app.search_query.is_empty() && app.input_mode != InputMode::Search {
-        " / to search...".to_string()
+    let (icon, query) = if is_filter_active || (!is_active && app.mode != AppMode::Search) {
+        ("🔎", app.local_filter.as_str())
     } else {
-        format!(" 🔍 {}", app.search_query)
+        ("🔍", app.search_query.as_str())
+    };
+
+    let search_text = if query.is_empty() && !is_active {
+        if app.mode == AppMode::Search {
+            " / s to search...".to_string()
+        } else {
+            " / to filter  s to search".to_string()
+        }
+    } else {
+        format!(" {} {}", icon, query)
     };
 
     let search = Paragraph::new(search_text).style(search_style);
     f.render_widget(search, chunks[1]);
 
-    // Show cursor in search mode
-    if app.input_mode == InputMode::Search {
+    // Show cursor in input modes
+    if is_filter_active {
+        let cursor_x = chunks[1].x + 4 + UnicodeWidthStr::width(app.local_filter.as_str()) as u16;
+        f.set_cursor_position((cursor_x, chunks[1].y));
+    } else if is_search_active {
         let cursor_x = chunks[1].x + 4 + UnicodeWidthStr::width(app.search_query.as_str()) as u16;
         f.set_cursor_position((cursor_x, chunks[1].y));
     }
@@ -573,7 +592,8 @@ fn draw_status_bar(f: &mut Frame, app: &App, area: Rect) {
 
     let keyhints = match app.input_mode {
         InputMode::Search => " Esc: cancel  Enter: search ",
-        InputMode::Normal => " ↑↓: nav  ←→/Tab: view  /: search  f: filter  ?: help ",
+        InputMode::Filter => " Esc: clear filter  Enter: confirm ",
+        InputMode::Normal => " ↑↓: nav  ←→/Tab: view  /: filter  s: search  f: src  ?: help ",
     };
     let hints = Paragraph::new(keyhints)
         .style(Style::default().fg(Color::Gray).bg(Color::DarkGray))
@@ -668,7 +688,11 @@ fn draw_help_overlay(f: &mut Frame) {
         ]),
         Line::from(vec![
             Span::styled("  /           ", key),
-            Span::raw("Focus search"),
+            Span::raw("Filter installed/upgrades list (client-side)"),
+        ]),
+        Line::from(vec![
+            Span::styled("  s           ", key),
+            Span::raw("Remote winget search"),
         ]),
         Line::from(vec![
             Span::styled("  f           ", key),

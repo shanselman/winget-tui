@@ -28,6 +28,7 @@ pub fn handle_events(app: &mut App) -> anyhow::Result<bool> {
 
             match app.input_mode {
                 InputMode::Search => handle_search_input(app, key.code),
+                InputMode::Filter => handle_filter_input(app, key.code),
                 InputMode::Normal => handle_normal_mode(app, key.code, key.modifiers),
             }
         }
@@ -62,6 +63,7 @@ fn handle_search_input(app: &mut App, key: KeyCode) -> anyhow::Result<bool> {
         KeyCode::Enter => {
             app.input_mode = InputMode::Normal;
             if !app.search_query.is_empty() {
+                app.local_filter.clear();
                 app.mode = AppMode::Search;
                 app.loading = true;
                 app.set_status("Searching...");
@@ -77,6 +79,48 @@ fn handle_search_input(app: &mut App, key: KeyCode) -> anyhow::Result<bool> {
         _ => {}
     }
     Ok(false)
+}
+
+/// Handle key presses while client-side filtering (Installed / Upgrades views).
+fn handle_filter_input(app: &mut App, key: KeyCode) -> anyhow::Result<bool> {
+    match key {
+        KeyCode::Esc => {
+            app.input_mode = InputMode::Normal;
+            app.local_filter.clear();
+            app.apply_filter();
+        }
+        KeyCode::Enter => {
+            app.input_mode = InputMode::Normal;
+        }
+        KeyCode::Backspace => {
+            app.local_filter.pop();
+            app.apply_filter();
+            update_filter_status(app);
+        }
+        KeyCode::Char(c) => {
+            app.local_filter.push(c);
+            app.apply_filter();
+            update_filter_status(app);
+        }
+        _ => {}
+    }
+    Ok(false)
+}
+
+fn update_filter_status(app: &mut App) {
+    let count = app.filtered_packages.len();
+    if app.local_filter.is_empty() {
+        app.set_status(format!(
+            "{count} package{} found",
+            if count == 1 { "" } else { "s" }
+        ));
+    } else {
+        app.set_status(format!(
+            "{count} match{} for \"{}\"",
+            if count == 1 { "" } else { "es" },
+            app.local_filter
+        ));
+    }
 }
 
 fn handle_normal_mode(
@@ -95,6 +139,8 @@ fn handle_normal_mode(
             app.show_help = !app.show_help;
         }
         KeyCode::Tab | KeyCode::Right => {
+            app.local_filter.clear();
+            app.input_mode = InputMode::Normal;
             app.mode = app.mode.cycle();
             app.selected = 0;
             app.selected_packages.clear();
@@ -105,6 +151,8 @@ fn handle_normal_mode(
             app.refresh_view();
         }
         KeyCode::BackTab | KeyCode::Left => {
+            app.local_filter.clear();
+            app.input_mode = InputMode::Normal;
             app.mode = app.mode.cycle_back();
             app.selected = 0;
             app.selected_packages.clear();
@@ -145,8 +193,18 @@ fn handle_normal_mode(
             }
         }
 
-        // Search
-        KeyCode::Char('/') | KeyCode::Char('s') => {
+        // Search / local filter
+        // '/' in Search view starts a remote winget search;
+        // '/' in Installed/Upgrades starts a client-side name/ID filter.
+        // 's' always starts a remote search (switches to Search view if needed).
+        KeyCode::Char('/') => {
+            if app.mode == AppMode::Search {
+                app.input_mode = InputMode::Search;
+            } else {
+                app.input_mode = InputMode::Filter;
+            }
+        }
+        KeyCode::Char('s') => {
             app.input_mode = InputMode::Search;
         }
 
@@ -347,7 +405,11 @@ fn handle_mouse(app: &mut App, mouse: crossterm::event::MouseEvent) -> anyhow::R
 
             // Click on search bar (check before filter since they share a row)
             if in_rect(col, row, app.layout.search_bar) {
-                app.input_mode = InputMode::Search;
+                app.input_mode = if app.mode == AppMode::Search {
+                    InputMode::Search
+                } else {
+                    InputMode::Filter
+                };
                 return Ok(false);
             }
 
@@ -464,6 +526,8 @@ fn handle_tab_click(app: &mut App, col: u16) {
     for &(start_x, end_x, mode) in &app.layout.tab_regions {
         if col >= start_x && col < end_x {
             if mode != app.mode {
+                app.local_filter.clear();
+                app.input_mode = InputMode::Normal;
                 app.mode = mode;
                 app.selected = 0;
                 app.selected_packages.clear();
