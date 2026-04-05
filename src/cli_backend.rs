@@ -949,4 +949,175 @@ Google Chrome  Google.Chrome  131.0
         // Empty input
         assert_eq!(super::CliBackend::clean_output(""), "");
     }
+
+    // ── detect_columns ───────────────────────────────────────────────────────
+
+    #[test]
+    fn detect_columns_english_header() {
+        let header = "Name                           Id                          Version     Available   Source";
+        let cols = CliBackend::detect_columns(header);
+        // Should detect: Name, Id, Version, Available, Source
+        assert_eq!(cols.len(), 5);
+        assert_eq!(cols[0].0, "Name");
+        assert_eq!(cols[1].0, "Id");
+        assert_eq!(cols[2].0, "Version");
+        assert_eq!(cols[3].0, "Available");
+        assert_eq!(cols[4].0, "Source");
+    }
+
+    #[test]
+    fn detect_columns_positions_are_monotonically_increasing() {
+        let header = "Name     Id      Version  Source";
+        let cols = CliBackend::detect_columns(header);
+        assert!(cols.len() >= 2);
+        for window in cols.windows(2) {
+            assert!(
+                window[1].1 > window[0].1,
+                "column positions must be strictly increasing"
+            );
+        }
+    }
+
+    #[test]
+    fn detect_columns_single_column() {
+        let cols = CliBackend::detect_columns("Name");
+        assert_eq!(cols.len(), 1);
+        assert_eq!(cols[0].0, "Name");
+        assert_eq!(cols[0].1, 0);
+    }
+
+    #[test]
+    fn detect_columns_empty_or_whitespace() {
+        assert!(CliBackend::detect_columns("").is_empty());
+        assert!(CliBackend::detect_columns("   ").is_empty());
+    }
+
+    // ── find_column_ci ───────────────────────────────────────────────────────
+
+    #[test]
+    fn find_column_ci_exact_match() {
+        let cols = vec![("Name", 0usize), ("Id", 10), ("Version", 20)];
+        assert_eq!(CliBackend::find_column_ci(&cols, &["id"]), Some(1));
+    }
+
+    #[test]
+    fn find_column_ci_case_insensitive() {
+        let cols = vec![("NAME", 0usize), ("ID", 10), ("VERSION", 20)];
+        assert_eq!(CliBackend::find_column_ci(&cols, &["name"]), Some(0));
+        assert_eq!(CliBackend::find_column_ci(&cols, &["version"]), Some(2));
+    }
+
+    #[test]
+    fn find_column_ci_multiple_candidates() {
+        // Returns the first column that matches any of the candidate names
+        let cols = vec![("Source", 0usize), ("Quelle", 10)];
+        assert_eq!(
+            CliBackend::find_column_ci(&cols, &["source", "quelle", "origen"]),
+            Some(0)
+        );
+    }
+
+    #[test]
+    fn find_column_ci_no_match_returns_none() {
+        let cols = vec![("Name", 0usize), ("Id", 10)];
+        assert_eq!(CliBackend::find_column_ci(&cols, &["version"]), None);
+        assert_eq!(CliBackend::find_column_ci(&[], &["name"]), None);
+    }
+
+    // ── extract_field ────────────────────────────────────────────────────────
+
+    #[test]
+    fn extract_field_first_column() {
+        // Header: "Name   Id"  → Name starts at 0, Id starts at 7
+        let cols = vec![("Name", 0usize), ("Id", 7)];
+        let line = "Chrome Google.Chrome";
+        assert_eq!(CliBackend::extract_field(line, &cols, 0), "Chrome");
+    }
+
+    #[test]
+    fn extract_field_last_column_reads_to_end() {
+        let cols = vec![("Name", 0usize), ("Id", 8)];
+        let line = "Chrome  Google.Chrome";
+        assert_eq!(CliBackend::extract_field(line, &cols, 1), "Google.Chrome");
+    }
+
+    #[test]
+    fn extract_field_trims_whitespace() {
+        // "Name" column spans widths 0-9 (col_end=10); the name "A" is 1 wide,
+        // so 9 trailing spaces fill the slot → result must be trimmed.
+        let cols = vec![("Name", 0usize), ("Id", 10)];
+        let line = "A         Google.Chrome";
+        assert_eq!(CliBackend::extract_field(line, &cols, 0), "A");
+    }
+
+    #[test]
+    fn extract_field_out_of_range_returns_empty() {
+        let cols = vec![("Name", 0usize)];
+        assert_eq!(CliBackend::extract_field("Chrome", &cols, 1), "");
+        assert_eq!(CliBackend::extract_field("Chrome", &[], 0), "");
+    }
+
+    // ── normalize_show_key ───────────────────────────────────────────────────
+
+    #[test]
+    fn normalize_show_key_english_keys() {
+        assert_eq!(CliBackend::normalize_show_key("Version"), "version");
+        assert_eq!(CliBackend::normalize_show_key("Publisher"), "publisher");
+        assert_eq!(CliBackend::normalize_show_key("Description"), "description");
+        assert_eq!(CliBackend::normalize_show_key("Homepage"), "homepage");
+        assert_eq!(
+            CliBackend::normalize_show_key("Publisher Url"),
+            "publisher_url"
+        );
+        assert_eq!(CliBackend::normalize_show_key("License"), "license");
+        assert_eq!(CliBackend::normalize_show_key("Source"), "source");
+    }
+
+    #[test]
+    fn normalize_show_key_case_insensitive() {
+        assert_eq!(CliBackend::normalize_show_key("VERSION"), "version");
+        assert_eq!(CliBackend::normalize_show_key("PUBLISHER"), "publisher");
+        assert_eq!(CliBackend::normalize_show_key("LICENSE"), "license");
+    }
+
+    #[test]
+    fn normalize_show_key_german_translations() {
+        assert_eq!(CliBackend::normalize_show_key("Herausgeber"), "publisher");
+        assert_eq!(
+            CliBackend::normalize_show_key("Beschreibung"),
+            "description"
+        );
+        assert_eq!(CliBackend::normalize_show_key("Startseite"), "homepage");
+        assert_eq!(
+            CliBackend::normalize_show_key("Herausgeber-URL"),
+            "publisher_url"
+        );
+        assert_eq!(CliBackend::normalize_show_key("Lizenz"), "license");
+        assert_eq!(CliBackend::normalize_show_key("Quelle"), "source");
+    }
+
+    #[test]
+    fn normalize_show_key_other_locales() {
+        // French
+        assert_eq!(CliBackend::normalize_show_key("Éditeur"), "publisher");
+        // Spanish
+        assert_eq!(CliBackend::normalize_show_key("Descripción"), "description");
+        assert_eq!(CliBackend::normalize_show_key("Licencia"), "license");
+        // Italian
+        assert_eq!(CliBackend::normalize_show_key("Editore"), "publisher");
+        assert_eq!(CliBackend::normalize_show_key("Origine"), "source");
+        // Portuguese
+        assert_eq!(CliBackend::normalize_show_key("Licença"), "license");
+    }
+
+    #[test]
+    fn normalize_show_key_unknown_returns_empty() {
+        assert_eq!(CliBackend::normalize_show_key("UnknownKey"), "");
+        assert_eq!(CliBackend::normalize_show_key(""), "");
+    }
+
+    #[test]
+    fn normalize_show_key_package_version_alias() {
+        assert_eq!(CliBackend::normalize_show_key("PackageVersion"), "version");
+    }
 }
