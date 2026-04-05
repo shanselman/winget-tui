@@ -1,1 +1,1 @@
-{"r": "2026-04-04", "run": "23978810768", "mo": "2026-04", "pause": false, "note": "Apr #81 updated; PRs open: #79 #82 #84 #85 #86 #87 #89; new patches: fix-preserve-selection-on-refresh, eng-release-profile-2026-04-04; #80/#83 blocked; task3: selection-by-id fix (46 tests); task4: release profile LTO+strip"}
+{"r": "2026-04-05", "run": "23991200549", "mo": "2026-04", "pause": false, "note": "Apr #81 updated; PRs open: #79 #82 #84 #85 #86 #87 #89 #90 #91 + test-handler-unit branch; task9: handler.rs 23 new tests (44→67); task6: no CI checks on any PR"}
