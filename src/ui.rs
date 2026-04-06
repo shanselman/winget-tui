@@ -403,6 +403,21 @@ fn draw_detail_panel(f: &mut Frame, app: &App, area: Rect) {
             ]));
         }
 
+        if !detail.release_notes_url.is_empty() {
+            if detail.homepage.is_empty() {
+                lines.push(Line::raw(""));
+            }
+            lines.push(Line::from(vec![
+                Span::styled("  📋 ", Style::default().fg(Color::Cyan)),
+                Span::styled(
+                    &detail.release_notes_url,
+                    Style::default()
+                        .fg(Color::Cyan)
+                        .add_modifier(Modifier::UNDERLINED),
+                ),
+            ]));
+        }
+
         if !detail.description.is_empty() {
             lines.push(Line::raw(""));
             lines.push(Line::from(Span::styled("  Description", label_style)));
@@ -509,6 +524,18 @@ fn draw_detail_panel(f: &mut Frame, app: &App, area: Rect) {
                     .add_modifier(Modifier::BOLD),
             ));
             actions.push(Span::raw(" Open homepage "));
+        }
+        // Open release notes hint when available
+        if !detail.release_notes_url.is_empty() {
+            actions.push(Span::raw("  "));
+            actions.push(Span::styled(
+                " c ",
+                Style::default()
+                    .fg(Color::Black)
+                    .bg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD),
+            ));
+            actions.push(Span::raw(" Changelog "));
         }
         lines.push(Line::from(actions));
 

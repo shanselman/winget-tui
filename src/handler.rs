@@ -293,6 +293,20 @@ fn handle_normal_mode(
             }
         }
 
+        // Open release notes / changelog in default browser
+        KeyCode::Char('c') => {
+            if let Some(detail) = &app.detail {
+                if !detail.release_notes_url.is_empty() {
+                    let url = detail.release_notes_url.clone();
+                    if open_url(&url) {
+                        app.set_status(format!("Opening changelog {}…", url));
+                    } else {
+                        app.set_status("Blocked: URL must start with http:// or https://");
+                    }
+                }
+            }
+        }
+
         _ => {}
     }
     Ok(false)

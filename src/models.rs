@@ -72,6 +72,7 @@ pub struct PackageDetail {
     pub homepage: String,
     pub license: String,
     pub source: String,
+    pub release_notes_url: String,
 }
 
 impl PackageDetail {
@@ -99,6 +100,7 @@ impl PackageDetail {
             description: pick(self.description, &base.description),
             homepage: pick(self.homepage, &base.homepage),
             license: pick(self.license, &base.license),
+            release_notes_url: pick(self.release_notes_url, &base.release_notes_url),
         }
     }
 }
@@ -260,6 +262,7 @@ mod tests {
             homepage: "https://google.com".to_string(),
             license: "Proprietary".to_string(),
             source: "winget".to_string(),
+            release_notes_url: String::new(),
         };
         let base = PackageDetail {
             id: "OLD.ID".to_string(),
@@ -303,5 +306,19 @@ mod tests {
             merged.description, "A fast browser",
             "fresh description should win"
         );
+    }
+
+    #[test]
+    fn merge_over_release_notes_url_prefers_fresh() {
+        let fresh = PackageDetail {
+            release_notes_url: "https://example.com/releases/v2".to_string(),
+            ..PackageDetail::default()
+        };
+        let base = PackageDetail {
+            release_notes_url: "https://example.com/releases/v1".to_string(),
+            ..PackageDetail::default()
+        };
+        let merged = fresh.merge_over(&base);
+        assert_eq!(merged.release_notes_url, "https://example.com/releases/v2");
     }
 }
