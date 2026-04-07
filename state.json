@@ -1,1 +1,1 @@
-{"r":"2026-04-06","PRs":"#79(perf),#82(sep),#84(footer),#85(deps),#86(filter),#87(test-app),#89(lock),#90(fix),#91(LTO),#92(test-handler),#93(test-cli-helpers),new(release-notes-url)","issues":"#80(docs),#83(CI),#88(roadmap),#94(ci-audit)"}
+{"r":"2026-04-07","run":"24058854344","mo":"2026-04","PRs":"#79,#82,#84,#85,#86,#87,#89,#90,#91,#92,#93,#95,ci-audit-fix","task4":"CI audit PR created (branch repo-assist/eng-fix-ci-audit-permissions-2026-04-07)","task6":"12 PRs all clean","monthly":81}
