@@ -949,4 +949,124 @@ Google Chrome  Google.Chrome  131.0
         // Empty input
         assert_eq!(super::CliBackend::clean_output(""), "");
     }
+
+    // ── parse_show_output locale coverage ────────────────────────────────────
+
+    #[test]
+    fn parse_show_output_french_locale() {
+        let backend = CliBackend::new();
+        // French winget uses "Éditeur" for publisher and "Licence" for license
+        let output = "\
+Trouvé Google Chrome [Google.Chrome]
+Version: 132.0.6834
+Éditeur: Google LLC
+Description: Un navigateur Web rapide et sécurisé
+Page d'accueil: https://www.google.com/chrome
+Licence: Proprietary
+Source: winget
+";
+        let detail = backend.parse_show_output(output);
+        assert_eq!(detail.id, "Google.Chrome", "id from French found-line");
+        assert_eq!(detail.name, "Google Chrome", "name from French found-line");
+        assert_eq!(detail.version, "132.0.6834");
+        assert_eq!(detail.publisher, "Google LLC", "Éditeur → publisher");
+        assert_eq!(detail.license, "Proprietary", "Licence → license");
+    }
+
+    #[test]
+    fn parse_show_output_spanish_locale() {
+        let backend = CliBackend::new();
+        // Spanish: "Editor" → publisher, "Descripción" → description, "Licencia" → license
+        let output = "\
+Encontrado Google Chrome [Google.Chrome]
+Version: 132.0.6834
+Editor: Google LLC
+Descripción: Un navegador web rápido y seguro
+Página principal: https://www.google.com/chrome
+Licencia: Proprietary
+Source: winget
+";
+        let detail = backend.parse_show_output(output);
+        assert_eq!(detail.id, "Google.Chrome");
+        assert_eq!(detail.publisher, "Google LLC", "Editor → publisher");
+        assert_eq!(
+            detail.description,
+            "Un navegador web rápido y seguro",
+            "Descripción → description"
+        );
+        assert_eq!(detail.license, "Proprietary", "Licencia → license");
+    }
+
+    #[test]
+    fn parse_show_output_italian_locale() {
+        let backend = CliBackend::new();
+        // Italian: "Editore" → publisher, "Descrizione" → description, "Licenza" → license
+        let output = "\
+Trovato Google Chrome [Google.Chrome]
+Version: 132.0.6834
+Editore: Google LLC
+Descrizione: Un browser web veloce e sicuro
+Licenza: Proprietary
+Source: winget
+";
+        let detail = backend.parse_show_output(output);
+        assert_eq!(detail.id, "Google.Chrome");
+        assert_eq!(detail.publisher, "Google LLC", "Editore → publisher");
+        assert_eq!(
+            detail.description,
+            "Un browser web veloce e sicuro",
+            "Descrizione → description"
+        );
+        assert_eq!(detail.license, "Proprietary", "Licenza → license");
+    }
+
+    #[test]
+    fn parse_show_output_portuguese_locale() {
+        let backend = CliBackend::new();
+        // Portuguese: "Editor" → publisher, "Descrição" → description, "Licença" → license
+        let output = "\
+Encontrado Google Chrome [Google.Chrome]
+Version: 132.0.6834
+Editor: Google LLC
+Descrição: Um navegador web rápido e seguro
+Licença: Proprietary
+Fonte: winget
+";
+        let detail = backend.parse_show_output(output);
+        assert_eq!(detail.id, "Google.Chrome");
+        assert_eq!(detail.publisher, "Google LLC", "Editor → publisher (PT)");
+        assert_eq!(
+            detail.description,
+            "Um navegador web rápido e seguro",
+            "Descrição → description"
+        );
+        assert_eq!(detail.license, "Proprietary", "Licença → license");
+        assert_eq!(detail.source, "winget", "Fonte → source");
+    }
+
+    #[test]
+    fn parse_show_output_empty_input() {
+        let backend = CliBackend::new();
+        let detail = backend.parse_show_output("");
+        assert_eq!(detail.id, "", "empty id for empty input");
+        assert_eq!(detail.name, "");
+        assert_eq!(detail.version, "");
+    }
+
+    #[test]
+    fn parse_show_output_no_id_bracket() {
+        let backend = CliBackend::new();
+        // A found-line with no valid bracket pair — id and name should remain empty
+        let output = "\
+Version: 1.0.0
+Publisher: Acme
+License: MIT
+";
+        let detail = backend.parse_show_output(output);
+        assert_eq!(detail.id, "", "no bracket → id is empty");
+        assert_eq!(detail.name, "", "no bracket → name is empty");
+        assert_eq!(detail.version, "1.0.0");
+        assert_eq!(detail.publisher, "Acme");
+        assert_eq!(detail.license, "MIT");
+    }
 }

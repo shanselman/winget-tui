@@ -495,4 +495,116 @@ mod tests {
             "generation should advance for a normal id"
         );
     }
+
+    // ── AppMode ───────────────────────────────────────────────────────────────
+
+    #[test]
+    fn app_mode_cycle_forward() {
+        assert_eq!(AppMode::Search.cycle(), AppMode::Installed);
+        assert_eq!(AppMode::Installed.cycle(), AppMode::Upgrades);
+        assert_eq!(AppMode::Upgrades.cycle(), AppMode::Search);
+    }
+
+    #[test]
+    fn app_mode_cycle_back() {
+        assert_eq!(AppMode::Search.cycle_back(), AppMode::Upgrades);
+        assert_eq!(AppMode::Installed.cycle_back(), AppMode::Search);
+        assert_eq!(AppMode::Upgrades.cycle_back(), AppMode::Installed);
+    }
+
+    #[test]
+    fn app_mode_label() {
+        assert_eq!(AppMode::Search.label(), "Search");
+        assert_eq!(AppMode::Installed.label(), "Installed");
+        assert_eq!(AppMode::Upgrades.label(), "Upgrades");
+    }
+
+    // ── App helpers ───────────────────────────────────────────────────────────
+
+    fn make_pkg(id: &str, name: &str) -> Package {
+        Package {
+            id: id.to_string(),
+            name: name.to_string(),
+            version: "1.0".to_string(),
+            source: "winget".to_string(),
+            available_version: String::new(),
+        }
+    }
+
+    #[test]
+    fn selected_package_returns_none_when_empty() {
+        let spy = SpyBackend::new();
+        let app = make_app(spy as Arc<dyn WingetBackend>);
+        assert!(app.selected_package().is_none());
+    }
+
+    #[test]
+    fn selected_package_returns_correct_entry() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.packages = vec![
+            make_pkg("A.A", "App A"),
+            make_pkg("B.B", "App B"),
+        ];
+        app.apply_filter();
+        app.selected = 1;
+        assert_eq!(app.selected_package().map(|p| p.id.as_str()), Some("B.B"));
+    }
+
+    #[test]
+    fn set_status_updates_message() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.set_status("hello world");
+        assert_eq!(app.status_message, "hello world");
+        app.set_status("updated".to_string());
+        assert_eq!(app.status_message, "updated");
+    }
+
+    #[test]
+    fn apply_filter_clamps_selection_when_list_shrinks() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.packages = vec![
+            make_pkg("A.A", "A"),
+            make_pkg("B.B", "B"),
+            make_pkg("C.C", "C"),
+        ];
+        app.apply_filter();
+        app.selected = 2; // point at C.C
+        // Replace with a smaller list
+        app.packages = vec![make_pkg("A.A", "A")];
+        app.apply_filter();
+        assert_eq!(
+            app.selected, 0,
+            "selection should be clamped to last valid index"
+        );
+    }
+
+    #[test]
+    fn apply_filter_keeps_selection_when_in_bounds() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.packages = vec![make_pkg("A.A", "A"), make_pkg("B.B", "B")];
+        app.apply_filter();
+        app.selected = 1;
+        // No shrink — selection stays
+        app.apply_filter();
+        assert_eq!(app.selected, 1);
+    }
+
+    #[test]
+    fn apply_filter_clears_multi_select() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.packages = vec![make_pkg("A.A", "A"), make_pkg("B.B", "B")];
+        app.apply_filter();
+        app.selected_packages.insert(0);
+        app.selected_packages.insert(1);
+        app.apply_filter();
+        assert!(
+            app.selected_packages.is_empty(),
+            "multi-select should be cleared on filter refresh"
+        );
+    }
 }
