@@ -95,24 +95,10 @@ fn handle_normal_mode(
             app.show_help = !app.show_help;
         }
         KeyCode::Tab | KeyCode::Right => {
-            app.mode = app.mode.cycle();
-            app.selected = 0;
-            app.selected_packages.clear();
-            app.detail = None;
-            app.detail_loading = false;
-            app.loading = true;
-            app.set_status("Loading...");
-            app.refresh_view();
+            app.switch_to_mode(app.mode.cycle());
         }
         KeyCode::BackTab | KeyCode::Left => {
-            app.mode = app.mode.cycle_back();
-            app.selected = 0;
-            app.selected_packages.clear();
-            app.detail = None;
-            app.detail_loading = false;
-            app.loading = true;
-            app.set_status("Loading...");
-            app.refresh_view();
+            app.switch_to_mode(app.mode.cycle_back());
         }
 
         // Navigation
@@ -464,14 +450,7 @@ fn handle_tab_click(app: &mut App, col: u16) {
     for &(start_x, end_x, mode) in &app.layout.tab_regions {
         if col >= start_x && col < end_x {
             if mode != app.mode {
-                app.mode = mode;
-                app.selected = 0;
-                app.selected_packages.clear();
-                app.detail = None;
-                app.detail_loading = false;
-                app.loading = true;
-                app.set_status("Loading...");
-                app.refresh_view();
+                app.switch_to_mode(mode);
             }
             break;
         }

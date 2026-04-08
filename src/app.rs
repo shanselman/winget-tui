@@ -176,6 +176,18 @@ impl App {
         self.status_message = msg.into();
     }
 
+    /// Switch to a different view mode, resetting selection state and triggering a fresh load.
+    pub fn switch_to_mode(&mut self, mode: AppMode) {
+        self.mode = mode;
+        self.selected = 0;
+        self.selected_packages.clear();
+        self.detail = None;
+        self.detail_loading = false;
+        self.loading = true;
+        self.set_status("Loading...");
+        self.refresh_view();
+    }
+
     pub fn spinner(&self) -> char {
         const FRAMES: &[char] = &['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
         FRAMES[self.tick % FRAMES.len()]
