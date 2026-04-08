@@ -171,6 +171,21 @@ mod tests {
     }
 
     #[test]
+    fn source_filter_as_arg_all_returns_none() {
+        assert_eq!(SourceFilter::All.as_arg(), None);
+    }
+
+    #[test]
+    fn source_filter_as_arg_winget_returns_some() {
+        assert_eq!(SourceFilter::Winget.as_arg(), Some("winget"));
+    }
+
+    #[test]
+    fn source_filter_as_arg_msstore_returns_some() {
+        assert_eq!(SourceFilter::MsStore.as_arg(), Some("msstore"));
+    }
+
+    #[test]
     fn source_filter_display() {
         assert_eq!(SourceFilter::All.to_string(), "All");
         assert_eq!(SourceFilter::Winget.to_string(), "winget");

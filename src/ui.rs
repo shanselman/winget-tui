@@ -821,4 +821,45 @@ mod tests {
         // "hi你好" = 2 + 4 = 6 cols; max=5 → keep "hi你" (4 cols) + '…'
         assert_eq!(truncate("hi你好", 5), "hi你…");
     }
+
+    // ── centered_rect ─────────────────────────────────────────────────────────
+
+    #[test]
+    fn centered_rect_fills_at_100_percent() {
+        let area = Rect::new(0, 0, 80, 24);
+        let result = centered_rect(100, 100, area);
+        // At 100% the margins are 0 each side; the middle constraint gets the full space
+        assert_eq!(result.width, area.width);
+        assert_eq!(result.height, area.height);
+    }
+
+    #[test]
+    fn centered_rect_50_percent_is_roughly_centered() {
+        let area = Rect::new(0, 0, 80, 24);
+        let result = centered_rect(50, 50, area);
+        // Width and height should be close to 50 % of parent
+        assert!(result.width >= 38 && result.width <= 42, "width={}", result.width);
+        assert!(result.height >= 10 && result.height <= 14, "height={}", result.height);
+        // The rect must fit inside the parent area
+        assert!(result.x >= area.x);
+        assert!(result.y >= area.y);
+        assert!(result.x + result.width <= area.x + area.width);
+        assert!(result.y + result.height <= area.y + area.height);
+    }
+
+    #[test]
+    fn centered_rect_is_contained_within_parent() {
+        let area = Rect::new(5, 3, 60, 20);
+        let result = centered_rect(60, 70, area);
+        assert!(result.x >= area.x, "left edge outside parent");
+        assert!(result.y >= area.y, "top edge outside parent");
+        assert!(
+            result.x + result.width <= area.x + area.width,
+            "right edge outside parent"
+        );
+        assert!(
+            result.y + result.height <= area.y + area.height,
+            "bottom edge outside parent"
+        );
+    }
 }
