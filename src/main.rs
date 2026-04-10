@@ -1,6 +1,7 @@
 mod app;
 mod backend;
 mod cli_backend;
+mod config;
 mod handler;
 mod models;
 mod ui;
@@ -18,6 +19,7 @@ use ratatui::{backend::CrosstermBackend, Terminal};
 
 use app::App;
 use cli_backend::CliBackend;
+use config::Config;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -52,7 +54,8 @@ fn restore_terminal() -> Result<()> {
 
 async fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> Result<()> {
     let backend = Arc::new(CliBackend::new());
-    let mut app = App::new(backend);
+    let cfg = Config::load();
+    let mut app = App::new(backend, cfg);
 
     // Initial load — show installed packages
     app.loading = true;
