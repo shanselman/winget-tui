@@ -1,0 +1,16 @@
+{
+    "profiles": [
+        {
+            "name": "winget-tui",
+            "commandline": "winget-tui.exe",
+            "icon": null,
+            "font": {
+                "face": "Cascadia Code",
+                "size": 10
+            },
+            "padding": "4",
+            "colorScheme": "One Half Dark",
+            "useAcrylic": false
+        }
+    ]
+}

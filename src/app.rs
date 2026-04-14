@@ -10,7 +10,6 @@ use crate::models::{OpResult, Operation, Package, PackageDetail, SourceFilter};
 #[derive(Debug, Default, Clone)]
 pub struct LayoutRegions {
     pub tab_bar: Rect,
-    pub filter_bar: Rect,
     pub search_bar: Rect,
     pub package_list: Rect,
     pub detail_panel: Rect,
@@ -18,6 +17,22 @@ pub struct LayoutRegions {
     pub list_content_y: u16,
     /// Tab click regions: (start_x, end_x, mode)
     pub tab_regions: Vec<(u16, u16, AppMode)>,
+}
+
+/// Which panel currently has keyboard focus
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FocusZone {
+    PackageList,
+    DetailPanel,
+}
+
+impl FocusZone {
+    pub fn toggle(self) -> Self {
+        match self {
+            Self::PackageList => Self::DetailPanel,
+            Self::DetailPanel => Self::PackageList,
+        }
+    }
 }
 
 /// Messages sent from background tasks back to the UI
@@ -86,6 +101,7 @@ pub struct ConfirmDialog {
 pub struct App {
     pub mode: AppMode,
     pub input_mode: InputMode,
+    pub focus: FocusZone,
     pub source_filter: SourceFilter,
     pub search_query: String,
     pub packages: Vec<Package>,
@@ -122,6 +138,7 @@ impl App {
         Self {
             mode: AppMode::Installed,
             input_mode: InputMode::Normal,
+            focus: FocusZone::PackageList,
             source_filter: SourceFilter::All,
             search_query: String::new(),
             packages: Vec::new(),
