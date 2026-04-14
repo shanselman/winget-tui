@@ -293,6 +293,11 @@ fn handle_normal_mode(
             }
         }
 
+        // Sort: cycle through Name↑ → Name↓ → ID↑ → ID↓ → Version↑ → Version↓ → None
+        KeyCode::Char('S') => {
+            app.cycle_sort();
+        }
+
         _ => {}
     }
     Ok(false)

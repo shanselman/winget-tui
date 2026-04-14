@@ -4,7 +4,7 @@ use std::sync::Arc;
 use ratatui::layout::Rect;
 
 use crate::backend::WingetBackend;
-use crate::models::{OpResult, Operation, Package, PackageDetail, SourceFilter};
+use crate::models::{OpResult, Operation, Package, PackageDetail, SourceFilter, SortDir, SortField};
 
 /// Stores UI layout regions for mouse hit-testing
 #[derive(Debug, Default, Clone)]
@@ -99,6 +99,10 @@ pub struct App {
     pub show_help: bool,
     pub should_quit: bool,
     pub layout: LayoutRegions,
+    /// Sort field for the package list table.
+    pub sort_field: SortField,
+    /// Sort direction for the package list table.
+    pub sort_dir: SortDir,
     /// Scroll offset of the package list table (set during rendering)
     pub table_scroll_offset: usize,
     /// Tick counter for animations (spinner, etc.)
@@ -135,6 +139,8 @@ impl App {
             show_help: false,
             should_quit: false,
             layout: LayoutRegions::default(),
+            sort_field: SortField::None,
+            sort_dir: SortDir::Asc,
             table_scroll_offset: 0,
             tick: 0,
             view_generation: 0,
@@ -151,6 +157,24 @@ impl App {
         // When a source filter is active, winget already filters server-side
         // (and omits the Source column), so accept all returned packages.
         self.filtered_packages = self.packages.clone();
+        // Apply sort if a field is selected
+        if self.sort_field != SortField::None {
+            let dir = self.sort_dir;
+            let field = self.sort_field;
+            self.filtered_packages.sort_by(|a, b| {
+                let cmp = match field {
+                    SortField::Name => a.name.to_lowercase().cmp(&b.name.to_lowercase()),
+                    SortField::Id => a.id.to_lowercase().cmp(&b.id.to_lowercase()),
+                    SortField::Version => a.version.cmp(&b.version),
+                    SortField::None => std::cmp::Ordering::Equal,
+                };
+                if dir == SortDir::Desc {
+                    cmp.reverse()
+                } else {
+                    cmp
+                }
+            });
+        }
         // Keep selection in bounds
         if self.selected >= self.filtered_packages.len() {
             self.selected = self.filtered_packages.len().saturating_sub(1);
@@ -174,6 +198,28 @@ impl App {
 
     pub fn set_status(&mut self, msg: impl Into<String>) {
         self.status_message = msg.into();
+    }
+
+    /// Advance through sort states: None → Name↑ → Name↓ → ID↑ → ID↓ → Version↑ → Version↓ → None → …
+    pub fn cycle_sort(&mut self) {
+        use crate::models::{SortDir, SortField};
+        let (next_field, next_dir) = match (self.sort_field, self.sort_dir) {
+            (SortField::None, _) => (SortField::Name, SortDir::Asc),
+            (SortField::Name, SortDir::Asc) => (SortField::Name, SortDir::Desc),
+            (SortField::Name, SortDir::Desc) => (SortField::Id, SortDir::Asc),
+            (SortField::Id, SortDir::Asc) => (SortField::Id, SortDir::Desc),
+            (SortField::Id, SortDir::Desc) => (SortField::Version, SortDir::Asc),
+            (SortField::Version, SortDir::Asc) => (SortField::Version, SortDir::Desc),
+            (SortField::Version, SortDir::Desc) => (SortField::None, SortDir::Asc),
+        };
+        self.sort_field = next_field;
+        self.sort_dir = next_dir;
+        self.apply_filter();
+        let label = match self.sort_field {
+            SortField::None => "Sort: none".to_string(),
+            f => format!("Sort: {}{}", f, self.sort_dir.indicator()),
+        };
+        self.set_status(label);
     }
 
     pub fn spinner(&self) -> char {
@@ -494,5 +540,91 @@ mod tests {
             app.detail_generation, 1,
             "generation should advance for a normal id"
         );
+    }
+
+    fn make_package(name: &str, id: &str, version: &str) -> Package {
+        Package {
+            name: name.to_string(),
+            id: id.to_string(),
+            version: version.to_string(),
+            source: "winget".to_string(),
+            available_version: String::new(),
+        }
+    }
+
+    #[test]
+    fn apply_filter_no_sort_preserves_order() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.packages = vec![
+            make_package("Zebra", "Z.Zebra", "1.0"),
+            make_package("Apple", "A.Apple", "2.0"),
+        ];
+        app.apply_filter();
+        assert_eq!(app.filtered_packages[0].name, "Zebra");
+        assert_eq!(app.filtered_packages[1].name, "Apple");
+    }
+
+    #[test]
+    fn apply_filter_sort_by_name_asc() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.packages = vec![
+            make_package("Zebra", "Z.Zebra", "1.0"),
+            make_package("Apple", "A.Apple", "2.0"),
+            make_package("Mango", "M.Mango", "1.5"),
+        ];
+        app.sort_field = crate::models::SortField::Name;
+        app.sort_dir = crate::models::SortDir::Asc;
+        app.apply_filter();
+        let names: Vec<&str> = app.filtered_packages.iter().map(|p| p.name.as_str()).collect();
+        assert_eq!(names, ["Apple", "Mango", "Zebra"]);
+    }
+
+    #[test]
+    fn apply_filter_sort_by_name_desc() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.packages = vec![
+            make_package("Zebra", "Z.Zebra", "1.0"),
+            make_package("Apple", "A.Apple", "2.0"),
+            make_package("Mango", "M.Mango", "1.5"),
+        ];
+        app.sort_field = crate::models::SortField::Name;
+        app.sort_dir = crate::models::SortDir::Desc;
+        app.apply_filter();
+        let names: Vec<&str> = app.filtered_packages.iter().map(|p| p.name.as_str()).collect();
+        assert_eq!(names, ["Zebra", "Mango", "Apple"]);
+    }
+
+    #[test]
+    fn apply_filter_sort_by_id_asc() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.packages = vec![
+            make_package("Z App", "Z.App", "1.0"),
+            make_package("A App", "A.App", "1.0"),
+        ];
+        app.sort_field = crate::models::SortField::Id;
+        app.sort_dir = crate::models::SortDir::Asc;
+        app.apply_filter();
+        assert_eq!(app.filtered_packages[0].id, "A.App");
+        assert_eq!(app.filtered_packages[1].id, "Z.App");
+    }
+
+    #[test]
+    fn apply_filter_sort_by_version_asc() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.packages = vec![
+            make_package("B", "B.B", "2.0"),
+            make_package("A", "A.A", "1.0"),
+            make_package("C", "C.C", "3.0"),
+        ];
+        app.sort_field = crate::models::SortField::Version;
+        app.sort_dir = crate::models::SortDir::Asc;
+        app.apply_filter();
+        let versions: Vec<&str> = app.filtered_packages.iter().map(|p| p.version.as_str()).collect();
+        assert_eq!(versions, ["1.0", "2.0", "3.0"]);
     }
 }
