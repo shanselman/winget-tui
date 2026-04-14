@@ -1,16 +1,11 @@
 {
   "r": "2026-04-14",
-  "run": "24375141192",
+  "run": "24400776168",
   "mo": "2026-04",
   "monthly": 81,
-  "last_pr": 104,
-  "pending_branch": "repo-assist/eng-dependabot-config-20260414",
-  "pending_commit": "4ff7300",
-  "pending_pr": false,
-  "pending_pr_title": "[Repo Assist] chore: add Dependabot config for Cargo and GitHub Actions",
-  "pending_pr_body": "Add .github/dependabot.yml: weekly Cargo+Actions dep updates, 5 PRs max per ecosystem.",
-  "planned_comment_88": "Roadmap progress: items 4 (release notes) covered by PR #95, item 5 (winget not found) by PR #102, item 3 (config file) by PR #104. Items 1 (sortable list) and 2 (version selection) still open.",
-  "mcp_issue": "401 on api.github.com/copilot/mcp_registry causes safeoutputs MCP server to be filtered - persistent infrastructure issue",
-  "notes": "MCP registry returns 401 (Bad credentials) causing safeoutputs server to be filtered. Cannot create PRs or comments. Branch eng-dependabot-config-20260414 (commit 4ff7300) ready to push when MCP is fixed. All 19 Repo Assist PRs still open. Issues #103,#96,#94 need CI human fix (protected files). Issues #80,#83 blocked PRs (protected files). Roadmap comment for #88 ready to post.",
-  "comments_made": {}
+  "last_pr": 105,
+  "comments_made": {
+    "88": "2026-04-14"
+  },
+  "notes": "All 20 Repo Assist PRs open (#79-#105). Issues #103,#96,#94 need CI human fix. PR #105 = feat(sort): sortable list with S key (roadmap item 1). PR #104 = config.toml (item 3). PR #102 = winget-not-found (item 5). PR #95 = release notes (item 4). Roadmap item 2 (version selection) still open. All PRs draft awaiting maintainer review."
 }
