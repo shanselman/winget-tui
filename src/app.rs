@@ -124,6 +124,10 @@ pub struct App {
     pub sort_dir: SortDir,
     /// Scroll offset of the package list table (set during rendering)
     pub table_scroll_offset: usize,
+    /// Scroll offset of the detail panel (in rendered lines)
+    pub detail_scroll: usize,
+    /// Total rendered line count of the detail panel (set during rendering)
+    pub detail_content_lines: usize,
     /// Tick counter for animations (spinner, etc.)
     pub tick: usize,
     /// Incremented on each view refresh; stale results are discarded
@@ -162,6 +166,8 @@ impl App {
             sort_field: SortField::None,
             sort_dir: SortDir::Asc,
             table_scroll_offset: 0,
+            detail_scroll: 0,
+            detail_content_lines: 0,
             tick: 0,
             view_generation: 0,
             detail_generation: 0,
@@ -214,6 +220,13 @@ impl App {
         let len = self.filtered_packages.len() as isize;
         let new = (self.selected as isize + delta).rem_euclid(len);
         self.selected = new as usize;
+    }
+
+    /// Scroll the detail panel by `delta` lines, clamped to valid range.
+    pub fn scroll_detail(&mut self, delta: isize) {
+        let viewport = self.layout.detail_panel.height.saturating_sub(3) as usize;
+        let max = self.detail_content_lines.saturating_sub(viewport);
+        self.detail_scroll = (self.detail_scroll as isize + delta).clamp(0, max as isize) as usize;
     }
 
     pub fn set_status(&mut self, msg: impl Into<String>) {

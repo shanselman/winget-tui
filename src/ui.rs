@@ -357,7 +357,7 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
     }
 }
 
-fn draw_detail_panel(f: &mut Frame, app: &App, area: Rect) {
+fn draw_detail_panel(f: &mut Frame, app: &mut App, area: Rect) {
     let is_focused = app.focus == FocusZone::DetailPanel;
 
     let title = if app.detail_loading {
@@ -556,10 +556,34 @@ fn draw_detail_panel(f: &mut Frame, app: &App, area: Rect) {
             ]));
         }
 
+        // Store total line count for scroll clamping (used by scroll_detail)
+        app.detail_content_lines = lines.len();
+
         let p = Paragraph::new(lines)
             .block(block)
-            .wrap(Wrap { trim: false });
+            .wrap(Wrap { trim: false })
+            .scroll((app.detail_scroll as u16, 0));
         f.render_widget(p, area);
+
+        // Scrollbar for detail panel (shown when content overflows)
+        let viewport_height = area.height.saturating_sub(3) as usize;
+        if app.detail_content_lines > viewport_height {
+            let mut scrollbar_state =
+                ScrollbarState::new(app.detail_content_lines).position(app.detail_scroll);
+            let scrollbar = Scrollbar::new(ScrollbarOrientation::VerticalRight)
+                .begin_symbol(Some("\u{25B2}")) // ▲
+                .end_symbol(Some("\u{25BC}")) // ▼
+                .track_symbol(Some("\u{2502}")) // │
+                .thumb_symbol("\u{2588}"); // █
+            f.render_stateful_widget(
+                scrollbar,
+                area.inner(ratatui::layout::Margin {
+                    vertical: 1,
+                    horizontal: 0,
+                }),
+                &mut scrollbar_state,
+            );
+        }
     } else {
         let msg = if app.filtered_packages.is_empty() {
             "  No package selected".to_string()

@@ -111,31 +111,54 @@ fn handle_normal_mode(
             app.focus = app.focus.toggle();
         }
 
-        // Up/Down always navigate the package list
+        // Up/Down navigate the package list, or scroll detail panel when focused
         KeyCode::Up | KeyCode::Char('k') => {
-            app.move_selection(-1);
-            load_detail_for_selected(app);
+            if app.focus == FocusZone::DetailPanel {
+                app.scroll_detail(-1);
+            } else {
+                app.move_selection(-1);
+                load_detail_for_selected(app);
+            }
         }
         KeyCode::Down | KeyCode::Char('j') => {
-            app.move_selection(1);
-            load_detail_for_selected(app);
+            if app.focus == FocusZone::DetailPanel {
+                app.scroll_detail(1);
+            } else {
+                app.move_selection(1);
+                load_detail_for_selected(app);
+            }
         }
         KeyCode::PageUp => {
-            app.move_selection(-20);
-            load_detail_for_selected(app);
+            if app.focus == FocusZone::DetailPanel {
+                let page = app.layout.detail_panel.height.saturating_sub(3) as isize;
+                app.scroll_detail(-page);
+            } else {
+                app.move_selection(-20);
+                load_detail_for_selected(app);
+            }
         }
         KeyCode::PageDown => {
-            app.move_selection(20);
-            load_detail_for_selected(app);
+            if app.focus == FocusZone::DetailPanel {
+                let page = app.layout.detail_panel.height.saturating_sub(3) as isize;
+                app.scroll_detail(page);
+            } else {
+                app.move_selection(20);
+                load_detail_for_selected(app);
+            }
         }
         KeyCode::Home => {
-            if !app.filtered_packages.is_empty() {
+            if app.focus == FocusZone::DetailPanel {
+                app.detail_scroll = 0;
+            } else if !app.filtered_packages.is_empty() {
                 app.selected = 0;
                 load_detail_for_selected(app);
             }
         }
         KeyCode::End => {
-            if !app.filtered_packages.is_empty() {
+            if app.focus == FocusZone::DetailPanel {
+                let viewport = app.layout.detail_panel.height.saturating_sub(3) as usize;
+                app.detail_scroll = app.detail_content_lines.saturating_sub(viewport);
+            } else if !app.filtered_packages.is_empty() {
                 app.selected = app.filtered_packages.len() - 1;
                 load_detail_for_selected(app);
             }
@@ -340,6 +363,7 @@ fn load_detail_for_selected(app: &mut App) {
             return;
         }
         let id = pkg.id.clone();
+        app.detail_scroll = 0;
         app.load_detail(&id);
     }
 }
@@ -406,17 +430,21 @@ fn handle_mouse(app: &mut App, mouse: crossterm::event::MouseEvent) -> anyhow::R
             }
         }
 
-        // Scroll wheel in package list
+        // Scroll wheel in package list or detail panel
         MouseEventKind::ScrollUp => {
             if in_rect(col, row, app.layout.package_list) {
                 app.move_selection(-3);
                 load_detail_for_selected(app);
+            } else if in_rect(col, row, app.layout.detail_panel) {
+                app.scroll_detail(-3);
             }
         }
         MouseEventKind::ScrollDown => {
             if in_rect(col, row, app.layout.package_list) {
                 app.move_selection(3);
                 load_detail_for_selected(app);
+            } else if in_rect(col, row, app.layout.detail_panel) {
+                app.scroll_detail(3);
             }
         }
 
