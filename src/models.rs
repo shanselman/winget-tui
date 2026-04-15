@@ -2,6 +2,49 @@ use std::fmt;
 
 use serde::Deserialize;
 
+/// Column to sort the package list by.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum SortField {
+    /// No explicit sort; winget's natural order is preserved.
+    #[default]
+    None,
+    Name,
+    Id,
+    Version,
+}
+
+impl SortField {
+    // No cycle helper needed; App::cycle_sort implements the full state machine.
+}
+
+impl fmt::Display for SortField {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::None => write!(f, "—"),
+            Self::Name => write!(f, "Name"),
+            Self::Id => write!(f, "ID"),
+            Self::Version => write!(f, "Version"),
+        }
+    }
+}
+
+/// Sort direction for the package list.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum SortDir {
+    #[default]
+    Asc,
+    Desc,
+}
+
+impl SortDir {
+    pub fn indicator(self) -> &'static str {
+        match self {
+            Self::Asc => " ↑",
+            Self::Desc => " ↓",
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SourceFilter {
     All,
@@ -335,5 +378,31 @@ mod tests {
         };
         let merged = fresh.merge_over(&base);
         assert_eq!(merged.release_notes_url, "https://example.com/releases/v2");
+    }
+
+    // ── SortField / SortDir ───────────────────────────────────────────────────
+
+    #[test]
+    fn sort_field_default_is_none() {
+        assert_eq!(SortField::default(), SortField::None);
+    }
+
+    #[test]
+    fn sort_dir_default_is_asc() {
+        assert_eq!(SortDir::default(), SortDir::Asc);
+    }
+
+    #[test]
+    fn sort_field_display() {
+        assert_eq!(SortField::None.to_string(), "—");
+        assert_eq!(SortField::Name.to_string(), "Name");
+        assert_eq!(SortField::Id.to_string(), "ID");
+        assert_eq!(SortField::Version.to_string(), "Version");
+    }
+
+    #[test]
+    fn sort_dir_indicator() {
+        assert_eq!(SortDir::Asc.indicator(), " ↑");
+        assert_eq!(SortDir::Desc.indicator(), " ↓");
     }
 }

@@ -12,6 +12,7 @@ use ratatui::{
 use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 
 use crate::app::{App, AppMode, ConfirmDialog, FocusZone, InputMode};
+use crate::models::{SortDir, SortField};
 use crate::theme;
 
 pub fn draw(f: &mut Frame, app: &mut App) {
@@ -186,15 +187,31 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
     };
 
     let header_cells = if app.mode == AppMode::Upgrades {
-        vec!["     Name", "ID", "Version", "Available", "Source"]
+        let dir = app.sort_dir;
+        vec![
+            format!(
+                "     {}",
+                sort_header("Name", SortField::Name, app.sort_field, dir)
+            ),
+            sort_header("ID", SortField::Id, app.sort_field, dir),
+            sort_header("Version", SortField::Version, app.sort_field, dir),
+            "Available".to_string(),
+            "Source".to_string(),
+        ]
     } else {
-        vec!["  Name", "ID", "Version", "Source"]
+        let dir = app.sort_dir;
+        vec![
+            sort_header("Name", SortField::Name, app.sort_field, dir),
+            sort_header("ID", SortField::Id, app.sort_field, dir),
+            sort_header("Version", SortField::Version, app.sort_field, dir),
+            "Source".to_string(),
+        ]
     };
 
     let header = Row::new(
         header_cells
             .iter()
-            .map(|h| Cell::from(*h).style(theme::table_header())),
+            .map(|h| Cell::from(h.as_str()).style(theme::table_header())),
     )
     .height(1);
 
@@ -764,6 +781,10 @@ fn draw_help_overlay(f: &mut Frame) {
             Span::styled("  o           ", key),
             Span::raw("Open homepage in browser"),
         ]),
+        Line::from(vec![
+            Span::styled("  S           ", key),
+            Span::raw("Cycle sort: Name↑ → Name↓ → ID↑ → ID↓ → Version↑ → Version↓ → off"),
+        ]),
         Line::raw(""),
         Line::from(Span::styled("  Mouse", section)),
         Line::from(vec![
@@ -814,7 +835,16 @@ fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
         .split(popup_layout[1])[1]
 }
 
-/// Truncate `s` to at most `max` **display columns**, appending '...' if truncated.
+/// Build a column header string, appending a ↑/↓ indicator if this column is active.
+fn sort_header(label: &str, field: SortField, active: SortField, dir: SortDir) -> String {
+    if active == field {
+        format!("{}{}", label, dir.indicator())
+    } else {
+        label.to_string()
+    }
+}
+
+/// Truncate `s` to at most `max` **display columns**, appending '…' if truncated.
 /// Uses Unicode display widths so CJK characters (width 2) are counted correctly.
 fn truncate(s: &str, max: usize) -> String {
     // Fast path: every Unicode code point occupies at least as many bytes as

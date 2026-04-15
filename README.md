@@ -15,6 +15,7 @@ A terminal user interface for [Windows Package Manager (winget)](https://github.
 - **Installed Packages** — View everything installed on your system
 - **Upgrade Management** — See available updates at a glance
 - **Source Filtering** — Filter by source (winget, msstore, or all)
+- **Sortable Columns** — Sort by Name, ID, or Version (ascending or descending) with `S`
 - **Package Details** — View publisher, description, license, homepage
 - **Keyboard-Driven** — Vim-style navigation, no mouse needed
 - **Non-Blocking** — Install/uninstall/upgrade run in the background
@@ -60,6 +61,7 @@ winget-tui
 | `i` | Install selected package |
 | `u` | Upgrade selected package |
 | `x` | Uninstall selected package |
+| `S` | Cycle sort (Name↑ → Name↓ → ID↑ → ID↓ → Version↑ → Version↓ → off) |
 | `?` | Toggle help overlay |
 | `q` / `Esc` | Quit / close dialog |
 | `Ctrl+C` | Quit |
