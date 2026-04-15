@@ -23,7 +23,18 @@ fn is_winget_footer_line(line: &str) -> bool {
 
 /// Strip ASCII control characters (0x00–0x1F, 0x7F) except tab and newline.
 /// Prevents ANSI escape injection from malicious package metadata.
+///
+/// Fast path: scans bytes first; if none are control characters the string is
+/// returned as-is via `to_string()` (a single memcpy), avoiding the char-decode
+/// + filter + collect pipeline. This pays off because the overwhelming majority
+/// of real package names and IDs contain only printable ASCII.
 fn sanitize_text(s: &str) -> String {
+    let needs_sanitize = s
+        .bytes()
+        .any(|b| b < 0x20 && b != b'\t' && b != b'\n' || b == 0x7F);
+    if !needs_sanitize {
+        return s.to_string();
+    }
     s.chars()
         .filter(|&c| c == '\t' || c == '\n' || (c >= ' ' && c != '\x7F'))
         .collect()
@@ -826,6 +837,18 @@ Microsoft Visual Studio Code   Microsoft.VisualStudioCode  1.95.3      1.96.0   
     }
 
     #[test]
+    fn sanitize_clean_input_fast_path() {
+        // Clean ASCII — fast path returns exact content without char iteration
+        assert_eq!(super::sanitize_text("Google Chrome"), "Google Chrome");
+        assert_eq!(super::sanitize_text(""), "");
+        assert_eq!(super::sanitize_text("1.2.3"), "1.2.3");
+        // Tab and newline are preserved on the fast path
+        assert_eq!(super::sanitize_text("a\tb\nc"), "a\tb\nc");
+        // Unicode that contains no control bytes also takes the fast path
+        assert_eq!(super::sanitize_text("日本語パッケージ"), "日本語パッケージ");
+    }
+
+    #[test]
     fn sanitize_strips_ansi_escape_from_package_name() {
         // Direct test of sanitize_text helper
         let dirty = "Evil\x1b]52;c;payload\x07App";
@@ -834,6 +857,10 @@ Microsoft Visual Studio Code   Microsoft.VisualStudioCode  1.95.3      1.96.0   
         assert!(!clean.contains('\x07'), "BEL must be stripped");
         assert_eq!(clean, "Evil]52;c;payloadApp");
 
+        // NUL (0x00) must be stripped
+        assert_eq!(super::sanitize_text("a\x00b"), "ab");
+        // DEL (0x7F) must be stripped
+        assert_eq!(super::sanitize_text("a\x7fb"), "ab");
         // Verify tab and newline are preserved
         assert_eq!(super::sanitize_text("a\tb\nc"), "a\tb\nc");
 
