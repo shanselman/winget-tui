@@ -22,6 +22,12 @@ use cli_backend::CliBackend;
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    // Verify winget is on PATH before touching the terminal.
+    if let Err(e) = CliBackend::check_winget_available() {
+        eprintln!("Error: {e}");
+        std::process::exit(1);
+    }
+
     // Set panic hook to restore terminal
     let default_hook = std::panic::take_hook();
     std::panic::set_hook(Box::new(move |info| {

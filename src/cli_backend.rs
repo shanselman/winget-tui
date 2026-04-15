@@ -40,6 +40,27 @@ impl CliBackend {
         Self
     }
 
+    /// Check whether `winget` is reachable on PATH.
+    ///
+    /// Runs `winget --version` synchronously (before the TUI starts).
+    /// Returns `Ok(())` if winget responds, `Err` with a human-readable message otherwise.
+    pub fn check_winget_available() -> Result<()> {
+        std::process::Command::new("winget")
+            .arg("--version")
+            .output()
+            .map(|_| ())
+            .map_err(|_| {
+                anyhow::anyhow!(
+                    "winget not found on PATH.\n\
+                     \n\
+                     Please install App Installer from the Microsoft Store\n\
+                     or upgrade to Windows 10 21H2+ / Windows 11.\n\
+                     \n\
+                     App Installer: https://aka.ms/getwinget"
+                )
+            })
+    }
+
     async fn run_winget(&self, args: &[&str]) -> Result<String> {
         self.run_winget_inner(args, false).await
     }
