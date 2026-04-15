@@ -9,6 +9,18 @@ use crate::models::{Package, PackageDetail, Source};
 
 pub struct CliBackend;
 
+/// Returns `true` for winget footer lines like `"2 upgrades available."` or
+/// `"3 Pakete verfügen über Pins…"`.
+///
+/// These lines start with one or more ASCII digits immediately followed by a
+/// space.  A plain digit-prefixed package name such as `"7-Zip 25.01 (x64)"`
+/// is **not** a footer because the digit sequence is followed by `'-'`, not `' '`.
+fn is_winget_footer_line(line: &str) -> bool {
+    let bytes = line.trim_start().as_bytes();
+    let d = bytes.iter().take_while(|b| b.is_ascii_digit()).count();
+    d > 0 && d < bytes.len() && bytes[d] == b' '
+}
+
 /// Strip ASCII control characters (0x00–0x1F, 0x7F) except tab and newline.
 /// Prevents ANSI escape injection from malicious package metadata.
 fn sanitize_text(s: &str) -> String {
@@ -157,11 +169,7 @@ impl CliBackend {
             // Skip footer lines like "2 upgrades available." (digit(s) + space).
             // Uses filter (not take_while) so a false positive only skips one line
             // instead of silently dropping all remaining packages.
-            .filter(|l| {
-                let bytes = l.trim_start().as_bytes();
-                let d = bytes.iter().take_while(|b| b.is_ascii_digit()).count();
-                !(d > 0 && d < bytes.len() && bytes[d] == b' ')
-            })
+            .filter(|l| !is_winget_footer_line(l))
             .filter_map(|line| self.parse_table_row(line, &col_positions, col_map))
             .collect()
     }
@@ -1012,5 +1020,38 @@ Google Chrome  Google.Chrome  131.0
 
         // Empty input
         assert_eq!(super::CliBackend::clean_output(""), "");
+    }
+
+    // ── is_winget_footer_line ─────────────────────────────────────────────────
+
+    #[test]
+    fn is_footer_line_detects_count_lines() {
+        // Standard English footer
+        assert!(super::is_winget_footer_line("2 upgrades available."));
+        // German pin-message footer
+        assert!(super::is_winget_footer_line(
+            "2 Pakete verfügen über Pins, die ein Upgrade verhindern."
+        ));
+        // Single-package footer
+        assert!(super::is_winget_footer_line("1 upgrade available."));
+        // Large count
+        assert!(super::is_winget_footer_line("123 packages found."));
+    }
+
+    #[test]
+    fn is_footer_line_does_not_match_digit_prefixed_package_names() {
+        // "7-Zip" starts with digit but next char is '-', not ' '
+        assert!(!super::is_winget_footer_line("7-Zip 25.01 (x64)"));
+        // "3DMark" — digit followed by a letter
+        assert!(!super::is_winget_footer_line(
+            "3DMark                    Futuremark.3DMark"
+        ));
+        // Ordinary package name
+        assert!(!super::is_winget_footer_line("Google Chrome"));
+        // Empty line
+        assert!(!super::is_winget_footer_line(""));
+        // Leading whitespace still checks trimmed content
+        assert!(super::is_winget_footer_line("  2 upgrades available."));
+        assert!(!super::is_winget_footer_line("  7-Zip 25.01 (x64)"));
     }
 }
