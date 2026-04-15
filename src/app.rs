@@ -495,4 +495,27 @@ mod tests {
             "generation should advance for a normal id"
         );
     }
+
+    // ── AppMode ───────────────────────────────────────────────────────────────
+
+    #[test]
+    fn app_mode_cycle_forward() {
+        assert_eq!(AppMode::Search.cycle(), AppMode::Installed);
+        assert_eq!(AppMode::Installed.cycle(), AppMode::Upgrades);
+        assert_eq!(AppMode::Upgrades.cycle(), AppMode::Search);
+    }
+
+    #[test]
+    fn app_mode_cycle_back() {
+        assert_eq!(AppMode::Search.cycle_back(), AppMode::Upgrades);
+        assert_eq!(AppMode::Installed.cycle_back(), AppMode::Search);
+        assert_eq!(AppMode::Upgrades.cycle_back(), AppMode::Installed);
+    }
+
+    #[test]
+    fn app_mode_label() {
+        assert_eq!(AppMode::Search.label(), "Search");
+        assert_eq!(AppMode::Installed.label(), "Installed");
+        assert_eq!(AppMode::Upgrades.label(), "Upgrades");
+    }
 }

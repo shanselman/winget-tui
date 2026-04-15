@@ -949,4 +949,76 @@ Google Chrome  Google.Chrome  131.0
         // Empty input
         assert_eq!(super::CliBackend::clean_output(""), "");
     }
+
+    // ── parse_packages_from_table: edge cases ─────────────────────────────────
+
+    #[test]
+    fn footer_line_is_filtered_out() {
+        let backend = CliBackend::new();
+        // winget appends a summary footer like "2 upgrades available." after the table.
+        // It must not be parsed as a package row.
+        let output = "\
+Name          Id             Version  Available  Source
+-------------------------------------------------------
+Google Chrome Google.Chrome  131.0    132.0      winget
+2 upgrades available.
+";
+        let packages = backend.parse_packages_from_table(output);
+        assert_eq!(packages.len(), 1, "footer line must be skipped");
+        assert_eq!(packages[0].id, "Google.Chrome");
+    }
+
+    #[test]
+    fn arp_backslash_id_is_accepted() {
+        let backend = CliBackend::new();
+        // ARP-style IDs (Add/Remove Programs) use backslash separators.
+        // The ID validator accepts '.' or '\\', so these must not be dropped.
+        let output = "\
+Name  Id                                                Version  Source
+-----------------------------------------------------------------------
+Git   ARP\\Machine\\X64\\Git_is1                          2.47.0   winget
+";
+        let packages = backend.parse_packages_from_table(output);
+        assert_eq!(packages.len(), 1, "ARP backslash ID should be accepted");
+        assert!(
+            packages[0].id.contains('\\'),
+            "parsed ID should retain backslash"
+        );
+    }
+
+    #[test]
+    fn row_with_empty_id_is_skipped() {
+        let backend = CliBackend::new();
+        // A data row where the ID column is blank must be silently dropped.
+        // This can happen with malformed or truncated winget output.
+        let output = "\
+Name          Id             Version  Source
+--------------------------------------------
+Google Chrome Google.Chrome  131.0    winget
+Unknown App                  2.0      winget
+";
+        let packages = backend.parse_packages_from_table(output);
+        // Only the row with a real ID should be returned.
+        assert_eq!(packages.len(), 1, "row with empty ID must be skipped");
+        assert_eq!(packages[0].id, "Google.Chrome");
+    }
+
+    #[test]
+    fn id_without_dot_or_backslash_is_rejected() {
+        let backend = CliBackend::new();
+        // Footer lines like "No installed package found." or localized messages
+        // may land in the ID column. They lack '.' in a dotted-ID sense only when
+        // the full text is a plain word. This test ensures the guard works.
+        let output = "\
+Name  Id       Version
+----------------------
+Foo   NoDelim  1.0
+";
+        // "NoDelim" has no '.' or '\\', so it must be rejected as a package ID.
+        let packages = backend.parse_packages_from_table(output);
+        assert!(
+            packages.is_empty(),
+            "ID without '.' or '\\\\' should be rejected"
+        );
+    }
 }
