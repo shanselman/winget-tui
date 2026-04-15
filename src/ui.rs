@@ -429,6 +429,21 @@ fn draw_detail_panel(f: &mut Frame, app: &App, area: Rect) {
             ]));
         }
 
+        if !detail.release_notes_url.is_empty() {
+            if detail.homepage.is_empty() {
+                lines.push(Line::raw(""));
+            }
+            lines.push(Line::from(vec![
+                Span::styled("  📋 ", Style::default().fg(theme::INFO)),
+                Span::styled(
+                    &detail.release_notes_url,
+                    Style::default()
+                        .fg(theme::INFO)
+                        .add_modifier(Modifier::UNDERLINED),
+                ),
+            ]));
+        }
+
         if !detail.description.is_empty() {
             lines.push(Line::raw(""));
             lines.push(Line::from(Span::styled("  Description", label_style)));
@@ -513,6 +528,14 @@ fn draw_detail_panel(f: &mut Frame, app: &App, area: Rect) {
                 Span::raw("  "),
                 Span::styled(" o ", theme::action_key()),
                 Span::raw(" Open homepage"),
+            ]));
+        }
+        if !detail.release_notes_url.is_empty() {
+            lines.push(Line::raw(""));
+            lines.push(Line::from(vec![
+                Span::raw("  "),
+                Span::styled(" c ", theme::action_key()),
+                Span::raw(" Open changelog"),
             ]));
         }
 

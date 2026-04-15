@@ -279,6 +279,7 @@ impl CliBackend {
             }
             "homepage" | "startseite" => "homepage",
             "publisher url" | "herausgeber-url" => "publisher_url",
+            "release notes url" | "versionshinweise url" => "release_notes_url",
             "license" | "lizenz" | "licence" | "licencia" | "licença" | "licenza" => "license",
             "source" | "quelle" | "origen" | "fonte" | "origine" => "source",
             _ => "",
@@ -407,6 +408,7 @@ impl CliBackend {
                                 detail.homepage = sanitize_text(&value);
                             }
                         }
+                        "release_notes_url" => detail.release_notes_url = sanitize_text(&value),
                         "license" => detail.license = sanitize_text(&value),
                         "source" => detail.source = sanitize_text(&value),
                         _ => {}
@@ -1015,6 +1017,27 @@ License: MIT
         assert_eq!(
             detail.homepage, "https://explicit-homepage.example.com",
             "explicit Homepage must take precedence over Publisher Url"
+        );
+    }
+
+    #[test]
+    fn parse_show_output_release_notes_url() {
+        let backend = CliBackend::new();
+        let output = "\
+Found Visual Studio Code [Microsoft.VisualStudioCode]
+Version: 1.96.0
+Publisher: Microsoft Corporation
+Homepage: https://code.visualstudio.com
+Release Notes Url: https://code.visualstudio.com/updates/v1_96
+License: MIT
+Source: winget
+";
+        let detail = backend.parse_show_output(output);
+        assert_eq!(detail.id, "Microsoft.VisualStudioCode");
+        assert_eq!(detail.homepage, "https://code.visualstudio.com");
+        assert_eq!(
+            detail.release_notes_url,
+            "https://code.visualstudio.com/updates/v1_96"
         );
     }
 
