@@ -26,7 +26,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
                 Constraint::Length(1),             // spacing after header
                 Constraint::Length(1),             // search bar
                 Constraint::Length(1),             // spacing before cards
-                Constraint::Min(5),               // main content
+                Constraint::Min(5),                // main content
                 Constraint::Length(1),             // status bar
             ])
             .split(f.area());
@@ -44,7 +44,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
             .constraints([
                 Constraint::Length(header_height), // header (logo + tabs)
                 Constraint::Length(1),             // spacing
-                Constraint::Min(5),               // main content
+                Constraint::Min(5),                // main content
                 Constraint::Length(1),             // status bar
             ])
             .split(f.area());
@@ -88,9 +88,9 @@ fn draw_header(f: &mut Frame, app: &mut App, area: Rect) {
     // Draw tabs vertically centered in the right area
     let tabs_area = chunks[2];
     let tabs = [
-        (AppMode::Search, "\u{25C7} Search"),     // ◇ Search
+        (AppMode::Search, "\u{25C7} Search"),       // ◇ Search
         (AppMode::Installed, "\u{25A3} Installed"), // ▣ Installed
-        (AppMode::Upgrades, "\u{25B3} Upgrades"),  // △ Upgrades
+        (AppMode::Upgrades, "\u{25B3} Upgrades"),   // △ Upgrades
     ];
 
     // Calculate vertical center row (center within the logo height, not the spacing)
@@ -132,9 +132,7 @@ fn draw_search_bar(f: &mut Frame, app: &mut App, area: Rect) {
     app.layout.search_bar = area;
 
     let search_style = if app.input_mode == InputMode::Search {
-        Style::default()
-            .fg(theme::TEXT_PRIMARY)
-            .bg(theme::SURFACE)
+        Style::default().fg(theme::TEXT_PRIMARY).bg(theme::SURFACE)
     } else {
         Style::default().fg(theme::TEXT_SECONDARY)
     };
@@ -217,16 +215,16 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
 
             let prefix = if app.mode == AppMode::Upgrades {
                 if is_marked && is_selected {
-                    "\u{25CF}[x] "  // ● selected + marked
+                    "\u{25CF}[x] " // ● selected + marked
                 } else if is_marked {
                     " [x] "
                 } else if is_selected {
-                    "\u{25CF}[ ] "  // ● selected
+                    "\u{25CF}[ ] " // ● selected
                 } else {
                     " [ ] "
                 }
             } else if is_selected {
-                "\u{25CF} "  // ●
+                "\u{25CF} " // ●
             } else {
                 "  "
             };
@@ -327,10 +325,10 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
         let mut scrollbar_state =
             ScrollbarState::new(app.filtered_packages.len()).position(app.selected);
         let scrollbar = Scrollbar::new(ScrollbarOrientation::VerticalRight)
-            .begin_symbol(Some("\u{25B2}"))  // ▲
-            .end_symbol(Some("\u{25BC}"))    // ▼
-            .track_symbol(Some("\u{2502}"))  // │
-            .thumb_symbol("\u{2588}");       // █
+            .begin_symbol(Some("\u{25B2}")) // ▲
+            .end_symbol(Some("\u{25BC}")) // ▼
+            .track_symbol(Some("\u{2502}")) // │
+            .thumb_symbol("\u{2588}"); // █
         f.render_stateful_widget(
             scrollbar,
             area.inner(ratatui::layout::Margin {
@@ -547,8 +545,8 @@ fn draw_status_bar(f: &mut Frame, app: &App, area: Rect) {
         .direction(Direction::Horizontal)
         .constraints([
             Constraint::Length(filter_len), // filter badge
-            Constraint::Min(1),            // status message
-            Constraint::Length(70),        // global hotkeys
+            Constraint::Min(1),             // status message
+            Constraint::Length(70),         // global hotkeys
         ])
         .split(area);
 
@@ -560,11 +558,9 @@ fn draw_status_bar(f: &mut Frame, app: &App, area: Rect) {
         crate::models::SourceFilter::Winget => {
             Style::default().fg(theme::TEXT_ON_ACCENT).bg(theme::INFO)
         }
-        crate::models::SourceFilter::MsStore => {
-            Style::default()
-                .fg(theme::TEXT_ON_ACCENT)
-                .bg(theme::SELECTION)
-        }
+        crate::models::SourceFilter::MsStore => Style::default()
+            .fg(theme::TEXT_ON_ACCENT)
+            .bg(theme::SELECTION),
     };
     let filter_badge = Paragraph::new(filter_text).style(filter_style);
     f.render_widget(filter_badge, chunks[0]);
@@ -589,7 +585,9 @@ fn draw_status_bar(f: &mut Frame, app: &App, area: Rect) {
     // Global hotkey badges
     let key_style = theme::action_key();
     let sep = Span::raw(" ");
-    let label_style = Style::default().fg(theme::TEXT_SECONDARY).bg(theme::SURFACE);
+    let label_style = Style::default()
+        .fg(theme::TEXT_SECONDARY)
+        .bg(theme::SURFACE);
 
     let hotkeys = if app.input_mode == InputMode::Search {
         Line::from(vec![

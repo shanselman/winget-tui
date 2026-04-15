@@ -63,16 +63,12 @@ pub fn selected_row() -> Style {
 
 /// Style for a multi-select marked row (not currently highlighted)
 pub fn marked_row() -> Style {
-    Style::default()
-        .fg(SUCCESS)
-        .add_modifier(Modifier::BOLD)
+    Style::default().fg(SUCCESS).add_modifier(Modifier::BOLD)
 }
 
 /// Style for table column headers
 pub fn table_header() -> Style {
-    Style::default()
-        .fg(ACCENT)
-        .add_modifier(Modifier::BOLD)
+    Style::default().fg(ACCENT).add_modifier(Modifier::BOLD)
 }
 
 /// Style for panel/block titles
@@ -84,9 +80,7 @@ pub fn title() -> Style {
 
 /// Style for detail panel labels (Name, ID, Version, etc.)
 pub fn detail_label() -> Style {
-    Style::default()
-        .fg(ACCENT)
-        .add_modifier(Modifier::BOLD)
+    Style::default().fg(ACCENT).add_modifier(Modifier::BOLD)
 }
 
 /// Active navbar item
@@ -184,9 +178,7 @@ pub fn action_selection() -> Style {
 
 /// Help overlay section header
 pub fn help_section() -> Style {
-    Style::default()
-        .fg(ACCENT)
-        .add_modifier(Modifier::BOLD)
+    Style::default().fg(ACCENT).add_modifier(Modifier::BOLD)
 }
 
 /// Help overlay key binding text
@@ -245,15 +237,9 @@ pub fn logo_lines() -> Vec<Line<'static>> {
             let b = bot[col] == 1;
             match (t, b) {
                 (false, false) => spans.push(Span::raw(" ")),
-                (true, true) => {
-                    spans.push(Span::styled("\u{2588}", Style::default().fg(color)))
-                }
-                (true, false) => {
-                    spans.push(Span::styled("\u{2580}", Style::default().fg(color)))
-                }
-                (false, true) => {
-                    spans.push(Span::styled("\u{2584}", Style::default().fg(color)))
-                }
+                (true, true) => spans.push(Span::styled("\u{2588}", Style::default().fg(color))),
+                (true, false) => spans.push(Span::styled("\u{2580}", Style::default().fg(color))),
+                (false, true) => spans.push(Span::styled("\u{2584}", Style::default().fg(color))),
             }
         }
         lines.push(Line::from(spans));
