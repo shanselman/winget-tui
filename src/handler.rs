@@ -545,7 +545,7 @@ mod tests {
     }
 
     fn make_app() -> App {
-        App::new(Arc::new(NoopBackend))
+        App::new(Arc::new(NoopBackend), crate::config::Config::default())
     }
 
     // ── in_rect ──────────────────────────────────────────────────────────────
