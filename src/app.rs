@@ -619,4 +619,293 @@ mod tests {
             "generation should advance for a normal id"
         );
     }
+
+    // ── AppMode ───────────────────────────────────────────────────────────────
+
+    #[test]
+    fn app_mode_cycle_forward() {
+        assert_eq!(AppMode::Search.cycle(), AppMode::Installed);
+        assert_eq!(AppMode::Installed.cycle(), AppMode::Upgrades);
+        assert_eq!(AppMode::Upgrades.cycle(), AppMode::Search);
+    }
+
+    #[test]
+    fn app_mode_cycle_back() {
+        assert_eq!(AppMode::Search.cycle_back(), AppMode::Upgrades);
+        assert_eq!(AppMode::Installed.cycle_back(), AppMode::Search);
+        assert_eq!(AppMode::Upgrades.cycle_back(), AppMode::Installed);
+    }
+
+    #[test]
+    fn app_mode_label() {
+        assert_eq!(AppMode::Search.label(), "Search");
+        assert_eq!(AppMode::Installed.label(), "Installed");
+        assert_eq!(AppMode::Upgrades.label(), "Upgrades");
+    }
+
+    // ── move_selection ────────────────────────────────────────────────────────
+
+    fn make_packages(n: usize) -> Vec<Package> {
+        (0..n)
+            .map(|i| Package {
+                id: format!("Pkg.{i}"),
+                name: format!("Package {i}"),
+                version: "1.0".to_string(),
+                source: "winget".to_string(),
+                available_version: String::new(),
+            })
+            .collect()
+    }
+
+    #[test]
+    fn move_selection_forward_one() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.packages = make_packages(5);
+        app.filtered_packages = app.packages.clone();
+        app.selected = 0;
+        app.move_selection(1);
+        assert_eq!(app.selected, 1);
+    }
+
+    #[test]
+    fn move_selection_backward_one() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.packages = make_packages(5);
+        app.filtered_packages = app.packages.clone();
+        app.selected = 3;
+        app.move_selection(-1);
+        assert_eq!(app.selected, 2);
+    }
+
+    #[test]
+    fn move_selection_wraps_past_end() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.packages = make_packages(3);
+        app.filtered_packages = app.packages.clone();
+        app.selected = 2; // last item
+        app.move_selection(1);
+        assert_eq!(app.selected, 0, "should wrap to first item");
+    }
+
+    #[test]
+    fn move_selection_wraps_past_start() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.packages = make_packages(3);
+        app.filtered_packages = app.packages.clone();
+        app.selected = 0;
+        app.move_selection(-1);
+        assert_eq!(app.selected, 2, "should wrap to last item");
+    }
+
+    #[test]
+    fn move_selection_empty_list_is_noop() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.selected = 0;
+        app.move_selection(1);
+        assert_eq!(app.selected, 0);
+        app.move_selection(-1);
+        assert_eq!(app.selected, 0);
+    }
+
+    #[test]
+    fn move_selection_large_delta_wraps_correctly() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.packages = make_packages(5);
+        app.filtered_packages = app.packages.clone();
+        app.selected = 1;
+        // -20 from index 1 in a list of 5 → 1 + (-20) = -19 → rem_euclid(5) = 1
+        app.move_selection(-20);
+        assert_eq!(app.selected, 1);
+    }
+
+    // ── selected_package ──────────────────────────────────────────────────────
+
+    #[test]
+    fn selected_package_returns_none_on_empty_list() {
+        let spy = SpyBackend::new();
+        let app = make_app(spy as Arc<dyn WingetBackend>);
+        assert!(app.selected_package().is_none());
+    }
+
+    #[test]
+    fn selected_package_returns_correct_package() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.filtered_packages = make_packages(3);
+        app.selected = 1;
+        assert_eq!(app.selected_package().unwrap().id, "Pkg.1");
+    }
+
+    // ── spinner ───────────────────────────────────────────────────────────────
+
+    #[test]
+    fn spinner_returns_valid_braille_char() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        const FRAMES: &[char] = &['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+        for tick in 0..20 {
+            app.tick = tick;
+            assert!(
+                FRAMES.contains(&app.spinner()),
+                "spinner tick={tick} returned unexpected char"
+            );
+        }
+    }
+
+    #[test]
+    fn spinner_cycles_every_ten_ticks() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.tick = 0;
+        let first = app.spinner();
+        app.tick = 10;
+        assert_eq!(
+            app.spinner(),
+            first,
+            "spinner should return to the same frame every 10 ticks"
+        );
+    }
+
+    // ── apply_filter ──────────────────────────────────────────────────────────
+
+    #[test]
+    fn apply_filter_clamps_selection_when_list_shrinks() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.packages = make_packages(5);
+        app.filtered_packages = app.packages.clone();
+        app.selected = 4; // last of 5
+                          // Simulate packages list dropping to 2 entries
+        app.packages = make_packages(2);
+        app.apply_filter();
+        assert!(
+            app.selected < 2,
+            "selection should be within new list bounds"
+        );
+    }
+
+    #[test]
+    fn apply_filter_clears_multi_select() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.packages = make_packages(3);
+        app.filtered_packages = app.packages.clone();
+        app.selected_packages = [0, 1, 2].iter().cloned().collect();
+        app.apply_filter();
+        assert!(
+            app.selected_packages.is_empty(),
+            "selected_packages should be cleared by apply_filter"
+        );
+    }
+
+    // ── process_messages ──────────────────────────────────────────────────────
+
+    #[test]
+    fn process_messages_error_sets_status() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.message_tx
+            .send(AppMessage::Error("something broke".to_string()))
+            .unwrap();
+        app.process_messages();
+        assert!(
+            app.status_message.contains("something broke"),
+            "status should contain the error text"
+        );
+    }
+
+    #[test]
+    fn process_messages_status_update() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.message_tx
+            .send(AppMessage::StatusUpdate("hello".to_string()))
+            .unwrap();
+        app.process_messages();
+        assert_eq!(app.status_message, "hello");
+    }
+
+    #[tokio::test]
+    async fn process_messages_packages_loaded_updates_list() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.view_generation = 1;
+        let pkgs = make_packages(3);
+        app.message_tx
+            .send(AppMessage::PackagesLoaded {
+                generation: 1,
+                packages: pkgs,
+            })
+            .unwrap();
+        app.process_messages();
+        assert_eq!(app.filtered_packages.len(), 3);
+        assert!(!app.loading);
+    }
+
+    #[test]
+    fn process_messages_stale_packages_discarded() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.view_generation = 2; // current generation is 2
+        let pkgs = make_packages(3);
+        app.message_tx
+            .send(AppMessage::PackagesLoaded {
+                generation: 1, // stale
+                packages: pkgs,
+            })
+            .unwrap();
+        app.process_messages();
+        assert!(
+            app.filtered_packages.is_empty(),
+            "stale packages should not update the list"
+        );
+    }
+
+    #[test]
+    fn process_messages_detail_loaded_updates_detail() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.detail_generation = 1;
+        let detail = PackageDetail {
+            id: "Google.Chrome".to_string(),
+            name: "Google Chrome".to_string(),
+            version: "132.0".to_string(),
+            ..PackageDetail::default()
+        };
+        app.message_tx
+            .send(AppMessage::DetailLoaded {
+                generation: 1,
+                detail,
+            })
+            .unwrap();
+        app.process_messages();
+        let loaded = app.detail.as_ref().expect("detail should be set");
+        assert_eq!(loaded.id, "Google.Chrome");
+        assert!(!app.detail_loading);
+    }
+
+    #[test]
+    fn process_messages_stale_detail_discarded() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.detail_generation = 3;
+        let detail = PackageDetail {
+            id: "Old.Package".to_string(),
+            ..PackageDetail::default()
+        };
+        app.message_tx
+            .send(AppMessage::DetailLoaded {
+                generation: 2, // stale
+                detail,
+            })
+            .unwrap();
+        app.process_messages();
+        assert!(app.detail.is_none(), "stale detail should not be displayed");
+    }
 }
