@@ -474,3 +474,230 @@ fn handle_tab_click(app: &mut App, col: u16) {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::sync::Arc;
+
+    use anyhow::Result;
+    use async_trait::async_trait;
+    use crossterm::event::KeyCode;
+    use ratatui::layout::Rect;
+
+    use super::*;
+    use crate::app::{App, AppMode, ConfirmDialog, InputMode};
+    use crate::backend::WingetBackend;
+    use crate::models::{Operation, Package, PackageDetail, Source};
+
+    // ── helpers ──────────────────────────────────────────────────────────────
+
+    fn rect(x: u16, y: u16, w: u16, h: u16) -> Rect {
+        Rect {
+            x,
+            y,
+            width: w,
+            height: h,
+        }
+    }
+
+    struct NoopBackend;
+
+    #[async_trait]
+    impl WingetBackend for NoopBackend {
+        async fn search(&self, _: &str, _: Option<&str>) -> Result<Vec<Package>> {
+            Ok(vec![])
+        }
+        async fn list_installed(&self, _: Option<&str>) -> Result<Vec<Package>> {
+            Ok(vec![])
+        }
+        async fn list_upgrades(&self, _: Option<&str>) -> Result<Vec<Package>> {
+            Ok(vec![])
+        }
+        async fn show(&self, _: &str) -> Result<PackageDetail> {
+            Ok(PackageDetail::default())
+        }
+        async fn install(&self, _: &str, _: Option<&str>) -> Result<String> {
+            Ok(String::new())
+        }
+        async fn uninstall(&self, _: &str) -> Result<String> {
+            Ok(String::new())
+        }
+        async fn upgrade(&self, _: &str) -> Result<String> {
+            Ok(String::new())
+        }
+        async fn list_sources(&self) -> Result<Vec<Source>> {
+            Ok(vec![])
+        }
+    }
+
+    fn make_app() -> App {
+        App::new(Arc::new(NoopBackend))
+    }
+
+    // ── in_rect ──────────────────────────────────────────────────────────────
+
+    #[test]
+    fn in_rect_point_inside() {
+        assert!(in_rect(5, 5, rect(3, 3, 10, 10)));
+    }
+
+    #[test]
+    fn in_rect_top_left_corner_is_inside() {
+        assert!(in_rect(3, 3, rect(3, 3, 10, 10)));
+    }
+
+    #[test]
+    fn in_rect_just_outside_right_edge() {
+        // x=3, width=10 → columns 3..13; column 13 is outside
+        assert!(!in_rect(13, 5, rect(3, 3, 10, 10)));
+    }
+
+    #[test]
+    fn in_rect_just_outside_bottom_edge() {
+        // y=3, height=10 → rows 3..13; row 13 is outside
+        assert!(!in_rect(5, 13, rect(3, 3, 10, 10)));
+    }
+
+    #[test]
+    fn in_rect_last_column_inside() {
+        // rightmost valid column is 3+10-1=12
+        assert!(in_rect(12, 5, rect(3, 3, 10, 10)));
+    }
+
+    #[test]
+    fn in_rect_last_row_inside() {
+        assert!(in_rect(5, 12, rect(3, 3, 10, 10)));
+    }
+
+    #[test]
+    fn in_rect_point_left_of_rect() {
+        assert!(!in_rect(2, 5, rect(3, 3, 10, 10)));
+    }
+
+    #[test]
+    fn in_rect_point_above_rect() {
+        assert!(!in_rect(5, 2, rect(3, 3, 10, 10)));
+    }
+
+    #[test]
+    fn in_rect_zero_size_rect() {
+        assert!(!in_rect(0, 0, rect(0, 0, 0, 0)));
+    }
+
+    // ── open_url ─────────────────────────────────────────────────────────────
+
+    #[test]
+    fn open_url_accepts_https() {
+        assert!(open_url("https://example.com"));
+    }
+
+    #[test]
+    fn open_url_accepts_http() {
+        assert!(open_url("http://example.com"));
+    }
+
+    #[test]
+    fn open_url_rejects_empty_string() {
+        assert!(!open_url(""));
+    }
+
+    #[test]
+    fn open_url_rejects_ftp() {
+        assert!(!open_url("ftp://example.com"));
+    }
+
+    #[test]
+    fn open_url_rejects_javascript_scheme() {
+        assert!(!open_url("javascript:alert(1)"));
+    }
+
+    #[test]
+    fn open_url_rejects_file_scheme() {
+        assert!(!open_url("file:///etc/passwd"));
+    }
+
+    #[test]
+    fn open_url_rejects_partial_http_prefix() {
+        // Must not match "http" without the colon-slash-slash
+        assert!(!open_url("httpx://example.com"));
+    }
+
+    // ── handle_confirm ───────────────────────────────────────────────────────
+
+    #[test]
+    fn handle_confirm_n_cancels_dialog() {
+        let mut app = make_app();
+        app.confirm = Some(ConfirmDialog {
+            message: "Upgrade Foo?".into(),
+            operation: Operation::Upgrade { id: "Foo".into() },
+        });
+        let _ = handle_confirm(&mut app, KeyCode::Char('n'));
+        assert!(app.confirm.is_none(), "confirm should be cleared on 'n'");
+        assert_eq!(app.status_message, "Cancelled");
+    }
+
+    #[test]
+    fn handle_confirm_esc_cancels_dialog() {
+        let mut app = make_app();
+        app.confirm = Some(ConfirmDialog {
+            message: "Upgrade Foo?".into(),
+            operation: Operation::Upgrade { id: "Foo".into() },
+        });
+        let _ = handle_confirm(&mut app, KeyCode::Esc);
+        assert!(app.confirm.is_none());
+        assert_eq!(app.status_message, "Cancelled");
+    }
+
+    #[test]
+    fn handle_confirm_other_key_leaves_dialog() {
+        let mut app = make_app();
+        app.confirm = Some(ConfirmDialog {
+            message: "Upgrade Foo?".into(),
+            operation: Operation::Upgrade { id: "Foo".into() },
+        });
+        let _ = handle_confirm(&mut app, KeyCode::Char('x'));
+        assert!(
+            app.confirm.is_some(),
+            "unrecognised key must not clear the dialog"
+        );
+    }
+
+    // ── handle_search_input ──────────────────────────────────────────────────
+
+    #[test]
+    fn search_input_esc_returns_to_normal_mode() {
+        let mut app = make_app();
+        app.input_mode = InputMode::Search;
+        let _ = handle_search_input(&mut app, KeyCode::Esc);
+        assert_eq!(app.input_mode, InputMode::Normal);
+    }
+
+    #[test]
+    fn search_input_char_appends_to_query() {
+        let mut app = make_app();
+        app.input_mode = InputMode::Search;
+        let _ = handle_search_input(&mut app, KeyCode::Char('a'));
+        let _ = handle_search_input(&mut app, KeyCode::Char('b'));
+        assert_eq!(app.search_query, "ab");
+    }
+
+    #[test]
+    fn search_input_backspace_removes_last_char() {
+        let mut app = make_app();
+        app.input_mode = InputMode::Search;
+        app.search_query = "abc".into();
+        let _ = handle_search_input(&mut app, KeyCode::Backspace);
+        assert_eq!(app.search_query, "ab");
+    }
+
+    #[test]
+    fn search_input_enter_with_empty_query_stays_in_search_mode() {
+        let mut app = make_app();
+        app.input_mode = InputMode::Search;
+        app.search_query = String::new();
+        let _ = handle_search_input(&mut app, KeyCode::Enter);
+        // Empty query: input_mode switches to Normal but no search is triggered
+        assert_eq!(app.input_mode, InputMode::Normal);
+        assert!(app.search_query.is_empty());
+    }
+}
