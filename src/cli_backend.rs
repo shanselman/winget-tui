@@ -25,9 +25,10 @@ fn is_winget_footer_line(line: &str) -> bool {
 /// Prevents ANSI escape injection from malicious package metadata.
 ///
 /// Fast path: scans bytes first; if none are control characters the string is
-/// returned as-is via `to_string()` (a single memcpy), avoiding the char-decode
-/// + filter + collect pipeline. This pays off because the overwhelming majority
-/// of real package names and IDs contain only printable ASCII.
+/// returned as-is via `to_string()` (a single memcpy), avoiding the
+/// char-decode + filter + collect pipeline. This pays off because the
+/// overwhelming majority of real package names and IDs contain only printable
+/// ASCII.
 fn sanitize_text(s: &str) -> String {
     let needs_sanitize = s
         .bytes()
@@ -265,7 +266,7 @@ impl CliBackend {
         // Fast path: most keys from English winget output are already lowercase-only.
         // Avoid the `to_lowercase()` heap allocation when no uppercase ASCII is present.
         use std::borrow::Cow;
-        let lower: Cow<str> = if key.bytes().any(|b| b.is_ascii_uppercase()) {
+        let lower: Cow<str> = if key.chars().any(|ch| ch.is_uppercase()) {
             Cow::Owned(key.to_lowercase())
         } else {
             Cow::Borrowed(key)
@@ -391,7 +392,7 @@ impl CliBackend {
                             // Description value may be on this line or on indented continuation lines.
                             // Peek ahead to consume indented continuation lines without backtracking.
                             let mut desc = value;
-                            while lines.peek().map_or(false, |l| l.starts_with("  ")) {
+                            while lines.peek().is_some_and(|l| l.starts_with("  ")) {
                                 let continuation = lines.next().unwrap();
                                 if !desc.is_empty() {
                                     desc.push(' ');
@@ -581,7 +582,10 @@ mod tests {
     #[test]
     fn find_separator_at_index_zero_returns_none() {
         // Separator at index 0 has no header above it; should be rejected.
-        let lines = vec!["-------------------------------------", "Google Chrome  G.C  1.0"];
+        let lines = vec![
+            "-------------------------------------",
+            "Google Chrome  G.C  1.0",
+        ];
         assert_eq!(CliBackend::find_table_separator(&lines), None);
     }
 
@@ -1094,6 +1098,7 @@ Google Chrome  Google.Chrome  131.0
         // Leading whitespace still checks trimmed content
         assert!(super::is_winget_footer_line("  2 upgrades available."));
         assert!(!super::is_winget_footer_line("  7-Zip 25.01 (x64)"));
+    }
 
     // ── detect_columns ───────────────────────────────────────────────────────
 

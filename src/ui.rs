@@ -938,8 +938,16 @@ mod tests {
         let area = Rect::new(0, 0, 80, 24);
         let result = centered_rect(50, 50, area);
         // Width and height should be close to 50 % of parent
-        assert!(result.width >= 38 && result.width <= 42, "width={}", result.width);
-        assert!(result.height >= 10 && result.height <= 14, "height={}", result.height);
+        assert!(
+            result.width >= 38 && result.width <= 42,
+            "width={}",
+            result.width
+        );
+        assert!(
+            result.height >= 10 && result.height <= 14,
+            "height={}",
+            result.height
+        );
         // The rect must fit inside the parent area
         assert!(result.x >= area.x);
         assert!(result.y >= area.y);

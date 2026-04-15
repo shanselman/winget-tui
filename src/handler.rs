@@ -485,7 +485,7 @@ mod tests {
     use ratatui::layout::Rect;
 
     use super::*;
-    use crate::app::{App, AppMode, ConfirmDialog, InputMode};
+    use crate::app::{App, ConfirmDialog, InputMode};
     use crate::backend::WingetBackend;
     use crate::models::{Operation, Package, PackageDetail, Source};
 
