@@ -218,10 +218,8 @@ impl CliBackend {
 
     /// Find a column index matching any of the given names (case-insensitive).
     fn find_column_ci(cols: &[(&str, usize)], names: &[&str]) -> Option<usize> {
-        cols.iter().position(|(col_name, _)| {
-            let lower = col_name.to_lowercase();
-            names.iter().any(|n| lower == *n)
-        })
+        cols.iter()
+            .position(|(col_name, _)| names.iter().any(|n| col_name.eq_ignore_ascii_case(n)))
     }
 
     /// Extract the field at column `idx` from `line`, using display-width column boundaries.
@@ -255,7 +253,15 @@ impl CliBackend {
     /// Normalize a `winget show` key to a canonical English name (case-insensitive,
     /// with known translations for common locales).
     fn normalize_show_key(key: &str) -> &'static str {
-        match key.to_lowercase().as_str() {
+        // Fast path: most keys from English winget output are already lowercase-only.
+        // Avoid the `to_lowercase()` heap allocation when no uppercase ASCII is present.
+        use std::borrow::Cow;
+        let lower: Cow<str> = if key.bytes().any(|b| b.is_ascii_uppercase()) {
+            Cow::Owned(key.to_lowercase())
+        } else {
+            Cow::Borrowed(key)
+        };
+        match lower.as_ref() {
             "version" | "packageversion" => "version",
             "publisher" | "herausgeber" | "éditeur" | "editore" | "editor" => "publisher",
             "description" | "beschreibung" | "descripción" | "descrição" | "descrizione" => {
