@@ -4,6 +4,7 @@ use std::sync::Arc;
 use ratatui::layout::Rect;
 
 use crate::backend::WingetBackend;
+use crate::config::Config;
 use crate::models::{OpResult, Operation, Package, PackageDetail, SourceFilter};
 
 /// Stores UI layout regions for mouse hit-testing
@@ -133,13 +134,13 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(backend: Arc<dyn WingetBackend>) -> Self {
+    pub fn new(backend: Arc<dyn WingetBackend>, cfg: Config) -> Self {
         let (message_tx, message_rx) = tokio::sync::mpsc::unbounded_channel();
         Self {
-            mode: AppMode::Installed,
+            mode: cfg.default_view,
             input_mode: InputMode::Normal,
             focus: FocusZone::PackageList,
-            source_filter: SourceFilter::All,
+            source_filter: cfg.default_source,
             search_query: String::new(),
             packages: Vec::new(),
             filtered_packages: Vec::new(),
@@ -490,7 +491,7 @@ mod tests {
     }
 
     fn make_app(backend: Arc<dyn WingetBackend>) -> App {
-        App::new(backend)
+        App::new(backend, crate::config::Config::default())
     }
 
     fn pkg(id: &str) -> Package {
