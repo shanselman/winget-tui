@@ -1,5 +1,7 @@
 # winget-tui
 
+**New design and visual research by [@niels9001](https://github.com/niels9001).**
+
 A terminal user interface for [Windows Package Manager (winget)](https://github.com/microsoft/winget-cli). Search, install, uninstall, and upgrade Windows packages without leaving your terminal.
 
 ![Rust](https://img.shields.io/badge/Rust-000000?style=flat&logo=rust&logoColor=white)
