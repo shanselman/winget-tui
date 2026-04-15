@@ -3,6 +3,7 @@ mod backend;
 mod cli_backend;
 mod handler;
 mod models;
+mod theme;
 mod ui;
 
 use std::io;

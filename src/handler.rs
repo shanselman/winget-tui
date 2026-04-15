@@ -2,7 +2,7 @@ use crossterm::event::{
     self, Event, KeyCode, KeyEventKind, KeyModifiers, MouseButton, MouseEventKind,
 };
 
-use crate::app::{App, AppMode, ConfirmDialog, InputMode};
+use crate::app::{App, AppMode, ConfirmDialog, FocusZone, InputMode};
 use crate::models::Operation;
 
 pub fn handle_events(app: &mut App) -> anyhow::Result<bool> {
@@ -94,28 +94,24 @@ fn handle_normal_mode(
         KeyCode::Char('?') => {
             app.show_help = !app.show_help;
         }
-        KeyCode::Tab | KeyCode::Right => {
-            app.mode = app.mode.cycle();
-            app.selected = 0;
-            app.selected_packages.clear();
-            app.detail = None;
-            app.detail_loading = false;
-            app.loading = true;
-            app.set_status("Loading...");
-            app.refresh_view();
+
+        // Left/Right switch views (Search/Installed/Upgrades)
+        KeyCode::Left => {
+            switch_view(app, app.mode.cycle_back());
         }
-        KeyCode::BackTab | KeyCode::Left => {
-            app.mode = app.mode.cycle_back();
-            app.selected = 0;
-            app.selected_packages.clear();
-            app.detail = None;
-            app.detail_loading = false;
-            app.loading = true;
-            app.set_status("Loading...");
-            app.refresh_view();
+        KeyCode::Right => {
+            switch_view(app, app.mode.cycle());
         }
 
-        // Navigation
+        // Tab toggles focus between package list and detail panel
+        KeyCode::Tab => {
+            app.focus = app.focus.toggle();
+        }
+        KeyCode::BackTab => {
+            app.focus = app.focus.toggle();
+        }
+
+        // Up/Down always navigate the package list
         KeyCode::Up | KeyCode::Char('k') => {
             app.move_selection(-1);
             load_detail_for_selected(app);
@@ -145,17 +141,25 @@ fn handle_normal_mode(
             }
         }
 
-        // Search
+        // Enter: load detail for selected package
+        KeyCode::Enter => {
+            load_detail_for_selected(app);
+        }
+
+        // Search — switch to search view and enter input mode
         KeyCode::Char('/') | KeyCode::Char('s') => {
+            if app.mode != AppMode::Search {
+                switch_view(app, AppMode::Search);
+            }
             app.input_mode = InputMode::Search;
         }
 
-        // Filter — cycles source and re-fetches from winget
+        // Filter
         KeyCode::Char('f') => {
             app.source_filter = app.source_filter.cycle();
             app.selected = 0;
             app.loading = true;
-            app.set_status(format!("Filter: {} — loading...", app.source_filter));
+            app.set_status(format!("Filter: {} -- loading...", app.source_filter));
             app.refresh_view();
         }
 
@@ -171,7 +175,7 @@ fn handle_normal_mode(
             if let Some(pkg) = app.selected_package() {
                 if pkg.is_truncated() {
                     app.set_status(
-                        "Cannot install: package ID was truncated by winget — use winget directly",
+                        "Cannot install: package ID was truncated by winget -- use winget directly",
                     );
                 } else {
                     let id = pkg.id.clone();
@@ -188,7 +192,7 @@ fn handle_normal_mode(
             if let Some(pkg) = app.selected_package() {
                 if pkg.is_truncated() {
                     app.set_status(
-                        "Cannot uninstall: package ID was truncated by winget — use winget directly",
+                        "Cannot uninstall: package ID was truncated by winget -- use winget directly",
                     );
                 } else {
                     let id = pkg.id.clone();
@@ -205,7 +209,7 @@ fn handle_normal_mode(
             if let Some(pkg) = app.selected_package() {
                 if pkg.is_truncated() {
                     app.set_status(
-                        "Cannot upgrade: package ID was truncated by winget — use winget directly",
+                        "Cannot upgrade: package ID was truncated by winget -- use winget directly",
                     );
                 } else {
                     let id = pkg.id.clone();
@@ -217,7 +221,7 @@ fn handle_normal_mode(
             }
         }
 
-        // Batch Upgrade (Shift+U) — upgrade all selected packages
+        // Batch Upgrade (Shift+U)
         KeyCode::Char('U') => {
             if app.mode == AppMode::Upgrades && !app.selected_packages.is_empty() {
                 let ids: Vec<String> = app
@@ -232,7 +236,7 @@ fn handle_normal_mode(
                     .collect();
                 if ids.is_empty() {
                     app.set_status(
-                        "Cannot upgrade: all selected packages have truncated IDs — use winget directly",
+                        "Cannot upgrade: all selected packages have truncated IDs -- use winget directly",
                     );
                 } else {
                     let count = ids.len();
@@ -248,7 +252,7 @@ fn handle_normal_mode(
             }
         }
 
-        // Toggle selection (Space) — Upgrades mode only
+        // Toggle selection (Space)
         KeyCode::Char(' ') => {
             if app.mode == AppMode::Upgrades && !app.filtered_packages.is_empty() {
                 let idx = app.selected;
@@ -257,13 +261,12 @@ fn handle_normal_mode(
                 } else {
                     app.selected_packages.insert(idx);
                 }
-                // Move down after toggling for fast multi-select
                 app.move_selection(1);
                 load_detail_for_selected(app);
             }
         }
 
-        // Select all / deselect all (a) — Upgrades mode only
+        // Select all / deselect all
         KeyCode::Char('a') => {
             if app.mode == AppMode::Upgrades && !app.filtered_packages.is_empty() {
                 if app.selected_packages.len() == app.filtered_packages.len() {
@@ -274,18 +277,13 @@ fn handle_normal_mode(
             }
         }
 
-        // Enter - load detail
-        KeyCode::Enter => {
-            load_detail_for_selected(app);
-        }
-
-        // Open homepage in default browser
+        // Open homepage
         KeyCode::Char('o') => {
             if let Some(detail) = &app.detail {
                 if !detail.homepage.is_empty() {
                     let url = detail.homepage.clone();
                     if open_url(&url) {
-                        app.set_status(format!("Opening {}…", url));
+                        app.set_status(format!("Opening {}...", url));
                     } else {
                         app.set_status("Blocked: URL must start with http:// or https://");
                     }
@@ -298,9 +296,26 @@ fn handle_normal_mode(
     Ok(false)
 }
 
+/// Switch the active view/mode, resetting selection and triggering a refresh
+fn switch_view(app: &mut App, new_mode: AppMode) {
+    if new_mode == app.mode {
+        return;
+    }
+    app.mode = new_mode;
+    app.selected = 0;
+    app.selected_packages.clear();
+    app.detail = None;
+    app.detail_loading = false;
+    // Invalidate any in-flight detail requests from the previous view
+    app.detail_generation += 1;
+    app.focus = FocusZone::PackageList;
+    app.loading = true;
+    app.set_status("Loading...");
+    app.refresh_view();
+}
+
 fn load_detail_for_selected(app: &mut App) {
     let pkg = app.selected_package();
-    // Skip detail fetch for truncated IDs — winget show --exact will fail
     if let Some(pkg) = pkg {
         if pkg.is_truncated() {
             return;
@@ -345,34 +360,29 @@ fn handle_mouse(app: &mut App, mouse: crossterm::event::MouseEvent) -> anyhow::R
                 return Ok(false);
             }
 
-            // Click on search bar (check before filter since they share a row)
-            if in_rect(col, row, app.layout.search_bar) {
+            // Click on search bar (only visible on search page)
+            if app.layout.search_bar.width > 0 && in_rect(col, row, app.layout.search_bar) {
                 app.input_mode = InputMode::Search;
                 return Ok(false);
             }
 
-            // Click on filter area
-            if in_rect(col, row, app.layout.filter_bar) {
-                app.source_filter = app.source_filter.cycle();
-                app.selected = 0;
-                app.loading = true;
-                app.set_status(format!("Filter: {} — loading...", app.source_filter));
-                app.refresh_view();
-                return Ok(false);
-            }
-
-            // Click on package list — select row or start scrollbar drag
+            // Click on package list
             if in_rect(col, row, app.layout.package_list) {
+                app.focus = FocusZone::PackageList;
                 let list = app.layout.package_list;
-                // Scrollbar is the rightmost column inside the border
                 let scrollbar_col = list.x + list.width - 1;
                 if col >= scrollbar_col.saturating_sub(1) && !app.filtered_packages.is_empty() {
-                    // Click on scrollbar track — jump to proportional position
                     scrollbar_jump(app, row);
                     return Ok(false);
                 }
 
                 select_package_at_row(app, row);
+                return Ok(false);
+            }
+
+            // Click on detail panel
+            if in_rect(col, row, app.layout.detail_panel) {
+                app.focus = FocusZone::DetailPanel;
                 return Ok(false);
             }
         }
@@ -391,7 +401,7 @@ fn handle_mouse(app: &mut App, mouse: crossterm::event::MouseEvent) -> anyhow::R
             }
         }
 
-        // Right-click on a package shows context (loads detail)
+        // Right-click on a package
         MouseEventKind::Down(MouseButton::Right) => {
             if in_rect(col, row, app.layout.package_list) {
                 select_package_at_row(app, row);
@@ -418,7 +428,6 @@ fn handle_mouse(app: &mut App, mouse: crossterm::event::MouseEvent) -> anyhow::R
 /// Map a Y position on the scrollbar track to a package index
 fn scrollbar_jump(app: &mut App, row: u16) {
     let list = app.layout.package_list;
-    // Track area: inside top and bottom borders
     let track_top = list.y + 1;
     let track_height = list.height.saturating_sub(2);
     if track_height == 0 || app.filtered_packages.is_empty() {
@@ -433,13 +442,10 @@ fn scrollbar_jump(app: &mut App, row: u16) {
     }
 }
 
-/// Check if a coordinate is within a Rect
 fn in_rect(col: u16, row: u16, rect: ratatui::layout::Rect) -> bool {
     col >= rect.x && col < rect.x + rect.width && row >= rect.y && row < rect.y + rect.height
 }
 
-/// Open a URL in the system default browser.
-/// Only accepts http:// and https:// URLs to prevent command injection.
 fn open_url(url: &str) -> bool {
     if !url.starts_with("http://") && !url.starts_with("https://") {
         return false;
@@ -463,16 +469,7 @@ fn open_url(url: &str) -> bool {
 fn handle_tab_click(app: &mut App, col: u16) {
     for &(start_x, end_x, mode) in &app.layout.tab_regions {
         if col >= start_x && col < end_x {
-            if mode != app.mode {
-                app.mode = mode;
-                app.selected = 0;
-                app.selected_packages.clear();
-                app.detail = None;
-                app.detail_loading = false;
-                app.loading = true;
-                app.set_status("Loading...");
-                app.refresh_view();
-            }
+            switch_view(app, mode);
             break;
         }
     }
