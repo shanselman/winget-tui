@@ -344,11 +344,11 @@ impl CliBackend {
     fn parse_show_output(&self, output: &str) -> PackageDetail {
         let mut detail = PackageDetail::default();
 
-        let lines: Vec<&str> = output.lines().collect();
-        let mut i = 0;
+        // Use a Peekable iterator instead of collecting into Vec<&str>, avoiding
+        // a heap allocation proportional to the number of lines in the output.
+        let mut lines = output.lines().peekable();
 
-        while i < lines.len() {
-            let line = lines[i];
+        while let Some(line) = lines.next() {
             let trimmed = line.trim();
 
             // Parse "Found Name [Id]" header line (locale-independent).
@@ -366,7 +366,6 @@ impl CliBackend {
                             .unwrap_or_default(),
                     );
                     detail.id = sanitize_text(&trimmed[bracket_start + 1..bracket_end]);
-                    i += 1;
                     continue;
                 }
             }
@@ -380,14 +379,15 @@ impl CliBackend {
                         "version" => detail.version = sanitize_text(&value),
                         "publisher" => detail.publisher = sanitize_text(&value),
                         "description" => {
-                            // Description value may be on this line or on indented continuation lines
+                            // Description value may be on this line or on indented continuation lines.
+                            // Peek ahead to consume indented continuation lines without backtracking.
                             let mut desc = value;
-                            while i + 1 < lines.len() && lines[i + 1].starts_with("  ") {
-                                i += 1;
+                            while lines.peek().map_or(false, |l| l.starts_with("  ")) {
+                                let continuation = lines.next().unwrap();
                                 if !desc.is_empty() {
                                     desc.push(' ');
                                 }
-                                desc.push_str(lines[i].trim());
+                                desc.push_str(continuation.trim());
                             }
                             detail.description = sanitize_text(&desc);
                         }
@@ -403,7 +403,6 @@ impl CliBackend {
                     }
                 }
             }
-            i += 1;
         }
 
         detail
