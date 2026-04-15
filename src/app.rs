@@ -92,6 +92,8 @@ impl AppMode {
 pub enum InputMode {
     Normal,
     Search,
+    /// Inline prompt for typing a specific version before installing
+    VersionInput,
 }
 
 /// Confirmation dialog state
@@ -115,6 +117,8 @@ pub struct App {
     pub status_message: String,
     pub loading: bool,
     pub confirm: Option<ConfirmDialog>,
+    /// Version string being edited in the VersionInput prompt
+    pub version_input: String,
     pub show_help: bool,
     pub should_quit: bool,
     pub layout: LayoutRegions,
@@ -160,6 +164,7 @@ impl App {
             status_message: "Loading...".to_string(),
             loading: false,
             confirm: None,
+            version_input: String::new(),
             show_help: false,
             should_quit: false,
             layout: LayoutRegions::default(),

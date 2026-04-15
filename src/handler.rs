@@ -17,6 +17,11 @@ pub fn handle_events(app: &mut App) -> anyhow::Result<bool> {
                 return handle_confirm(app, key.code);
             }
 
+            // Version input prompt takes priority after confirm
+            if app.input_mode == InputMode::VersionInput {
+                return handle_version_input(app, key.code);
+            }
+
             // Help overlay
             if app.show_help {
                 match key.code {
@@ -29,6 +34,7 @@ pub fn handle_events(app: &mut App) -> anyhow::Result<bool> {
             match app.input_mode {
                 InputMode::Search => handle_search_input(app, key.code),
                 InputMode::Normal => handle_normal_mode(app, key.code, key.modifiers),
+                InputMode::VersionInput => unreachable!("handled above"),
             }
         }
         Event::Mouse(mouse) => handle_mouse(app, mouse),
@@ -48,6 +54,41 @@ fn handle_confirm(app: &mut App, key: KeyCode) -> anyhow::Result<bool> {
         KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Esc => {
             app.confirm = None;
             app.set_status("Cancelled");
+        }
+        _ => {}
+    }
+    Ok(false)
+}
+
+fn handle_version_input(app: &mut App, key: KeyCode) -> anyhow::Result<bool> {
+    match key {
+        KeyCode::Esc => {
+            app.input_mode = InputMode::Normal;
+            app.version_input.clear();
+            app.set_status("Cancelled");
+        }
+        KeyCode::Enter => {
+            let version = app.version_input.trim().to_string();
+            app.input_mode = InputMode::Normal;
+            app.version_input.clear();
+            if let Some(pkg) = app.selected_package() {
+                let id = pkg.id.clone();
+                let (msg, ver) = if version.is_empty() {
+                    (format!("Install {}?", id), None)
+                } else {
+                    (format!("Install {} v{}?", id, version), Some(version))
+                };
+                app.confirm = Some(ConfirmDialog {
+                    message: msg,
+                    operation: Operation::Install { id, version: ver },
+                });
+            }
+        }
+        KeyCode::Backspace => {
+            app.version_input.pop();
+        }
+        KeyCode::Char(c) => {
+            app.version_input.push(c);
         }
         _ => {}
     }
@@ -206,6 +247,26 @@ fn handle_normal_mode(
                         message: format!("Install {}?", id),
                         operation: Operation::Install { id, version: None },
                     });
+                }
+            }
+        }
+
+        // Install specific version (Shift+I)
+        KeyCode::Char('I') => {
+            if let Some(pkg) = app.selected_package() {
+                if pkg.is_truncated() {
+                    app.set_status(
+                        "Cannot install: package ID was truncated by winget — use winget directly",
+                    );
+                } else {
+                    // Pre-fill with available_version if present, else current version
+                    let prefill = if !pkg.available_version.is_empty() {
+                        pkg.available_version.clone()
+                    } else {
+                        pkg.version.clone()
+                    };
+                    app.version_input = prefill;
+                    app.input_mode = InputMode::VersionInput;
                 }
             }
         }
@@ -581,6 +642,20 @@ mod tests {
         App::new(Arc::new(NoopBackend), crate::config::Config::default())
     }
 
+    fn make_app_with_pkg(id: &str, version: &str, available: &str) -> App {
+        let mut app = make_app();
+        app.packages = vec![Package {
+            id: id.to_string(),
+            name: "Test Package".to_string(),
+            version: version.to_string(),
+            source: "winget".to_string(),
+            available_version: available.to_string(),
+        }];
+        app.filtered_packages = app.packages.clone();
+        app.selected = 0;
+        app
+    }
+
     // ── in_rect ──────────────────────────────────────────────────────────────
 
     #[test]
@@ -746,5 +821,100 @@ mod tests {
         // Empty query: input_mode switches to Normal but no search is triggered
         assert_eq!(app.input_mode, InputMode::Normal);
         assert!(app.search_query.is_empty());
+    }
+
+    // ── handle_version_input ─────────────────────────────────────────────────
+
+    #[test]
+    fn version_input_char_appends() {
+        let mut app = make_app_with_pkg("Test.App", "1.0", "");
+        app.input_mode = InputMode::VersionInput;
+        app.version_input = "1.".to_string();
+        let _ = handle_version_input(&mut app, KeyCode::Char('5'));
+        assert_eq!(app.version_input, "1.5");
+        assert_eq!(app.input_mode, InputMode::VersionInput);
+    }
+
+    #[test]
+    fn version_input_backspace_removes_last_char() {
+        let mut app = make_app_with_pkg("Test.App", "1.0", "");
+        app.input_mode = InputMode::VersionInput;
+        app.version_input = "1.5".to_string();
+        let _ = handle_version_input(&mut app, KeyCode::Backspace);
+        assert_eq!(app.version_input, "1.");
+        assert_eq!(app.input_mode, InputMode::VersionInput);
+    }
+
+    #[test]
+    fn version_input_backspace_on_empty_stays_empty() {
+        let mut app = make_app_with_pkg("Test.App", "1.0", "");
+        app.input_mode = InputMode::VersionInput;
+        app.version_input = String::new();
+        let _ = handle_version_input(&mut app, KeyCode::Backspace);
+        assert_eq!(app.version_input, "");
+    }
+
+    #[test]
+    fn version_input_escape_cancels_and_returns_to_normal() {
+        let mut app = make_app_with_pkg("Test.App", "1.0", "");
+        app.input_mode = InputMode::VersionInput;
+        app.version_input = "2.0".to_string();
+        let _ = handle_version_input(&mut app, KeyCode::Esc);
+        assert_eq!(app.input_mode, InputMode::Normal);
+        assert_eq!(app.version_input, "");
+    }
+
+    #[test]
+    fn version_input_enter_with_version_creates_versioned_confirm() {
+        let mut app = make_app_with_pkg("Test.App", "1.0", "");
+        app.input_mode = InputMode::VersionInput;
+        app.version_input = "2.0.1".to_string();
+        let _ = handle_version_input(&mut app, KeyCode::Enter);
+        assert_eq!(app.input_mode, InputMode::Normal);
+        assert_eq!(app.version_input, "");
+        let confirm = app.confirm.expect("confirm dialog should be set");
+        assert!(confirm.message.contains("Test.App"));
+        assert!(confirm.message.contains("2.0.1"));
+        match confirm.operation {
+            Operation::Install { id, version } => {
+                assert_eq!(id, "Test.App");
+                assert_eq!(version, Some("2.0.1".to_string()));
+            }
+            _ => panic!("expected Install operation"),
+        }
+    }
+
+    #[test]
+    fn version_input_enter_with_empty_version_installs_without_version() {
+        let mut app = make_app_with_pkg("Test.App", "1.0", "");
+        app.input_mode = InputMode::VersionInput;
+        app.version_input = String::new();
+        let _ = handle_version_input(&mut app, KeyCode::Enter);
+        let confirm = app.confirm.expect("confirm dialog should be set");
+        match confirm.operation {
+            Operation::Install { version, .. } => {
+                assert_eq!(version, None, "empty version should install latest");
+            }
+            _ => panic!("expected Install operation"),
+        }
+    }
+
+    #[test]
+    fn version_input_enter_trims_whitespace() {
+        let mut app = make_app_with_pkg("Test.App", "1.0", "");
+        app.input_mode = InputMode::VersionInput;
+        app.version_input = "  2.0  ".to_string();
+        let _ = handle_version_input(&mut app, KeyCode::Enter);
+        let confirm = app.confirm.expect("confirm dialog should be set");
+        match confirm.operation {
+            Operation::Install { version, .. } => {
+                assert_eq!(
+                    version,
+                    Some("2.0".to_string()),
+                    "version should be trimmed"
+                );
+            }
+            _ => panic!("expected Install operation"),
+        }
     }
 }

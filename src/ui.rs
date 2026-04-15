@@ -60,6 +60,10 @@ pub fn draw(f: &mut Frame, app: &mut App) {
         draw_confirm_dialog(f, confirm);
     }
 
+    if app.input_mode == InputMode::VersionInput {
+        draw_version_input_dialog(f, app);
+    }
+
     if app.show_help {
         draw_help_overlay(f);
     }
@@ -488,6 +492,12 @@ fn draw_detail_panel(f: &mut Frame, app: &mut App, area: Rect) {
                     Span::styled(" i ", theme::action_install()),
                     Span::raw(" Install"),
                 ]));
+                lines.push(Line::raw(""));
+                lines.push(Line::from(vec![
+                    Span::raw("  "),
+                    Span::styled(" I ", theme::action_install()),
+                    Span::raw(" Install specific version"),
+                ]));
             }
             AppMode::Installed => {
                 if has_upgrade {
@@ -653,16 +663,25 @@ fn draw_status_bar(f: &mut Frame, app: &App, area: Rect) {
         .fg(theme::TEXT_SECONDARY)
         .bg(theme::SURFACE);
 
-    let hotkeys = if app.input_mode == InputMode::Search {
-        Line::from(vec![
+    let hotkeys = match app.input_mode {
+        InputMode::Search => Line::from(vec![
             Span::styled(" Esc ", key_style),
             Span::styled(" Cancel ", label_style),
             sep.clone(),
             Span::styled(" Enter ", key_style),
             Span::styled(" Search ", label_style),
-        ])
-    } else {
-        Line::from(vec![
+        ]),
+        InputMode::VersionInput => Line::from(vec![
+            Span::styled(" Esc ", key_style),
+            Span::styled(" Cancel ", label_style),
+            sep.clone(),
+            Span::styled(" Enter ", key_style),
+            Span::styled(" Confirm ", label_style),
+            sep.clone(),
+            Span::styled(" Bksp ", key_style),
+            Span::styled(" Delete ", label_style),
+        ]),
+        InputMode::Normal => Line::from(vec![
             Span::styled(" / ", key_style),
             Span::styled(" Search ", label_style),
             sep.clone(),
@@ -677,7 +696,7 @@ fn draw_status_bar(f: &mut Frame, app: &App, area: Rect) {
             sep,
             Span::styled(" q ", key_style),
             Span::styled(" Quit ", label_style),
-        ])
+        ]),
     };
 
     let hints = Paragraph::new(hotkeys)
@@ -719,6 +738,67 @@ fn draw_confirm_dialog(f: &mut Frame, confirm: &ConfirmDialog) {
         .block(block)
         .wrap(Wrap { trim: false });
     f.render_widget(p, area);
+}
+
+fn draw_version_input_dialog(f: &mut Frame, app: &App) {
+    let area = centered_rect(55, 25, f.area());
+    f.render_widget(Clear, area);
+
+    let pkg_name = app
+        .selected_package()
+        .map(|p| p.name.as_str())
+        .unwrap_or("package");
+
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .title(" 📦 Install Specific Version ")
+        .title_style(
+            Style::default()
+                .fg(theme::ACCENT)
+                .add_modifier(Modifier::BOLD),
+        )
+        .border_style(theme::border_focused())
+        .style(Style::default().bg(theme::SURFACE));
+
+    let label_style = theme::detail_label();
+
+    let lines = vec![
+        Line::raw(""),
+        Line::from(vec![
+            Span::raw("  Package: "),
+            Span::styled(pkg_name, label_style),
+        ]),
+        Line::raw(""),
+        Line::from(vec![
+            Span::raw("  Version: "),
+            Span::styled(
+                &app.version_input,
+                Style::default()
+                    .fg(theme::TEXT_PRIMARY)
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::styled("█", Style::default().fg(theme::ACCENT)),
+        ]),
+        Line::raw(""),
+        Line::from(vec![
+            Span::raw("  "),
+            Span::styled(" Enter ", theme::action_confirm()),
+            Span::raw(" Confirm   "),
+            Span::styled(" Esc ", theme::action_danger()),
+            Span::raw(" Cancel"),
+        ]),
+    ];
+
+    let p = Paragraph::new(lines)
+        .block(block)
+        .wrap(Wrap { trim: false });
+    f.render_widget(p, area);
+
+    // Position terminal cursor at end of version input field
+    let cursor_x = area.x + 12 + UnicodeWidthStr::width(app.version_input.as_str()) as u16;
+    let cursor_y = area.y + 4; // row 0: border, 1: blank, 2: package, 3: blank, 4: version
+    f.set_cursor_position((cursor_x, cursor_y));
 }
 
 fn draw_help_overlay(f: &mut Frame) {
@@ -776,6 +856,10 @@ fn draw_help_overlay(f: &mut Frame) {
         Line::from(vec![
             Span::styled("  i           ", key),
             Span::raw("Install selected package"),
+        ]),
+        Line::from(vec![
+            Span::styled("  I           ", key),
+            Span::raw("Install specific version"),
         ]),
         Line::from(vec![
             Span::styled("  u           ", key),
