@@ -351,15 +351,25 @@ impl App {
                     if generation < self.view_generation {
                         continue;
                     }
+                    // Remember the currently selected package so we can
+                    // re-anchor the cursor after the list is replaced.
+                    let prev_id = self.selected_package().map(|p| p.id.clone());
                     self.packages = packages;
                     self.apply_filter();
+                    // Restore cursor to the same package (if it is still present)
+                    // so that pressing 'r' to refresh does not jump the cursor.
+                    if let Some(id) = prev_id {
+                        if let Some(idx) = self.filtered_packages.iter().position(|p| p.id == id) {
+                            self.selected = idx;
+                        }
+                    }
                     self.loading = false;
                     let count = self.filtered_packages.len();
                     self.set_status(format!(
                         "{count} package{} found",
                         if count == 1 { "" } else { "s" }
                     ));
-                    // Auto-load detail for first selected package
+                    // Auto-load detail for the (restored) selected package
                     if let Some(pkg) = self.selected_package() {
                         let id = pkg.id.clone();
                         self.load_detail(&id);
@@ -481,6 +491,103 @@ mod tests {
 
     fn make_app(backend: Arc<dyn WingetBackend>) -> App {
         App::new(backend)
+    }
+
+    fn pkg(id: &str) -> Package {
+        Package {
+            id: id.to_string(),
+            name: id.to_string(),
+            version: "1.0".to_string(),
+            source: "winget".to_string(),
+            available_version: String::new(),
+        }
+    }
+
+    /// Simulate receiving a PackagesLoaded message synchronously (bypasses tokio channel).
+    fn deliver_packages(app: &mut App, packages: Vec<Package>) {
+        let gen = app.view_generation;
+        app.message_tx
+            .send(AppMessage::PackagesLoaded {
+                generation: gen,
+                packages,
+            })
+            .unwrap();
+        app.process_messages();
+    }
+
+    #[tokio::test]
+    async fn packages_loaded_preserves_selection_by_id() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+
+        // Load an initial list; select the second package (index 1 = VS Code)
+        app.view_generation = 1;
+        deliver_packages(
+            &mut app,
+            vec![
+                pkg("Google.Chrome"),
+                pkg("Microsoft.VisualStudioCode"),
+                pkg("7zip.7zip"),
+            ],
+        );
+        app.selected = 1;
+        assert_eq!(
+            app.selected_package().unwrap().id,
+            "Microsoft.VisualStudioCode"
+        );
+
+        // Simulate refresh: list comes back re-ordered (Chrome is now at index 1)
+        app.view_generation = 2;
+        deliver_packages(
+            &mut app,
+            vec![
+                pkg("7zip.7zip"),
+                pkg("Google.Chrome"),
+                pkg("Microsoft.VisualStudioCode"),
+            ],
+        );
+
+        // Cursor must follow VS Code to its new index (2), not stay at index 1
+        assert_eq!(
+            app.selected, 2,
+            "cursor should follow the package to its new position"
+        );
+        assert_eq!(
+            app.selected_package().unwrap().id,
+            "Microsoft.VisualStudioCode",
+            "selected package must remain VS Code after refresh"
+        );
+    }
+
+    #[tokio::test]
+    async fn packages_loaded_keeps_bounds_when_selected_package_disappears() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+
+        // Select the last package (index 2 = 7zip)
+        app.view_generation = 1;
+        deliver_packages(
+            &mut app,
+            vec![
+                pkg("Google.Chrome"),
+                pkg("Microsoft.VisualStudioCode"),
+                pkg("7zip.7zip"),
+            ],
+        );
+        app.selected = 2;
+
+        // After refresh, 7zip is gone (e.g. it was uninstalled)
+        app.view_generation = 2;
+        deliver_packages(
+            &mut app,
+            vec![pkg("Google.Chrome"), pkg("Microsoft.VisualStudioCode")],
+        );
+
+        // selected must be clamped to the last valid index
+        assert!(
+            app.selected < app.filtered_packages.len(),
+            "selection must remain in bounds after package disappears"
+        );
     }
 
     #[test]
