@@ -558,17 +558,22 @@ fn open_url(url: &str) -> bool {
     if !url.starts_with("http://") && !url.starts_with("https://") {
         return false;
     }
-    #[cfg(target_os = "windows")]
     {
-        let _ = std::process::Command::new("explorer").arg(url).spawn();
-    }
-    #[cfg(target_os = "macos")]
-    {
-        let _ = std::process::Command::new("open").arg(url).spawn();
-    }
-    #[cfg(not(any(target_os = "windows", target_os = "macos")))]
-    {
-        let _ = std::process::Command::new("xdg-open").arg(url).spawn();
+        #[cfg(not(test))]
+        #[cfg(target_os = "windows")]
+        {
+            let _ = std::process::Command::new("explorer").arg(url).spawn();
+        }
+        #[cfg(not(test))]
+        #[cfg(target_os = "macos")]
+        {
+            let _ = std::process::Command::new("open").arg(url).spawn();
+        }
+        #[cfg(not(test))]
+        #[cfg(not(any(target_os = "windows", target_os = "macos")))]
+        {
+            let _ = std::process::Command::new("xdg-open").arg(url).spawn();
+        }
     }
     true
 }
