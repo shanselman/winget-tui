@@ -147,6 +147,36 @@ pub struct App {
     pub message_rx: tokio::sync::mpsc::UnboundedReceiver<AppMessage>,
 }
 
+/// Compare two package version strings numerically, component by component.
+///
+/// Version strings are split on `.`, `-`, and `+`. Each component is compared
+/// numerically when both sides parse as `u64`; otherwise lexicographically.
+/// This avoids the lexicographic pitfall where `"10.0"` sorts before `"2.0"`.
+///
+/// Examples that sort correctly with this function but not with plain string comparison:
+/// - `"2.0"` < `"10.0"` (numeric: 2 < 10)
+/// - `"1.9"` < `"1.10"` (numeric: 9 < 10)
+fn compare_versions(a: &str, b: &str) -> std::cmp::Ordering {
+    fn split(v: &str) -> Vec<&str> {
+        v.split(['.', '-', '+']).collect()
+    }
+    let parts_a = split(a);
+    let parts_b = split(b);
+    let len = parts_a.len().max(parts_b.len());
+    for i in 0..len {
+        let pa = parts_a.get(i).copied().unwrap_or("");
+        let pb = parts_b.get(i).copied().unwrap_or("");
+        let ord = match (pa.parse::<u64>(), pb.parse::<u64>()) {
+            (Ok(na), Ok(nb)) => na.cmp(&nb),
+            _ => pa.cmp(pb),
+        };
+        if ord != std::cmp::Ordering::Equal {
+            return ord;
+        }
+    }
+    std::cmp::Ordering::Equal
+}
+
 impl App {
     pub fn new(backend: Arc<dyn WingetBackend>, cfg: Config) -> Self {
         let (message_tx, message_rx) = tokio::sync::mpsc::unbounded_channel();
@@ -196,7 +226,7 @@ impl App {
                 let cmp = match field {
                     SortField::Name => a.name.to_lowercase().cmp(&b.name.to_lowercase()),
                     SortField::Id => a.id.to_lowercase().cmp(&b.id.to_lowercase()),
-                    SortField::Version => a.version.cmp(&b.version),
+                    SortField::Version => compare_versions(&a.version, &b.version),
                     SortField::None => std::cmp::Ordering::Equal,
                 };
                 if dir == SortDir::Desc {
@@ -966,6 +996,88 @@ mod tests {
             .map(|p| p.version.as_str())
             .collect();
         assert_eq!(versions, ["1.0", "2.0", "3.0"]);
+    }
+
+    #[test]
+    fn apply_filter_sort_by_version_handles_multi_digit_components() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        // Lexicographic sort would give "10.0" < "2.0" (wrong); numeric gives "2.0" < "10.0"
+        app.packages = vec![
+            make_package("A", "A.A", "10.0"),
+            make_package("B", "B.B", "2.0"),
+            make_package("C", "C.C", "1.9"),
+        ];
+        app.sort_field = crate::models::SortField::Version;
+        app.sort_dir = crate::models::SortDir::Asc;
+        app.apply_filter();
+        let versions: Vec<&str> = app
+            .filtered_packages
+            .iter()
+            .map(|p| p.version.as_str())
+            .collect();
+        assert_eq!(versions, ["1.9", "2.0", "10.0"]);
+    }
+
+    // ── compare_versions ─────────────────────────────────────────────────────
+
+    #[test]
+    fn compare_versions_numeric_beats_lexicographic() {
+        assert_eq!(
+            compare_versions("2.0", "10.0"),
+            std::cmp::Ordering::Less,
+            "2.0 < 10.0 numerically"
+        );
+        assert_eq!(
+            compare_versions("1.9", "1.10"),
+            std::cmp::Ordering::Less,
+            "1.9 < 1.10 numerically"
+        );
+    }
+
+    #[test]
+    fn compare_versions_equal_versions() {
+        assert_eq!(
+            compare_versions("1.2.3", "1.2.3"),
+            std::cmp::Ordering::Equal
+        );
+    }
+
+    #[test]
+    fn compare_versions_longer_version_is_greater() {
+        assert_eq!(
+            compare_versions("1.0.0", "1.0"),
+            std::cmp::Ordering::Greater
+        );
+    }
+
+    #[test]
+    fn compare_versions_handles_hyphen_separator() {
+        // A version with a pre-release suffix has an extra component, sorting after
+        // the plain version in our simple comparator (we don't parse semver pre-release).
+        assert_eq!(
+            compare_versions("1.0-patch1", "1.0"),
+            std::cmp::Ordering::Greater,
+            "suffix adds an extra component that sorts after the shorter version"
+        );
+        // Numeric suffixes still sort correctly
+        assert_eq!(
+            compare_versions("1.0-2", "1.0-10"),
+            std::cmp::Ordering::Less,
+            "numeric suffix components compare numerically: 2 < 10"
+        );
+    }
+
+    #[test]
+    fn compare_versions_windows_quad_version() {
+        assert_eq!(
+            compare_versions("1.0.0.0", "1.0.0.1"),
+            std::cmp::Ordering::Less
+        );
+        assert_eq!(
+            compare_versions("10.0.19041.0", "10.0.22621.0"),
+            std::cmp::Ordering::Less
+        );
     }
 
     // ── process_messages ──────────────────────────────────────────────────────
