@@ -13,10 +13,13 @@ A terminal user interface for [Windows Package Manager (winget)](https://github.
 
 - **Search & Discover** — Find packages across all winget sources
 - **Installed Packages** — View everything installed on your system
-- **Upgrade Management** — See available updates at a glance
+- **Upgrade Management** — See updates at a glance and batch-upgrade multiple packages
 - **Source Filtering** — Filter by source (winget, msstore, or all)
 - **Sortable Columns** — Sort by Name, ID, or Version (ascending or descending) with `S`
-- **Package Details** — View publisher, description, license, homepage
+- **Version-Specific Install** — Install a specific version with `I`
+- **Package Details** — View publisher, description, license, homepage, and release notes
+- **Scrollable Details Pane** — Read long descriptions without losing your place in the package list
+- **Configurable Startup Defaults** — Set your default view and source in `config.toml`
 - **Keyboard-Driven** — Vim-style navigation, no mouse needed
 - **Non-Blocking** — Install/uninstall/upgrade run in the background
 - **Single Binary** — No runtime dependencies beyond winget itself
@@ -53,14 +56,21 @@ winget-tui
 | `↓` / `j` | Move down |
 | `PgUp` / `PgDn` | Jump 20 items |
 | `Home` / `End` | Jump to first / last |
-| `Tab` | Cycle views (Search → Installed → Upgrades) |
+| `←` / `→` | Cycle views backward / forward |
+| `Tab` / `Shift+Tab` | Toggle focus between the package list and detail panel |
 | `/` or `s` | Focus search input |
 | `Enter` | Submit search / show details |
 | `f` | Cycle source filter (All → winget → msstore) |
 | `r` | Refresh current view |
 | `i` | Install selected package |
+| `I` | Install a specific version of the selected package |
 | `u` | Upgrade selected package |
 | `x` | Uninstall selected package |
+| `Space` | Toggle selection for batch upgrade (Upgrades view) |
+| `a` | Select / deselect all packages (Upgrades view) |
+| `U` | Upgrade all selected packages (Upgrades view) |
+| `o` | Open package homepage in your browser |
+| `c` | Open release notes / changelog in your browser |
 | `S` | Cycle sort (Name↑ → Name↓ → ID↑ → ID↓ → Version↑ → Version↓ → off) |
 | `?` | Toggle help overlay |
 | `q` / `Esc` | Quit / close dialog |
@@ -73,6 +83,7 @@ winget-tui
 - **Click** on the search bar to start typing a search
 - **Click** on a package row to select it and load details
 - **Scroll wheel** over the package list to navigate up/down
+- **Scroll wheel** over the detail pane to scroll long package details
 - **Right-click** a package to select and load its details
 - **Click & drag** the scrollbar to scrub through the list
 
@@ -81,6 +92,20 @@ winget-tui
 - **Installed** (default) — Lists all packages installed on your system
 - **Search** — Search the winget repository for new packages
 - **Upgrades** — Shows packages with available updates
+
+## Configuration
+
+You can customize the startup view and source filter with an optional config file:
+
+- Windows: `%APPDATA%\winget-tui\config.toml`
+- Dev/non-Windows fallback: `$HOME/.config/winget-tui/config.toml`
+
+Example:
+
+```toml
+default_view = "upgrades"    # installed | search | upgrades
+default_source = "winget"    # all | winget | msstore
+```
 
 ## Architecture
 
@@ -91,8 +116,10 @@ winget-tui
 │   ├── app.rs           # App state, message passing, async coordination
 │   ├── backend.rs       # WingetBackend trait (abstraction layer)
 │   ├── cli_backend.rs   # CLI implementation (shells out to winget.exe)
+│   ├── config.rs        # Config file parsing and startup defaults
 │   ├── handler.rs       # Keyboard and mouse input handling
 │   ├── models.rs        # Data types (Package, Source, Operation, etc.)
+│   ├── theme.rs         # Semantic theme colors and shared styles
 │   └── ui.rs            # Ratatui rendering (all UI components)
 └── Cargo.toml
 ```
