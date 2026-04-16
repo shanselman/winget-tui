@@ -1,1 +1,17 @@
-{"r": "2026-04-15", "run": "24431127545", "monthly": 81}
+{
+  "r": "2026-04-16",
+  "run": "24512075734",
+  "mo": "2026-04-",
+  "monthly": "new (#aw_monthly17, April 2026)",
+  "last_pr": "local-filter-2026-04-16",
+  "comments_made": {
+    "80": "2026-04-16",
+    "83": "2026-04-16",
+    "88": "2026-04-14"
+  },
+  "open_prs": [
+    "repo-assist/fix-version-sort-2026-04-16",
+    "repo-assist/feat-local-filter-2026-04-16"
+  ],
+  "notes": "v0.6.0 released 2026-04-16. Monthly #114 was closed by shanselman, new monthly created (aw_monthly17). Two PRs created this run: (1) fix-version-sort-2026-04-16 - fixes lexicographic version sort bug (10.0 < 2.0); (2) feat-local-filter-2026-04-16 - real-time local filter for Installed/Upgrades with '/' key. Issue #115 is open but filtered by integrity policy (cannot read). 157 tests passing. Next: check for new issues, monitor PR reviews."
+}
