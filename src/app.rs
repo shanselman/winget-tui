@@ -109,6 +109,10 @@ pub struct App {
     pub focus: FocusZone,
     pub source_filter: SourceFilter,
     pub search_query: String,
+    /// Case-insensitive substring filter applied to the already-loaded package
+    /// list in Installed and Upgrades modes.  Separate from `search_query` so
+    /// that switching between views does not clobber either value.
+    pub local_filter: String,
     pub packages: Vec<Package>,
     pub filtered_packages: Vec<Package>,
     pub selected: usize,
@@ -156,6 +160,7 @@ impl App {
             focus: FocusZone::PackageList,
             source_filter: cfg.default_source,
             search_query: String::new(),
+            local_filter: String::new(),
             packages: Vec::new(),
             filtered_packages: Vec::new(),
             selected: 0,
@@ -185,9 +190,20 @@ impl App {
     }
 
     pub fn apply_filter(&mut self) {
-        // When a source filter is active, winget already filters server-side
-        // (and omits the Source column), so accept all returned packages.
-        self.filtered_packages = self.packages.clone();
+        // In Installed/Upgrades modes, apply an optional in-memory text filter.
+        // In Search mode, winget already filters server-side so accept all results.
+        self.filtered_packages = if self.mode != AppMode::Search && !self.local_filter.is_empty() {
+            let query = self.local_filter.to_lowercase();
+            self.packages
+                .iter()
+                .filter(|p| {
+                    p.name.to_lowercase().contains(&query) || p.id.to_lowercase().contains(&query)
+                })
+                .cloned()
+                .collect()
+        } else {
+            self.packages.clone()
+        };
         // Apply sort if a field is selected
         if self.sort_field != SortField::None {
             let dir = self.sort_dir;
@@ -877,6 +893,76 @@ mod tests {
         assert!(
             app.selected_packages.is_empty(),
             "selected_packages should be cleared by apply_filter"
+        );
+    }
+
+    #[test]
+    fn apply_filter_local_filter_narrows_by_name() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        // Default mode is Installed
+        app.packages = vec![
+            make_package("Visual Studio Code", "Microsoft.VSCode", "1.0"),
+            make_package("Notepad++", "Notepad.Notepad", "1.0"),
+            make_package("Visual C++ Runtime", "Microsoft.VCRedist", "1.0"),
+        ];
+        app.local_filter = "visual".to_string();
+        app.apply_filter();
+        assert_eq!(app.filtered_packages.len(), 2);
+        assert!(app
+            .filtered_packages
+            .iter()
+            .any(|p| p.id == "Microsoft.VSCode"));
+        assert!(app
+            .filtered_packages
+            .iter()
+            .any(|p| p.id == "Microsoft.VCRedist"));
+    }
+
+    #[test]
+    fn apply_filter_local_filter_narrows_by_id() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.packages = vec![
+            make_package("Chrome", "Google.Chrome", "1.0"),
+            make_package("Firefox", "Mozilla.Firefox", "1.0"),
+        ];
+        app.local_filter = "google".to_string();
+        app.apply_filter();
+        assert_eq!(app.filtered_packages.len(), 1);
+        assert_eq!(app.filtered_packages[0].id, "Google.Chrome");
+    }
+
+    #[test]
+    fn apply_filter_local_filter_is_case_insensitive() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.packages = vec![
+            make_package("VS Code", "Microsoft.VSCode", "1.0"),
+            make_package("Notepad", "Notepad.Notepad", "1.0"),
+        ];
+        app.local_filter = "VS CODE".to_string();
+        app.apply_filter();
+        assert_eq!(app.filtered_packages.len(), 1);
+        assert_eq!(app.filtered_packages[0].id, "Microsoft.VSCode");
+    }
+
+    #[test]
+    fn apply_filter_local_filter_ignored_in_search_mode() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.mode = AppMode::Search;
+        app.packages = vec![
+            make_package("Chrome", "Google.Chrome", "1.0"),
+            make_package("Firefox", "Mozilla.Firefox", "1.0"),
+        ];
+        // In Search mode, local_filter must not be applied
+        app.local_filter = "chrome".to_string();
+        app.apply_filter();
+        assert_eq!(
+            app.filtered_packages.len(),
+            2,
+            "local_filter must not narrow results in Search mode"
         );
     }
 

@@ -63,7 +63,7 @@ default_source = "all"       # all | winget | msstore
 
 - `Left` / `Right`: switch views
 - `Tab` / `Shift+Tab`: toggle focus between list and details
-- `/` or `s`: focus search
+- `/` or `s`: in Installed/Upgrades — open local filter bar (real-time, Esc to clear); in Search — focus winget search input
 - `f`: cycle source filter
 - `i`: install
 - `I`: install a specific version
@@ -74,6 +74,14 @@ default_source = "all"       # all | winget | msstore
 - `c`: open changelog / release notes
 - `S`: cycle sorting
 - `?`: help
+
+## Local filter
+
+In Installed and Upgrades views, pressing `/` opens an in-place filter bar.
+Characters are matched case-insensitively against package **name** and **ID** as
+you type.  Press `Enter` to keep the filter and return to Normal mode, or `Esc`
+to clear it and restore the full list.  The filter bar stays visible whenever a
+filter is active.  Switching views (`Left` / `Right`) clears the filter.
 
 ## Testing and validation
 

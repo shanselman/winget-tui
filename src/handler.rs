@@ -96,24 +96,61 @@ fn handle_version_input(app: &mut App, key: KeyCode) -> anyhow::Result<bool> {
 }
 
 fn handle_search_input(app: &mut App, key: KeyCode) -> anyhow::Result<bool> {
+    let is_local_filter = app.mode != AppMode::Search;
     match key {
         KeyCode::Esc => {
             app.input_mode = InputMode::Normal;
+            if is_local_filter {
+                // Clear filter and restore full list
+                app.local_filter.clear();
+                app.apply_filter();
+                let count = app.filtered_packages.len();
+                app.set_status(format!(
+                    "{count} package{} shown",
+                    if count == 1 { "" } else { "s" }
+                ));
+            }
         }
         KeyCode::Enter => {
             app.input_mode = InputMode::Normal;
-            if !app.search_query.is_empty() {
-                app.mode = AppMode::Search;
+            if is_local_filter {
+                // Filter is already applied in real-time; just close the input bar
+                let count = app.filtered_packages.len();
+                app.set_status(format!(
+                    "{count} match{}",
+                    if count == 1 { "" } else { "es" }
+                ));
+            } else if !app.search_query.is_empty() {
                 app.loading = true;
                 app.set_status("Searching...");
                 app.refresh_view();
             }
         }
         KeyCode::Backspace => {
-            app.search_query.pop();
+            if is_local_filter {
+                app.local_filter.pop();
+                app.apply_filter();
+                let count = app.filtered_packages.len();
+                app.set_status(format!(
+                    "{count} match{}",
+                    if count == 1 { "" } else { "es" }
+                ));
+            } else {
+                app.search_query.pop();
+            }
         }
         KeyCode::Char(c) => {
-            app.search_query.push(c);
+            if is_local_filter {
+                app.local_filter.push(c);
+                app.apply_filter();
+                let count = app.filtered_packages.len();
+                app.set_status(format!(
+                    "{count} match{}",
+                    if count == 1 { "" } else { "es" }
+                ));
+            } else {
+                app.search_query.push(c);
+            }
         }
         _ => {}
     }
@@ -210,11 +247,10 @@ fn handle_normal_mode(
             load_detail_for_selected(app);
         }
 
-        // Search — switch to search view and enter input mode
+        // Search / Filter
+        // In Search mode: focus the winget search input.
+        // In Installed/Upgrades: open the local filter bar without switching views.
         KeyCode::Char('/') | KeyCode::Char('s') => {
-            if app.mode != AppMode::Search {
-                switch_view(app, AppMode::Search);
-            }
             app.input_mode = InputMode::Search;
         }
 
@@ -409,6 +445,8 @@ fn switch_view(app: &mut App, new_mode: AppMode) {
     app.selected_packages.clear();
     app.detail = None;
     app.detail_loading = false;
+    // Clear local filter — it belongs to the previous view
+    app.local_filter.clear();
     // Invalidate any in-flight detail requests from the previous view
     app.detail_generation += 1;
     app.focus = FocusZone::PackageList;
@@ -598,7 +636,7 @@ mod tests {
     use ratatui::layout::Rect;
 
     use super::*;
-    use crate::app::{App, ConfirmDialog, InputMode};
+    use crate::app::{App, AppMode, ConfirmDialog, InputMode};
     use crate::backend::WingetBackend;
     use crate::models::{Operation, Package, PackageDetail, Source};
 
@@ -802,6 +840,7 @@ mod tests {
     #[test]
     fn search_input_char_appends_to_query() {
         let mut app = make_app();
+        app.mode = AppMode::Search;
         app.input_mode = InputMode::Search;
         let _ = handle_search_input(&mut app, KeyCode::Char('a'));
         let _ = handle_search_input(&mut app, KeyCode::Char('b'));
@@ -811,6 +850,7 @@ mod tests {
     #[test]
     fn search_input_backspace_removes_last_char() {
         let mut app = make_app();
+        app.mode = AppMode::Search;
         app.input_mode = InputMode::Search;
         app.search_query = "abc".into();
         let _ = handle_search_input(&mut app, KeyCode::Backspace);
@@ -820,12 +860,98 @@ mod tests {
     #[test]
     fn search_input_enter_with_empty_query_stays_in_search_mode() {
         let mut app = make_app();
+        app.mode = AppMode::Search;
         app.input_mode = InputMode::Search;
         app.search_query = String::new();
         let _ = handle_search_input(&mut app, KeyCode::Enter);
         // Empty query: input_mode switches to Normal but no search is triggered
         assert_eq!(app.input_mode, InputMode::Normal);
         assert!(app.search_query.is_empty());
+    }
+
+    // ── local filter (Installed / Upgrades) ──────────────────────────────────
+
+    #[test]
+    fn local_filter_char_appends_to_local_filter_not_search_query() {
+        let mut app = make_app();
+        // Default mode is Installed, so typing should go to local_filter
+        app.input_mode = InputMode::Search;
+        let _ = handle_search_input(&mut app, KeyCode::Char('v'));
+        let _ = handle_search_input(&mut app, KeyCode::Char('s'));
+        assert_eq!(
+            app.local_filter, "vs",
+            "local_filter should accumulate the typed chars"
+        );
+        assert_eq!(
+            app.search_query, "",
+            "search_query must not be modified in Installed mode"
+        );
+    }
+
+    #[test]
+    fn local_filter_backspace_removes_from_local_filter() {
+        let mut app = make_app();
+        app.input_mode = InputMode::Search;
+        app.local_filter = "vsc".into();
+        let _ = handle_search_input(&mut app, KeyCode::Backspace);
+        assert_eq!(app.local_filter, "vs");
+    }
+
+    #[test]
+    fn local_filter_esc_clears_filter_and_restores_packages() {
+        let mut app = make_app();
+        app.packages = vec![
+            Package {
+                id: "A.VSCode".into(),
+                name: "VS Code".into(),
+                version: "1.0".into(),
+                source: "winget".into(),
+                available_version: String::new(),
+            },
+            Package {
+                id: "B.Notepad".into(),
+                name: "Notepad++".into(),
+                version: "1.0".into(),
+                source: "winget".into(),
+                available_version: String::new(),
+            },
+        ];
+        app.filtered_packages = app.packages.clone();
+        app.local_filter = "vscode".into();
+        app.apply_filter();
+        assert_eq!(
+            app.filtered_packages.len(),
+            1,
+            "filter should narrow the list"
+        );
+
+        app.input_mode = InputMode::Search;
+        let _ = handle_search_input(&mut app, KeyCode::Esc);
+        assert_eq!(app.local_filter, "", "filter should be cleared on Esc");
+        assert_eq!(
+            app.filtered_packages.len(),
+            2,
+            "full list should be restored"
+        );
+        assert_eq!(app.input_mode, InputMode::Normal);
+    }
+
+    #[test]
+    fn slash_key_in_installed_mode_does_not_switch_to_search_mode() {
+        let mut app = make_app();
+        // Default mode is Installed
+        assert_eq!(app.mode, AppMode::Installed);
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('/'), KeyModifiers::NONE);
+        assert_eq!(
+            app.mode,
+            AppMode::Installed,
+            "mode must not change to Search"
+        );
+        assert_eq!(
+            app.input_mode,
+            InputMode::Search,
+            "input_mode should switch to Search for the filter bar"
+        );
     }
 
     // ── handle_version_input ─────────────────────────────────────────────────

@@ -17,7 +17,9 @@ use crate::theme;
 
 pub fn draw(f: &mut Frame, app: &mut App) {
     let header_height = theme::LOGO_HEIGHT; // logo + tabs, no extra spacing
-    let show_search_bar = app.mode == AppMode::Search || app.input_mode == InputMode::Search;
+    let show_search_bar = app.mode == AppMode::Search
+        || app.input_mode == InputMode::Search
+        || !app.local_filter.is_empty();
 
     if show_search_bar {
         let chunks = Layout::default()
@@ -136,24 +138,31 @@ fn draw_search_bar(f: &mut Frame, app: &mut App, area: Rect) {
     // Store region for mouse clicks
     app.layout.search_bar = area;
 
+    let is_local_filter = app.mode != AppMode::Search;
+    let (query, placeholder) = if is_local_filter {
+        (&app.local_filter, " / to filter...")
+    } else {
+        (&app.search_query, " / to search...")
+    };
+
     let search_style = if app.input_mode == InputMode::Search {
         Style::default().fg(theme::TEXT_PRIMARY).bg(theme::SURFACE)
     } else {
         Style::default().fg(theme::TEXT_SECONDARY)
     };
 
-    let search_text = if app.search_query.is_empty() && app.input_mode != InputMode::Search {
-        " / to search...".to_string()
+    let search_text = if query.is_empty() && app.input_mode != InputMode::Search {
+        placeholder.to_string()
     } else {
-        format!(" {}", app.search_query)
+        format!(" {}", query)
     };
 
     let search = Paragraph::new(search_text).style(search_style);
     f.render_widget(search, area);
 
-    // Show cursor in search mode
+    // Show cursor in search/filter input mode
     if app.input_mode == InputMode::Search {
-        let cursor_x = area.x + 1 + UnicodeWidthStr::width(app.search_query.as_str()) as u16;
+        let cursor_x = area.x + 1 + UnicodeWidthStr::width(query.as_str()) as u16;
         f.set_cursor_position((cursor_x, area.y));
     }
 }
