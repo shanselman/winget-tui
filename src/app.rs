@@ -188,23 +188,33 @@ impl App {
         // When a source filter is active, winget already filters server-side
         // (and omits the Source column), so accept all returned packages.
         self.filtered_packages = self.packages.clone();
-        // Apply sort if a field is selected
-        if self.sort_field != SortField::None {
-            let dir = self.sort_dir;
-            let field = self.sort_field;
-            self.filtered_packages.sort_by(|a, b| {
-                let cmp = match field {
-                    SortField::Name => a.name.to_lowercase().cmp(&b.name.to_lowercase()),
-                    SortField::Id => a.id.to_lowercase().cmp(&b.id.to_lowercase()),
-                    SortField::Version => a.version.cmp(&b.version),
-                    SortField::None => std::cmp::Ordering::Equal,
-                };
-                if dir == SortDir::Desc {
-                    cmp.reverse()
-                } else {
-                    cmp
+        // Apply sort if a field is selected.
+        // sort_by_cached_key computes the key exactly once per element (O(N))
+        // rather than on every comparison (O(N log N)), avoiding repeated heap
+        // allocations from to_lowercase() for Name and Id sorts.
+        match self.sort_field {
+            SortField::None => {}
+            SortField::Name => {
+                self.filtered_packages
+                    .sort_by_cached_key(|p| p.name.to_lowercase());
+                if self.sort_dir == SortDir::Desc {
+                    self.filtered_packages.reverse();
                 }
-            });
+            }
+            SortField::Id => {
+                self.filtered_packages
+                    .sort_by_cached_key(|p| p.id.to_lowercase());
+                if self.sort_dir == SortDir::Desc {
+                    self.filtered_packages.reverse();
+                }
+            }
+            SortField::Version => {
+                self.filtered_packages
+                    .sort_by(|a, b| a.version.cmp(&b.version));
+                if self.sort_dir == SortDir::Desc {
+                    self.filtered_packages.reverse();
+                }
+            }
         }
         // Keep selection in bounds
         if self.selected >= self.filtered_packages.len() {
