@@ -1,13 +1,17 @@
 {
-  "r": "2026-04-16",
-  "run": "24486665481",
+  "r": "2026-04-17",
+  "run": "24542502241",
   "mo": "2026-04-",
-  "monthly": "new (monthly16)",
-  "last_pr": 110,
+  "monthly": "#118 (April 2026)",
+  "last_pr": "test-improvements-2026-04-17",
   "comments_made": {
     "80": "2026-04-16",
     "83": "2026-04-16",
     "88": "2026-04-14"
   },
-  "notes": "Shanselman merged a massive batch on 2026-04-15: #79,#82,#84,#85,#86,#87,#89,#90,#91,#92,#93,#97,#98,#99,#100,#101,#102,#104,#106,#108,#109,#110 + #112 (Copilot scrollable details). Roadmap #88 closed. Monthly #81 closed by shanselman. New monthly created (aw_monthly16). New docs PR created: branch repo-assist/docs-agents-readme-2026-04-16 (AGENTS.md + README keybindings fixes, closes #80). Open issues: #80 (docs tracking, now has PR), #83 (CI Linux check, needs human action). 149 tests passing."
+  "open_prs": [
+    "repo-assist/fix-version-sort-2026-04-16",
+    "repo-assist/test-improvements-2026-04-17"
+  ],
+  "notes": "PR #116 open (fix version sort lexicographic bug). PR created this run: test-improvements-2026-04-17 (15 new tests: FocusZone::toggle, cycle_sort 7-state machine, scroll_detail clamp, detail_cache populate/hit/invalidate). Issue #117 is the blocked local-filter feat (AGENTS.md protected file). Monthly summary #118 updated. 164 tests passing. Issue #115 still blocked by integrity policy (cannot read). No open non-Repo-Assist issues visible."
 }
