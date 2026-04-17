@@ -1072,4 +1072,288 @@ mod tests {
         app.process_messages();
         assert!(app.detail.is_none(), "stale detail should not be displayed");
     }
+
+    // ── FocusZone ────────────────────────────────────────────────────────────
+
+    #[test]
+    fn focus_zone_toggle_list_to_detail() {
+        assert_eq!(FocusZone::PackageList.toggle(), FocusZone::DetailPanel);
+    }
+
+    #[test]
+    fn focus_zone_toggle_detail_to_list() {
+        assert_eq!(FocusZone::DetailPanel.toggle(), FocusZone::PackageList);
+    }
+
+    #[test]
+    fn focus_zone_toggle_is_involution() {
+        let zone = FocusZone::PackageList;
+        assert_eq!(zone.toggle().toggle(), zone);
+    }
+
+    // ── cycle_sort ────────────────────────────────────────────────────────────
+
+    #[test]
+    fn cycle_sort_progresses_through_all_states() {
+        use crate::models::{SortDir, SortField};
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        // Start: None/Asc → Name↑ → Name↓ → Id↑ → Id↓ → Version↑ → Version↓ → None
+        app.cycle_sort();
+        assert_eq!(app.sort_field, SortField::Name);
+        assert_eq!(app.sort_dir, SortDir::Asc);
+        app.cycle_sort();
+        assert_eq!(app.sort_field, SortField::Name);
+        assert_eq!(app.sort_dir, SortDir::Desc);
+        app.cycle_sort();
+        assert_eq!(app.sort_field, SortField::Id);
+        assert_eq!(app.sort_dir, SortDir::Asc);
+        app.cycle_sort();
+        assert_eq!(app.sort_field, SortField::Id);
+        assert_eq!(app.sort_dir, SortDir::Desc);
+        app.cycle_sort();
+        assert_eq!(app.sort_field, SortField::Version);
+        assert_eq!(app.sort_dir, SortDir::Asc);
+        app.cycle_sort();
+        assert_eq!(app.sort_field, SortField::Version);
+        assert_eq!(app.sort_dir, SortDir::Desc);
+        app.cycle_sort();
+        assert_eq!(app.sort_field, SortField::None);
+    }
+
+    #[test]
+    fn cycle_sort_updates_status_message() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.cycle_sort(); // None → Name↑
+        assert!(
+            app.status_message.contains("Name"),
+            "status should mention the sort field"
+        );
+        assert!(
+            app.status_message.contains("↑"),
+            "status should show direction indicator"
+        );
+    }
+
+    #[test]
+    fn cycle_sort_none_sets_sort_none_message() {
+        use crate::models::SortField;
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        // Cycle through all 7 states to get back to None
+        for _ in 0..7 {
+            app.cycle_sort();
+        }
+        assert_eq!(app.sort_field, SortField::None);
+        assert!(
+            app.status_message.contains("none"),
+            "status should say 'none' when sort is cleared"
+        );
+    }
+
+    // ── scroll_detail ─────────────────────────────────────────────────────────
+
+    #[test]
+    fn scroll_detail_forward_clamps_at_max() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        // detail panel height=10, viewport=7 (10 - 3), content=20 lines → max scroll=13
+        app.layout.detail_panel.height = 10;
+        app.detail_content_lines = 20;
+        app.detail_scroll = 0;
+        app.scroll_detail(100);
+        assert_eq!(
+            app.detail_scroll, 13,
+            "scroll should clamp at max (content - viewport)"
+        );
+    }
+
+    #[test]
+    fn scroll_detail_backward_clamps_at_zero() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.layout.detail_panel.height = 10;
+        app.detail_content_lines = 20;
+        app.detail_scroll = 5;
+        app.scroll_detail(-100);
+        assert_eq!(app.detail_scroll, 0, "scroll should clamp at 0");
+    }
+
+    #[test]
+    fn scroll_detail_forward_one_line() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.layout.detail_panel.height = 10;
+        app.detail_content_lines = 20;
+        app.detail_scroll = 3;
+        app.scroll_detail(1);
+        assert_eq!(app.detail_scroll, 4);
+    }
+
+    #[test]
+    fn scroll_detail_with_short_content_stays_at_zero() {
+        // If content fits in the viewport, max scroll is 0
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.layout.detail_panel.height = 20;
+        app.detail_content_lines = 5; // 5 < 17 viewport lines
+        app.detail_scroll = 0;
+        app.scroll_detail(10);
+        assert_eq!(
+            app.detail_scroll, 0,
+            "scroll should stay at 0 when content fits in viewport"
+        );
+    }
+
+    // ── detail_cache ──────────────────────────────────────────────────────────
+
+    #[test]
+    fn detail_loaded_is_cached() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.detail_generation = 1;
+        let detail = PackageDetail {
+            id: "Google.Chrome".to_string(),
+            name: "Google Chrome".to_string(),
+            version: "132.0".to_string(),
+            ..PackageDetail::default()
+        };
+        app.message_tx
+            .send(AppMessage::DetailLoaded {
+                generation: 1,
+                detail,
+            })
+            .unwrap();
+        app.process_messages();
+        assert!(
+            app.detail_cache.contains_key("Google.Chrome"),
+            "loaded detail should be added to cache"
+        );
+    }
+
+    #[tokio::test]
+    async fn operation_complete_invalidates_detail_cache() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        // Pre-populate cache
+        app.detail_cache.insert(
+            "Google.Chrome".to_string(),
+            PackageDetail {
+                id: "Google.Chrome".to_string(),
+                ..PackageDetail::default()
+            },
+        );
+        app.message_tx
+            .send(AppMessage::OperationComplete(crate::models::OpResult {
+                operation: Operation::Upgrade {
+                    id: "Google.Chrome".to_string(),
+                },
+                success: true,
+                message: "Upgraded".to_string(),
+            }))
+            .unwrap();
+        app.process_messages();
+        assert!(
+            !app.detail_cache.contains_key("Google.Chrome"),
+            "cache entry should be removed after upgrade"
+        );
+    }
+
+    #[tokio::test]
+    async fn operation_complete_batch_upgrade_invalidates_all_ids() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.detail_cache.insert(
+            "Pkg.A".to_string(),
+            PackageDetail {
+                id: "Pkg.A".to_string(),
+                ..PackageDetail::default()
+            },
+        );
+        app.detail_cache.insert(
+            "Pkg.B".to_string(),
+            PackageDetail {
+                id: "Pkg.B".to_string(),
+                ..PackageDetail::default()
+            },
+        );
+        app.message_tx
+            .send(AppMessage::OperationComplete(crate::models::OpResult {
+                operation: Operation::BatchUpgrade {
+                    ids: vec!["Pkg.A".to_string(), "Pkg.B".to_string()],
+                },
+                success: true,
+                message: "All upgraded".to_string(),
+            }))
+            .unwrap();
+        app.process_messages();
+        assert!(
+            !app.detail_cache.contains_key("Pkg.A"),
+            "Pkg.A should be removed from cache"
+        );
+        assert!(
+            !app.detail_cache.contains_key("Pkg.B"),
+            "Pkg.B should be removed from cache"
+        );
+    }
+
+    #[tokio::test]
+    async fn operation_complete_uninstall_invalidates_cache() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.detail_cache.insert(
+            "Old.App".to_string(),
+            PackageDetail {
+                id: "Old.App".to_string(),
+                ..PackageDetail::default()
+            },
+        );
+        app.message_tx
+            .send(AppMessage::OperationComplete(crate::models::OpResult {
+                operation: Operation::Uninstall {
+                    id: "Old.App".to_string(),
+                },
+                success: true,
+                message: "Uninstalled".to_string(),
+            }))
+            .unwrap();
+        app.process_messages();
+        assert!(
+            !app.detail_cache.contains_key("Old.App"),
+            "cache entry should be removed after uninstall"
+        );
+    }
+
+    #[test]
+    fn load_detail_uses_cache_on_second_call() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy.clone() as Arc<dyn WingetBackend>);
+        // Pre-populate cache directly
+        let cached = PackageDetail {
+            id: "Google.Chrome".to_string(),
+            name: "Google Chrome".to_string(),
+            version: "132.0".to_string(),
+            publisher: "Google LLC".to_string(),
+            ..PackageDetail::default()
+        };
+        app.detail_cache
+            .insert("Google.Chrome".to_string(), cached.clone());
+        // load_detail should return from cache without queuing a show call
+        let calls_before = spy.show_calls().len();
+        app.load_detail("Google.Chrome");
+        assert_eq!(
+            spy.show_calls().len(),
+            calls_before,
+            "no async show call should be made when detail is cached"
+        );
+        assert!(
+            app.detail.as_ref().map(|d| d.name.as_str()) == Some("Google Chrome"),
+            "cached detail should be set immediately"
+        );
+        assert!(
+            !app.detail_loading,
+            "detail_loading should be false for cached hits"
+        );
+    }
 }
