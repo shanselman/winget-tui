@@ -1,9 +1,9 @@
 {
-  "r": "2026-04-17",
-  "run": "24542502241",
+  "r": "2026-04-18",
+  "run": "24593401576",
   "mo": "2026-04-",
   "monthly": "#118 (April 2026)",
-  "last_pr": "test-improvements-2026-04-17",
+  "last_pr": "fix-pageup-viewport-2026-04-18",
   "comments_made": {
     "80": "2026-04-16",
     "83": "2026-04-16",
@@ -11,7 +11,10 @@
   },
   "open_prs": [
     "repo-assist/fix-version-sort-2026-04-16",
-    "repo-assist/test-improvements-2026-04-17"
+    "repo-assist/test-improvements-2026-04-17",
+    "repo-assist/perf-sort-cached-key-2026-04-17",
+    "repo-assist/eng-cargo-update-2026-04-17",
+    "repo-assist/fix-pageup-viewport-2026-04-18"
   ],
-  "notes": "PR #116 open (fix version sort lexicographic bug). PR created this run: test-improvements-2026-04-17 (15 new tests: FocusZone::toggle, cycle_sort 7-state machine, scroll_detail clamp, detail_cache populate/hit/invalidate). Issue #117 is the blocked local-filter feat (AGENTS.md protected file). Monthly summary #118 updated. 164 tests passing. Issue #115 still blocked by integrity policy (cannot read). No open non-Repo-Assist issues visible."
+  "notes": "Issues #80, #83, #88 all closed by shanselman (completed). Issue #115 blocked by integrity policy (cannot read). Issue #117 is the blocked local-filter feat (AGENTS.md protected file). Monthly summary #118 updated. 149 tests passing (test-improvements PR branch has 164). PR for PageUp/PageDown viewport fix created this run (branch: repo-assist/fix-pageup-viewport-2026-04-18). No human-authored open issues visible (only Repo Assist issues #117, #118, and blocked #115)."
 }
