@@ -98,10 +98,14 @@ pub struct Package {
 }
 
 impl Package {
-    /// Returns true if the package ID was truncated by winget (ends with '…').
-    /// Truncated IDs cannot be used with `winget show --exact`.
+    /// Returns true if the package ID was truncated by winget.
+    ///
+    /// winget truncates long IDs with either a Unicode ellipsis (`…`) or three
+    /// ASCII dots (`...`), depending on the terminal and locale. Either form
+    /// must be treated as truncated; using such an ID with `winget show --exact`
+    /// or any mutating command will always fail.
     pub fn is_truncated(&self) -> bool {
-        self.id.ends_with('…')
+        self.id.ends_with('…') || self.id.ends_with("...")
     }
 }
 
@@ -247,6 +251,18 @@ mod tests {
     #[test]
     fn is_truncated_ellipsis_suffix() {
         assert!(pkg("MSIX\\bsky.app-C52C8C38_1.0.0.0_neutr\u{2026}").is_truncated());
+    }
+
+    #[test]
+    fn is_truncated_ascii_dots_suffix() {
+        // winget produces ASCII "..." truncation on some terminals/locales
+        assert!(pkg("Microsoft.Sysinternals.R...").is_truncated());
+    }
+
+    #[test]
+    fn is_truncated_two_dots_not_truncated() {
+        // Two dots at the end should not be considered truncated
+        assert!(!pkg("Some.Package..").is_truncated());
     }
 
     #[test]

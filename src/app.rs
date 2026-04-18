@@ -302,12 +302,12 @@ impl App {
     }
 
     pub fn load_detail(&mut self, id: &str) {
-        // Truncated IDs (ending with '…') come from MSIX packages whose ID was
+        // Truncated IDs (ending with '…' or '...') come from MSIX packages whose ID was
         // clipped by winget. `winget show --exact <truncated>` always fails, so skip
         // the async fetch entirely. The pre-populated stub from the package list is
         // still shown in the detail panel; only the full publisher/description/etc.
         // fields are missing.
-        if id.ends_with('…') {
+        if id.ends_with('…') || id.ends_with("...") {
             return;
         }
 
@@ -672,6 +672,23 @@ mod tests {
         assert!(
             spy.show_calls().is_empty(),
             "winget show must not be called for truncated id"
+        );
+    }
+
+    #[test]
+    fn load_detail_skips_ascii_dot_truncated_id() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy.clone() as Arc<dyn WingetBackend>);
+        // winget produces "..." ASCII truncation on some terminals
+        let truncated = "Microsoft.Sysinternals.R...";
+        app.load_detail(truncated);
+        assert_eq!(
+            app.detail_generation, 0,
+            "generation should be unchanged for ASCII-dot truncated id"
+        );
+        assert!(
+            spy.show_calls().is_empty(),
+            "winget show must not be called for ASCII-dot truncated id"
         );
     }
 
