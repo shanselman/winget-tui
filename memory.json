@@ -1,9 +1,9 @@
 {
   "r": "2026-04-18",
-  "run": "24593401576",
+  "run": "24605357424",
   "mo": "2026-04-",
   "monthly": "#118 (April 2026)",
-  "last_pr": "fix-pageup-viewport-2026-04-18",
+  "last_pr": "fix-truncated-id-ascii-dots-2026-04-18",
   "comments_made": {
     "80": "2026-04-16",
     "83": "2026-04-16",
@@ -14,7 +14,8 @@
     "repo-assist/test-improvements-2026-04-17",
     "repo-assist/perf-sort-cached-key-2026-04-17",
     "repo-assist/eng-cargo-update-2026-04-17",
-    "repo-assist/fix-pageup-viewport-2026-04-18"
+    "repo-assist/fix-pageup-viewport-2026-04-18",
+    "repo-assist/fix-truncated-id-ascii-dots-2026-04-18"
   ],
-  "notes": "Issues #80, #83, #88 all closed by shanselman (completed). Issue #115 blocked by integrity policy (cannot read). Issue #117 is the blocked local-filter feat (AGENTS.md protected file). Monthly summary #118 updated. 149 tests passing (test-improvements PR branch has 164). PR for PageUp/PageDown viewport fix created this run (branch: repo-assist/fix-pageup-viewport-2026-04-18). No human-authored open issues visible (only Repo Assist issues #117, #118, and blocked #115)."
+  "notes": "Issues #80, #83, #88 all closed by shanselman (completed). Issue #115 blocked by integrity policy (cannot read). Issue #117 is the blocked local-filter feat (AGENTS.md protected file). Monthly summary #118 updated. 152 tests passing. PR #123 for ASCII '...' truncation fix created this run. No human-authored open issues visible (only Repo Assist issues #117, #118, and blocked #115). Task 1 (labelling): unlabelled issue #115 is integrity-filtered — no action possible."
 }
