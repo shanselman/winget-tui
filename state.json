@@ -1,11 +1,12 @@
 {
-  "last_run": "2026-04-19T01:13:00Z",
-  "last_run_id": "24617912276",
+  "last_run": "2026-04-19T13:08:00Z",
+  "last_run_id": "24629834268",
   "monthly_summary_issue": 118,
   "comments_made": {
     "80": "2026-04-16",
     "83": "2026-04-16",
-    "88": "2026-04-16"
+    "88": "2026-04-16",
+    "126": "2026-04-19"
   },
   "open_repo_assist_prs": [
     {"number": 116, "branch": "repo-assist/fix-version-sort-2026-04-16", "title": "fix: sort by Version uses numeric component comparison"},
@@ -14,7 +15,8 @@
     {"number": 121, "branch": "repo-assist/eng-cargo-update-2026-04-17", "title": "chore: cargo update — patch/minor dependency updates"},
     {"number": 122, "branch": "repo-assist/fix-pageup-viewport-2026-04-18", "title": "fix: PageUp/PageDown in package list uses actual viewport height"},
     {"number": 123, "branch": "repo-assist/fix-truncated-id-ascii-dots-2026-04-18", "title": "fix: is_truncated() now detects ASCII '...' truncation in addition to '…'"},
-    {"number": 124, "branch": "repo-assist/feat-export-csv-2026-04-19", "title": "feat: export current package list to CSV with 'e' key"}
+    {"number": 124, "branch": "repo-assist/feat-export-csv-2026-04-19", "title": "feat: export current package list to CSV with 'e' key"},
+    {"number": "TBD", "branch": "repo-assist/fix-url-open-feedback-2026-04-19", "title": "fix: show status message when homepage/changelog URL is unavailable"}
   ],
   "issues_created": [
     {"number": 117, "title": "feat: real-time local filter for Installed and Upgrades views", "status": "open - blocked on AGENTS.md protection"}
@@ -24,9 +26,11 @@
     {"feature": "local-filter", "issue": 117, "pr": "blocked - AGENTS.md protected", "status": "open"},
     {"issue": "pageup-hardcoded-20", "pr": 122, "status": "open"},
     {"issue": "is_truncated-ascii-dots", "pr": 123, "status": "open"},
-    {"feature": "csv-export", "pr": 124, "status": "open"}
+    {"feature": "csv-export", "pr": 124, "status": "open"},
+    {"feature": "url-open-feedback", "pr": "TBD", "status": "open"}
   ],
   "improvements_submitted": [
+    "o/c keys now show status when no URL (2026-04-19)",
     "CSV export with 'e' key (2026-04-19)",
     "is_truncated() ASCII '...' fix + consistent em dash status messages (2026-04-18)",
     "PageUp/PageDown uses actual viewport height (2026-04-18)",
@@ -41,7 +45,7 @@
     "Investigate any new issues as they arrive"
   ],
   "backlog_cursor": {
-    "issues": "processed 80, 83, 88; issue 115 blocked by integrity filter; no new human-authored open issues",
-    "next_issue_to_process": "check for new issues after 88"
+    "issues": "processed 80, 83, 88, 126; issue 115 blocked by integrity filter; no new open human issues",
+    "next_issue_to_process": "check for new issues after 126"
   }
 }

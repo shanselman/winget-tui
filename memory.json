@@ -1,13 +1,14 @@
 {
   "r": "2026-04-19",
-  "run": "24617912276",
+  "run": "24629834268",
   "mo": "2026-04-",
   "monthly": "#118 (April 2026)",
-  "last_pr": "feat-export-csv-2026-04-19",
+  "last_pr": "fix-url-open-feedback-2026-04-19",
   "comments_made": {
     "80": "2026-04-16",
     "83": "2026-04-16",
-    "88": "2026-04-14"
+    "88": "2026-04-14",
+    "126": "2026-04-19"
   },
   "open_prs": [
     "repo-assist/fix-version-sort-2026-04-16",
@@ -16,7 +17,8 @@
     "repo-assist/eng-cargo-update-2026-04-17",
     "repo-assist/fix-pageup-viewport-2026-04-18",
     "repo-assist/fix-truncated-id-ascii-dots-2026-04-18",
-    "repo-assist/feat-export-csv-2026-04-19"
+    "repo-assist/feat-export-csv-2026-04-19",
+    "repo-assist/fix-url-open-feedback-2026-04-19"
   ],
-  "notes": "Issues #80, #83, #88 all closed by shanselman. Issue #115 blocked by integrity policy. Issue #117 is blocked local-filter feat (AGENTS.md protected file). Monthly summary #118 updated. 155 tests passing. PR #124 for CSV export (e key) created this run. No human-authored open issues. Task 2: no new human issues to comment on."
+  "notes": "Issues #80, #83, #88 all closed by shanselman. Issue #115 blocked by integrity policy. Issue #117 blocked local-filter feat (AGENTS.md protected file). Monthly summary #118 updated. Issue #126 labelled bug + commented. PR created for url-open-feedback (open homepage/changelog status messages). 153 tests passing."
 }
