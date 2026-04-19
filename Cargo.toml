@@ -1,6 +1,6 @@
 [package]
 name = "winget-tui"
-version = "0.6.0"
+version = "0.7.0"
 edition = "2021"
 description = "A terminal user interface for Windows Package Manager (winget)"
 license = "MIT"
