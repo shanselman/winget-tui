@@ -600,7 +600,7 @@ fn draw_detail_panel(f: &mut Frame, app: &mut App, area: Rect) {
         } else if app.loading {
             format!("  {} Loading...", app.spinner())
         } else if app.selected_package().is_some_and(|p| p.is_truncated()) {
-            "  Package ID is truncated -- details unavailable".to_string()
+            "  Package ID is truncated — details unavailable".to_string()
         } else {
             "  Select a package to view details".to_string()
         };

@@ -241,7 +241,7 @@ fn handle_normal_mode(
             if let Some(pkg) = app.selected_package() {
                 if pkg.is_truncated() {
                     app.set_status(
-                        "Cannot install: package ID was truncated by winget -- use winget directly",
+                        "Cannot install: package ID was truncated by winget — use winget directly",
                     );
                 } else {
                     let id = pkg.id.clone();
@@ -278,7 +278,7 @@ fn handle_normal_mode(
             if let Some(pkg) = app.selected_package() {
                 if pkg.is_truncated() {
                     app.set_status(
-                        "Cannot uninstall: package ID was truncated by winget -- use winget directly",
+                        "Cannot uninstall: package ID was truncated by winget — use winget directly",
                     );
                 } else {
                     let id = pkg.id.clone();
@@ -295,7 +295,7 @@ fn handle_normal_mode(
             if let Some(pkg) = app.selected_package() {
                 if pkg.is_truncated() {
                     app.set_status(
-                        "Cannot upgrade: package ID was truncated by winget -- use winget directly",
+                        "Cannot upgrade: package ID was truncated by winget — use winget directly",
                     );
                 } else {
                     let id = pkg.id.clone();
@@ -322,7 +322,7 @@ fn handle_normal_mode(
                     .collect();
                 if ids.is_empty() {
                     app.set_status(
-                        "Cannot upgrade: all selected packages have truncated IDs -- use winget directly",
+                        "Cannot upgrade: all selected packages have truncated IDs — use winget directly",
                     );
                 } else {
                     let count = ids.len();
