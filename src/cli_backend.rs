@@ -336,10 +336,12 @@ impl CliBackend {
         if id.is_empty() {
             return None;
         }
-        // Valid package IDs contain '.' (e.g. "Google.Chrome") or '\' (e.g.
-        // "ARP\Machine\X64\Git_is1"). This filters out text from footer lines
-        // that happen to land in the ID column (e.g. long localized messages).
-        if !id.contains('.') && !id.contains('\\') {
+        // Valid package IDs contain '.' (e.g. "Google.Chrome"), '\' (e.g.
+        // "ARP\Machine\X64\Git_is1"), or are pure alphanumeric store product IDs
+        // (e.g. "XP8K0HKJFRXGCK", "9NBLGGH4NNS1"). This filters out text from
+        // footer lines that happen to land in the ID column (e.g. long localized
+        // messages which always contain spaces).
+        if !id.contains('.') && !id.contains('\\') && id.contains(' ') {
             return None;
         }
 
@@ -364,20 +366,24 @@ impl CliBackend {
 
             // Parse "Found Name [Id]" header line (locale-independent).
             // Matches any "Prefix Name [Id]" pattern, e.g. "Gefunden Chrome [Google.Chrome]"
-            if let (Some(bracket_start), Some(bracket_end)) =
-                (trimmed.rfind('['), trimmed.rfind(']'))
-            {
-                if bracket_end > bracket_start && !trimmed.contains(':') {
-                    let before_bracket = trimmed[..bracket_start].trim();
-                    // Skip the prefix word ("Found", "Gefunden", etc.)
-                    detail.name = sanitize_text(
-                        &before_bracket
-                            .split_once(' ')
-                            .map(|(_, name)| name.trim().to_string())
-                            .unwrap_or_default(),
-                    );
-                    detail.id = sanitize_text(&trimmed[bracket_start + 1..bracket_end]);
-                    continue;
+            // The closing ']' must be at the end of the line to avoid false positives
+            // from indented release-notes lines that contain "[author]" references.
+            if trimmed.ends_with(']') {
+                if let (Some(bracket_start), Some(bracket_end)) =
+                    (trimmed.rfind('['), trimmed.rfind(']'))
+                {
+                    if bracket_end > bracket_start && !trimmed.contains(':') {
+                        let before_bracket = trimmed[..bracket_start].trim();
+                        // Skip the prefix word ("Found", "Gefunden", etc.)
+                        detail.name = sanitize_text(
+                            &before_bracket
+                                .split_once(' ')
+                                .map(|(_, name)| name.trim().to_string())
+                                .unwrap_or_default(),
+                        );
+                        detail.id = sanitize_text(&trimmed[bracket_start + 1..bracket_end]);
+                        continue;
+                    }
                 }
             }
 
@@ -857,6 +863,24 @@ Microsoft Visual Studio Code   Microsoft.VisualStudioCode  1.95.3      1.96.0   
     }
 
     #[test]
+    fn parse_table_with_store_product_ids() {
+        let backend = CliBackend::new();
+        // Microsoft Store IDs are alphanumeric (no dots or backslashes)
+        let output = "\
+Name                        Id                 Version      Available
+----------------------------------------------------------------------
+Oh My Posh                  XP8K0HKJFRXGCK     29.9.2       29.10.0
+Windows Terminal             9N0DX20HK701       1.21.3231.0
+Google Chrome               Google.Chrome       131.0.6778
+";
+        let packages = backend.parse_packages_from_table(output);
+        assert_eq!(packages.len(), 3, "store product IDs must be accepted");
+        assert_eq!(packages[0].id, "XP8K0HKJFRXGCK");
+        assert_eq!(packages[1].id, "9N0DX20HK701");
+        assert_eq!(packages[2].id, "Google.Chrome");
+    }
+
+    #[test]
     fn sanitize_clean_input_fast_path() {
         // Clean ASCII — fast path returns exact content without char iteration
         assert_eq!(super::sanitize_text("Google Chrome"), "Google Chrome");
@@ -1038,6 +1062,33 @@ Source: winget
         assert_eq!(
             detail.release_notes_url,
             "https://code.visualstudio.com/updates/v1_96"
+        );
+    }
+
+    #[test]
+    fn parse_show_output_release_notes_with_brackets_not_treated_as_name() {
+        let backend = CliBackend::new();
+        let output = "\
+Found gitui [StephanDilly.gitui]
+Version: 0.28.1
+Publisher: Stephan Dilly
+Description: GitUI provides you with the comfort of a git GUI but right in your terminal.
+Homepage: https://github.com/extrawurst/gitui
+Release Notes:
+  Changed
+  - support proper pre-push hook (#2809)
+  Fixed
+  - fix extremely slow status loading [@DannyStoll1] (#2823)
+  - fix panic when renaming or updating remote URL [@xvchris] (#2868)
+Release Notes Url: https://github.com/gitui-org/gitui/releases/tag/v0.28.1
+";
+        let detail = backend.parse_show_output(output);
+        assert_eq!(detail.name, "gitui", "name must not be overwritten by release notes");
+        assert_eq!(detail.id, "StephanDilly.gitui");
+        assert_eq!(detail.publisher, "Stephan Dilly");
+        assert_eq!(
+            detail.release_notes_url,
+            "https://github.com/gitui-org/gitui/releases/tag/v0.28.1"
         );
     }
 

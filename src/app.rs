@@ -2,6 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use ratatui::layout::Rect;
+use ratatui::widgets::TableState;
 
 use crate::backend::WingetBackend;
 use crate::config::Config;
@@ -126,8 +127,8 @@ pub struct App {
     pub sort_field: SortField,
     /// Sort direction for the package list table.
     pub sort_dir: SortDir,
-    /// Scroll offset of the package list table (set during rendering)
-    pub table_scroll_offset: usize,
+    /// Persistent table widget state (preserves viewport offset across frames)
+    pub table_state: TableState,
     /// Scroll offset of the detail panel (in rendered lines)
     pub detail_scroll: usize,
     /// Total rendered line count of the detail panel (set during rendering)
@@ -170,7 +171,7 @@ impl App {
             layout: LayoutRegions::default(),
             sort_field: SortField::None,
             sort_dir: SortDir::Asc,
-            table_scroll_offset: 0,
+            table_state: TableState::default(),
             detail_scroll: 0,
             detail_content_lines: 0,
             tick: 0,
@@ -187,7 +188,15 @@ impl App {
     pub fn apply_filter(&mut self) {
         // When a source filter is active, winget already filters server-side
         // (and omits the Source column), so accept all returned packages.
+        // Backfill the source field when winget omitted it (single-source query).
         self.filtered_packages = self.packages.clone();
+        if let Some(src) = self.source_filter.as_arg() {
+            for pkg in &mut self.filtered_packages {
+                if pkg.source.is_empty() {
+                    pkg.source = src.to_string();
+                }
+            }
+        }
         // Apply sort if a field is selected.
         // sort_by_cached_key computes the key exactly once per element (O(N))
         // rather than on every comparison (O(N log N)), avoiding repeated heap
@@ -235,6 +244,21 @@ impl App {
         let len = self.filtered_packages.len() as isize;
         let new = (self.selected as isize + delta).rem_euclid(len);
         self.selected = new as usize;
+        self.ensure_selection_visible();
+    }
+
+    /// Adjust the table viewport offset so the selected row is visible.
+    pub fn ensure_selection_visible(&mut self) {
+        let viewport_rows = self.layout.package_list.height.saturating_sub(3) as usize;
+        if viewport_rows == 0 {
+            return;
+        }
+        let offset = self.table_state.offset();
+        if self.selected < offset {
+            *self.table_state.offset_mut() = self.selected;
+        } else if self.selected >= offset + viewport_rows {
+            *self.table_state.offset_mut() = self.selected - viewport_rows + 1;
+        }
     }
 
     /// Scroll the detail panel by `delta` lines, clamped to valid range.
@@ -312,23 +336,60 @@ impl App {
     }
 
     pub fn load_detail(&mut self, id: &str) {
-        // Truncated IDs (ending with '…' or '...') come from MSIX packages whose ID was
-        // clipped by winget. `winget show --exact <truncated>` always fails, so skip
-        // the async fetch entirely. The pre-populated stub from the package list is
-        // still shown in the detail panel; only the full publisher/description/etc.
-        // fields are missing.
-        if id.ends_with('…') || id.ends_with("...") {
-            return;
-        }
-
         // Always increment generation to invalidate any in-flight detail requests.
-        // Without this, returning from cache leaves the old generation active,
-        // and a stale async response can overwrite the correct cached detail.
         self.detail_generation += 1;
 
         // Return cached detail immediately if available
         if let Some(cached) = self.detail_cache.get(id) {
             self.detail = Some(cached.clone());
+            self.detail_loading = false;
+            return;
+        }
+
+        // Determine if this package can be looked up via `winget show --exact`.
+        // Truncated IDs, ARP entries, and MSIX sideloads have no manifest so the
+        // call would always fail. Show a local detail stub instead.
+        let is_truncated = id.ends_with('…') || id.ends_with("...");
+        let is_local = id.starts_with("ARP\\") || id.starts_with("MSIX\\");
+        let pkg_source_empty = self
+            .filtered_packages
+            .iter()
+            .find(|p| p.id == id)
+            .is_some_and(|p| p.source.is_empty());
+
+        if is_truncated || is_local || pkg_source_empty {
+            if let Some(pkg) = self.filtered_packages.iter().find(|p| p.id == id) {
+                let kind = if is_truncated {
+                    "Package ID was truncated by winget"
+                } else if id.starts_with("ARP\\") {
+                    "Installed via Windows registry (Add/Remove Programs)"
+                } else if id.starts_with("MSIX\\") {
+                    "Installed as an MSIX/AppX package"
+                } else {
+                    "Installed locally (not from a winget source)"
+                };
+                let detail = PackageDetail {
+                    id: pkg.id.clone(),
+                    name: pkg.name.clone(),
+                    version: pkg.version.clone(),
+                    source: if pkg.source.is_empty() {
+                        "local".to_string()
+                    } else {
+                        pkg.source.clone()
+                    },
+                    description: format!(
+                        "{}\n\n\
+                         This package has no manifest in any configured winget source. \
+                         Detailed metadata (publisher, homepage, license) is not available.\n\n\
+                         To manage this package, use its original installer or \
+                         the Windows Settings > Apps panel.",
+                        kind
+                    ),
+                    ..PackageDetail::default()
+                };
+                self.detail_cache.insert(id.to_string(), detail.clone());
+                self.detail = Some(detail);
+            }
             self.detail_loading = false;
             return;
         }
@@ -673,16 +734,12 @@ mod tests {
         let mut app = make_app(spy.clone() as Arc<dyn WingetBackend>);
         let truncated = "MSIX\\bsky.app-C52C8C38_1.0.0.0_neutr\u{2026}";
         app.load_detail(truncated);
-        // detail_generation must NOT have been incremented (we returned before touching it)
-        assert_eq!(
-            app.detail_generation, 0,
-            "generation should be unchanged for truncated id"
-        );
         // No show call should have been enqueued
         assert!(
             spy.show_calls().is_empty(),
             "winget show must not be called for truncated id"
         );
+        assert!(!app.detail_loading, "should not be loading for truncated id");
     }
 
     #[test]
@@ -692,14 +749,11 @@ mod tests {
         // winget produces "..." ASCII truncation on some terminals
         let truncated = "Microsoft.Sysinternals.R...";
         app.load_detail(truncated);
-        assert_eq!(
-            app.detail_generation, 0,
-            "generation should be unchanged for ASCII-dot truncated id"
-        );
         assert!(
             spy.show_calls().is_empty(),
             "winget show must not be called for ASCII-dot truncated id"
         );
+        assert!(!app.detail_loading, "should not be loading for ASCII-dot truncated id");
     }
 
     #[tokio::test]

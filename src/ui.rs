@@ -4,7 +4,7 @@ use ratatui::{
     text::{Line, Span},
     widgets::{
         Block, BorderType, Borders, Cell, Clear, Paragraph, Row, Scrollbar, ScrollbarOrientation,
-        ScrollbarState, Table, TableState, Wrap,
+        ScrollbarState, Table, Wrap,
     },
     Frame,
 };
@@ -332,14 +332,9 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
 
     let table = Table::new(rows, &widths)
         .header(header)
-        .block(block)
-        .row_highlight_style(theme::selected_row());
+        .block(block);
 
-    let mut state = TableState::default();
-    state.select(Some(app.selected));
-    f.render_stateful_widget(table, area, &mut state);
-    // Capture scroll offset for mouse click hit-testing
-    app.table_scroll_offset = state.offset();
+    f.render_stateful_widget(table, area, &mut app.table_state);
 
     // Scrollbar
     if app.filtered_packages.len() > (area.height as usize).saturating_sub(3) {

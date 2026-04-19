@@ -173,9 +173,10 @@ fn handle_normal_mode(
             if app.focus == FocusZone::DetailPanel {
                 let page = app.layout.detail_panel.height.saturating_sub(3) as isize;
                 app.scroll_detail(-page);
-            } else {
+            } else if !app.filtered_packages.is_empty() {
                 let page = list_page_size(app);
-                app.move_selection(-(page as isize));
+                app.selected = app.selected.saturating_sub(page);
+                app.ensure_selection_visible();
                 load_detail_for_selected(app);
             }
         }
@@ -183,9 +184,11 @@ fn handle_normal_mode(
             if app.focus == FocusZone::DetailPanel {
                 let page = app.layout.detail_panel.height.saturating_sub(3) as isize;
                 app.scroll_detail(page);
-            } else {
+            } else if !app.filtered_packages.is_empty() {
                 let page = list_page_size(app);
-                app.move_selection(page as isize);
+                let max = app.filtered_packages.len() - 1;
+                app.selected = (app.selected + page).min(max);
+                app.ensure_selection_visible();
                 load_detail_for_selected(app);
             }
         }
@@ -194,6 +197,7 @@ fn handle_normal_mode(
                 app.detail_scroll = 0;
             } else if !app.filtered_packages.is_empty() {
                 app.selected = 0;
+                app.ensure_selection_visible();
                 load_detail_for_selected(app);
             }
         }
@@ -203,6 +207,7 @@ fn handle_normal_mode(
                 app.detail_scroll = app.detail_content_lines.saturating_sub(viewport);
             } else if !app.filtered_packages.is_empty() {
                 app.selected = app.filtered_packages.len() - 1;
+                app.ensure_selection_visible();
                 load_detail_for_selected(app);
             }
         }
@@ -437,9 +442,6 @@ fn list_page_size(app: &App) -> usize {
 fn load_detail_for_selected(app: &mut App) {
     let pkg = app.selected_package();
     if let Some(pkg) = pkg {
-        if pkg.is_truncated() {
-            return;
-        }
         let id = pkg.id.clone();
         app.detail_scroll = 0;
         app.load_detail(&id);
@@ -452,7 +454,7 @@ fn select_package_at_row(app: &mut App, row: u16) {
     let content_y = app.layout.list_content_y;
     let content_end_y = list.y + list.height.saturating_sub(1);
     if row >= content_y && row < content_end_y {
-        let clicked_idx = (row - content_y) as usize + app.table_scroll_offset;
+        let clicked_idx = (row - content_y) as usize + app.table_state.offset();
         if clicked_idx < app.filtered_packages.len() {
             app.selected = clicked_idx;
             load_detail_for_selected(app);
@@ -513,18 +515,19 @@ fn handle_mouse(app: &mut App, mouse: crossterm::event::MouseEvent) -> anyhow::R
         // Scroll wheel in package list or detail panel
         MouseEventKind::ScrollUp => {
             if in_rect(col, row, app.layout.package_list) {
-                app.move_selection(3);
-                load_detail_for_selected(app);
+                let offset = app.table_state.offset_mut();
+                *offset = offset.saturating_sub(3);
             } else if in_rect(col, row, app.layout.detail_panel) {
-                app.scroll_detail(3);
+                app.scroll_detail(-3);
             }
         }
         MouseEventKind::ScrollDown => {
             if in_rect(col, row, app.layout.package_list) {
-                app.move_selection(-3);
-                load_detail_for_selected(app);
+                let max = app.filtered_packages.len().saturating_sub(1);
+                let offset = app.table_state.offset_mut();
+                *offset = (*offset + 3).min(max);
             } else if in_rect(col, row, app.layout.detail_panel) {
-                app.scroll_detail(-3);
+                app.scroll_detail(3);
             }
         }
 
@@ -1010,7 +1013,7 @@ mod tests {
         let mut app = make_app_with_pkgs(10);
         app.layout.package_list = rect(0, 10, 40, 10);
         app.layout.list_content_y = 13;
-        app.table_scroll_offset = 4;
+        *app.table_state.offset_mut() = 4;
         app.selected = 6;
 
         select_package_at_row(&mut app, 12);
@@ -1022,7 +1025,7 @@ mod tests {
         let mut app = make_app_with_pkgs(20);
         app.layout.package_list = rect(0, 10, 40, 12);
         app.layout.list_content_y = 13;
-        app.table_scroll_offset = 5;
+        *app.table_state.offset_mut() = 5;
         app.selected = 0;
         // second-last column should behave like a normal list click
         let click_col = app.layout.package_list.x + app.layout.package_list.width - 2;
@@ -1042,10 +1045,11 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn mouse_wheel_up_in_list_moves_selection_forward() {
+    async fn mouse_wheel_up_scrolls_viewport_not_selection() {
         let mut app = make_app_with_pkgs(10);
         app.layout.package_list = rect(0, 10, 40, 12);
         app.selected = 2;
+        *app.table_state.offset_mut() = 5;
 
         let _ = handle_mouse(
             &mut app,
@@ -1057,6 +1061,8 @@ mod tests {
             },
         );
 
-        assert_eq!(app.selected, 5);
+        // Selection should NOT move — only the viewport offset changes
+        assert_eq!(app.selected, 2);
+        assert_eq!(app.table_state.offset(), 2); // scrolled up by 3
     }
 }
