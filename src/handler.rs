@@ -174,7 +174,8 @@ fn handle_normal_mode(
                 let page = app.layout.detail_panel.height.saturating_sub(3) as isize;
                 app.scroll_detail(-page);
             } else {
-                app.move_selection(-20);
+                let page = list_page_size(app);
+                app.move_selection(-(page as isize));
                 load_detail_for_selected(app);
             }
         }
@@ -183,7 +184,8 @@ fn handle_normal_mode(
                 let page = app.layout.detail_panel.height.saturating_sub(3) as isize;
                 app.scroll_detail(page);
             } else {
-                app.move_selection(20);
+                let page = list_page_size(app);
+                app.move_selection(page as isize);
                 load_detail_for_selected(app);
             }
         }
@@ -415,6 +417,17 @@ fn switch_view(app: &mut App, new_mode: AppMode) {
     app.loading = true;
     app.set_status("Loading...");
     app.refresh_view();
+}
+
+/// Returns the number of visible data rows in the package list, based on the
+/// last-rendered layout.  Falls back to 20 if a render hasn't happened yet.
+fn list_page_size(app: &App) -> usize {
+    let h = app.layout.package_list.height.saturating_sub(3) as usize;
+    if h == 0 {
+        20
+    } else {
+        h
+    }
 }
 
 fn load_detail_for_selected(app: &mut App) {
