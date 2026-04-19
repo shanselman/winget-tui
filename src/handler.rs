@@ -448,8 +448,10 @@ fn load_detail_for_selected(app: &mut App) {
 
 /// Select the package row at the given terminal row coordinate and load its detail.
 fn select_package_at_row(app: &mut App, row: u16) {
+    let list = app.layout.package_list;
     let content_y = app.layout.list_content_y;
-    if row >= content_y {
+    let content_end_y = list.y + list.height.saturating_sub(1);
+    if row >= content_y && row < content_end_y {
         let clicked_idx = (row - content_y) as usize + app.table_scroll_offset;
         if clicked_idx < app.filtered_packages.len() {
             app.selected = clicked_idx;
@@ -492,7 +494,7 @@ fn handle_mouse(app: &mut App, mouse: crossterm::event::MouseEvent) -> anyhow::R
                 app.focus = FocusZone::PackageList;
                 let list = app.layout.package_list;
                 let scrollbar_col = list.x + list.width - 1;
-                if col >= scrollbar_col.saturating_sub(1) && !app.filtered_packages.is_empty() {
+                if col == scrollbar_col && !app.filtered_packages.is_empty() {
                     scrollbar_jump(app, row);
                     return Ok(false);
                 }
@@ -511,18 +513,18 @@ fn handle_mouse(app: &mut App, mouse: crossterm::event::MouseEvent) -> anyhow::R
         // Scroll wheel in package list or detail panel
         MouseEventKind::ScrollUp => {
             if in_rect(col, row, app.layout.package_list) {
-                app.move_selection(-3);
-                load_detail_for_selected(app);
-            } else if in_rect(col, row, app.layout.detail_panel) {
-                app.scroll_detail(-3);
-            }
-        }
-        MouseEventKind::ScrollDown => {
-            if in_rect(col, row, app.layout.package_list) {
                 app.move_selection(3);
                 load_detail_for_selected(app);
             } else if in_rect(col, row, app.layout.detail_panel) {
                 app.scroll_detail(3);
+            }
+        }
+        MouseEventKind::ScrollDown => {
+            if in_rect(col, row, app.layout.package_list) {
+                app.move_selection(-3);
+                load_detail_for_selected(app);
+            } else if in_rect(col, row, app.layout.detail_panel) {
+                app.scroll_detail(-3);
             }
         }
 
@@ -538,7 +540,7 @@ fn handle_mouse(app: &mut App, mouse: crossterm::event::MouseEvent) -> anyhow::R
             if in_rect(col, row, app.layout.package_list) && !app.filtered_packages.is_empty() {
                 let list = app.layout.package_list;
                 let scrollbar_col = list.x + list.width - 1;
-                if col >= scrollbar_col.saturating_sub(1) {
+                if col == scrollbar_col {
                     scrollbar_jump(app, row);
                 }
             }
@@ -611,7 +613,7 @@ mod tests {
 
     use anyhow::Result;
     use async_trait::async_trait;
-    use crossterm::event::KeyCode;
+    use crossterm::event::{KeyCode, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
     use ratatui::layout::Rect;
 
     use super::*;
@@ -673,6 +675,22 @@ mod tests {
             source: "winget".to_string(),
             available_version: available.to_string(),
         }];
+        app.filtered_packages = app.packages.clone();
+        app.selected = 0;
+        app
+    }
+
+    fn make_app_with_pkgs(count: usize) -> App {
+        let mut app = make_app();
+        app.packages = (0..count)
+            .map(|i| Package {
+                id: format!("pkg{i}"),
+                name: format!("Package {i}"),
+                version: "1.0.0".to_string(),
+                source: "winget".to_string(),
+                available_version: String::new(),
+            })
+            .collect();
         app.filtered_packages = app.packages.clone();
         app.selected = 0;
         app
@@ -983,5 +1001,62 @@ mod tests {
             app.status_message,
             "No changelog URL available for this package"
         );
+    }
+
+    // ── mouse hit-testing ────────────────────────────────────────────────────
+
+    #[tokio::test]
+    async fn select_package_at_row_ignores_header_row() {
+        let mut app = make_app_with_pkgs(10);
+        app.layout.package_list = rect(0, 10, 40, 10);
+        app.layout.list_content_y = 13;
+        app.table_scroll_offset = 4;
+        app.selected = 6;
+
+        select_package_at_row(&mut app, 12);
+        assert_eq!(app.selected, 6);
+    }
+
+    #[tokio::test]
+    async fn mouse_left_click_on_second_last_column_selects_row_not_scrollbar() {
+        let mut app = make_app_with_pkgs(20);
+        app.layout.package_list = rect(0, 10, 40, 12);
+        app.layout.list_content_y = 13;
+        app.table_scroll_offset = 5;
+        app.selected = 0;
+        // second-last column should behave like a normal list click
+        let click_col = app.layout.package_list.x + app.layout.package_list.width - 2;
+        let click_row = app.layout.list_content_y + 2;
+
+        let _ = handle_mouse(
+            &mut app,
+            MouseEvent {
+                kind: MouseEventKind::Down(MouseButton::Left),
+                column: click_col,
+                row: click_row,
+                modifiers: KeyModifiers::NONE,
+            },
+        );
+
+        assert_eq!(app.selected, 7);
+    }
+
+    #[tokio::test]
+    async fn mouse_wheel_up_in_list_moves_selection_forward() {
+        let mut app = make_app_with_pkgs(10);
+        app.layout.package_list = rect(0, 10, 40, 12);
+        app.selected = 2;
+
+        let _ = handle_mouse(
+            &mut app,
+            MouseEvent {
+                kind: MouseEventKind::ScrollUp,
+                column: 5,
+                row: 12,
+                modifiers: KeyModifiers::NONE,
+            },
+        );
+
+        assert_eq!(app.selected, 5);
     }
 }
