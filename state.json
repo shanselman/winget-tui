@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-04-18T13:09:00Z",
-  "last_run_id": "24605357424",
+  "last_run": "2026-04-19T01:13:00Z",
+  "last_run_id": "24617912276",
   "monthly_summary_issue": 118,
   "comments_made": {
     "80": "2026-04-16",
@@ -13,7 +13,8 @@
     {"number": 120, "branch": "repo-assist/perf-sort-cached-key-2026-04-17", "title": "perf: use sort_by_cached_key for Name/Id sorts in apply_filter"},
     {"number": 121, "branch": "repo-assist/eng-cargo-update-2026-04-17", "title": "chore: cargo update — patch/minor dependency updates"},
     {"number": 122, "branch": "repo-assist/fix-pageup-viewport-2026-04-18", "title": "fix: PageUp/PageDown in package list uses actual viewport height"},
-    {"number": 123, "branch": "repo-assist/fix-truncated-id-ascii-dots-2026-04-18", "title": "fix: is_truncated() now detects ASCII '...' truncation in addition to '…'"}
+    {"number": 123, "branch": "repo-assist/fix-truncated-id-ascii-dots-2026-04-18", "title": "fix: is_truncated() now detects ASCII '...' truncation in addition to '…'"},
+    {"number": 124, "branch": "repo-assist/feat-export-csv-2026-04-19", "title": "feat: export current package list to CSV with 'e' key"}
   ],
   "issues_created": [
     {"number": 117, "title": "feat: real-time local filter for Installed and Upgrades views", "status": "open - blocked on AGENTS.md protection"}
@@ -22,9 +23,11 @@
     {"issue": "version-sort-bug", "pr": 116, "status": "open"},
     {"feature": "local-filter", "issue": 117, "pr": "blocked - AGENTS.md protected", "status": "open"},
     {"issue": "pageup-hardcoded-20", "pr": 122, "status": "open"},
-    {"issue": "is_truncated-ascii-dots", "pr": 123, "status": "open"}
+    {"issue": "is_truncated-ascii-dots", "pr": 123, "status": "open"},
+    {"feature": "csv-export", "pr": 124, "status": "open"}
   ],
   "improvements_submitted": [
+    "CSV export with 'e' key (2026-04-19)",
     "is_truncated() ASCII '...' fix + consistent em dash status messages (2026-04-18)",
     "PageUp/PageDown uses actual viewport height (2026-04-18)",
     "sort_by_cached_key for Name/Id sorts (2026-04-17)",
@@ -34,11 +37,11 @@
     "AGENTS.md + README keybindings (2026-04-16, merged)"
   ],
   "future_work": [
-    "Export installed package list to CSV/JSON",
-    "Once PR #116 merged, update perf PR Version branch to use compare_versions"
+    "Once PR #116 merged, update perf PR Version branch to use compare_versions",
+    "Investigate any new issues as they arrive"
   ],
   "backlog_cursor": {
-    "issues": "processed 80, 83, 88; issue 115 blocked by integrity filter",
-    "next_issue_to_process": "check for any new issues after 88"
+    "issues": "processed 80, 83, 88; issue 115 blocked by integrity filter; no new human-authored open issues",
+    "next_issue_to_process": "check for new issues after 88"
   }
 }
