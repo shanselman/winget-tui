@@ -394,6 +394,15 @@ fn handle_normal_mode(
             app.cycle_sort();
         }
 
+        // Export current list to CSV
+        KeyCode::Char('e') => match app.export_list_csv() {
+            Ok(path) => app.set_status(format!(
+                "Exported {} packages → {path}",
+                app.filtered_packages.len()
+            )),
+            Err(msg) => app.set_status(msg),
+        },
+
         _ => {}
     }
     Ok(false)
