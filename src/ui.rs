@@ -96,6 +96,7 @@ fn draw_header(f: &mut Frame, app: &mut App, area: Rect) {
         (AppMode::Search, "\u{25C7} Search"),       // ◇ Search
         (AppMode::Installed, "\u{25A3} Installed"), // ▣ Installed
         (AppMode::Upgrades, "\u{25B3} Upgrades"),   // △ Upgrades
+        (AppMode::Pins, "\u{25C8} Pins"),           // ◈ Pins
     ];
 
     // Calculate vertical center row (center within the logo height, not the spacing)
@@ -188,6 +189,7 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
                 "Upgrades".to_string()
             }
         }
+        AppMode::Pins => "Pins".to_string(),
     };
 
     let header_cells = if app.mode == AppMode::Upgrades {
@@ -315,6 +317,7 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
                 AppMode::Search => " No results found",
                 AppMode::Installed => " No packages found",
                 AppMode::Upgrades => " All packages are up to date!",
+                AppMode::Pins => " No pinned packages",
             }
             .to_string(),
         )
@@ -546,6 +549,19 @@ fn draw_detail_panel(f: &mut Frame, app: &mut App, area: Rect) {
                         Span::raw(format!(" Upgrade {}", app.selected_packages.len())),
                     ]));
                 }
+            }
+            AppMode::Pins => {
+                lines.push(Line::from(vec![
+                    Span::raw("  "),
+                    Span::styled(" P ", theme::action_danger()),
+                    Span::raw(" Unpin"),
+                ]));
+                lines.push(Line::raw(""));
+                lines.push(Line::from(vec![
+                    Span::raw("  "),
+                    Span::styled(" R ", theme::action_danger()),
+                    Span::raw(" Reset all pins"),
+                ]));
             }
         }
         // Open homepage hint when available
@@ -837,7 +853,7 @@ fn draw_help_overlay(f: &mut Frame) {
         ]),
         Line::from(vec![
             Span::styled("  lt/rt       ", key),
-            Span::raw("Switch view (Search / Installed / Upgrades)"),
+            Span::raw("Switch view (Search / Installed / Upgrades / Pins)"),
         ]),
         Line::from(vec![
             Span::styled("  /           ", key),
@@ -864,6 +880,18 @@ fn draw_help_overlay(f: &mut Frame) {
         Line::from(vec![
             Span::styled("  u           ", key),
             Span::raw("Upgrade selected package"),
+        ]),
+        Line::from(vec![
+            Span::styled("  p           ", key),
+            Span::raw("Pin selected package"),
+        ]),
+        Line::from(vec![
+            Span::styled("  P           ", key),
+            Span::raw("Unpin selected package"),
+        ]),
+        Line::from(vec![
+            Span::styled("  R           ", key),
+            Span::raw("Reset all pins (Pins view)"),
         ]),
         Line::from(vec![
             Span::styled("  x           ", key),

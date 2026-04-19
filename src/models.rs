@@ -164,6 +164,9 @@ pub enum Operation {
     Install { id: String, version: Option<String> },
     Uninstall { id: String },
     Upgrade { id: String },
+    PinAdd { id: String },
+    PinRemove { id: String },
+    PinReset,
     BatchUpgrade { ids: Vec<String> },
 }
 
@@ -179,6 +182,9 @@ impl fmt::Display for Operation {
             }
             Self::Uninstall { id } => write!(f, "Uninstalling {id}"),
             Self::Upgrade { id } => write!(f, "Upgrading {id}"),
+            Self::PinAdd { id } => write!(f, "Pinning {id}"),
+            Self::PinRemove { id } => write!(f, "Unpinning {id}"),
+            Self::PinReset => write!(f, "Resetting all pins"),
             Self::BatchUpgrade { ids } => write!(f, "Batch upgrading {} packages", ids.len()),
         }
     }
@@ -288,6 +294,28 @@ mod tests {
             id: "Google.Chrome".to_string(),
         };
         assert_eq!(op.to_string(), "Upgrading Google.Chrome");
+    }
+
+    #[test]
+    fn operation_display_pin_add() {
+        let op = Operation::PinAdd {
+            id: "Google.Chrome".to_string(),
+        };
+        assert_eq!(op.to_string(), "Pinning Google.Chrome");
+    }
+
+    #[test]
+    fn operation_display_pin_remove() {
+        let op = Operation::PinRemove {
+            id: "Google.Chrome".to_string(),
+        };
+        assert_eq!(op.to_string(), "Unpinning Google.Chrome");
+    }
+
+    #[test]
+    fn operation_display_pin_reset() {
+        let op = Operation::PinReset;
+        assert_eq!(op.to_string(), "Resetting all pins");
     }
 
     #[test]

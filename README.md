@@ -14,6 +14,7 @@ A terminal user interface for [Windows Package Manager (winget)](https://github.
 - **Search & Discover** — Find packages across all winget sources
 - **Installed Packages** — View everything installed on your system
 - **Upgrade Management** — See updates at a glance and batch-upgrade multiple packages
+- **Pin Management** — List, add, remove, and reset package pins
 - **Source Filtering** — Filter by source (winget, msstore, or all)
 - **Sortable Columns** — Sort by Name, ID, or Version (ascending or descending) with `S`
 - **Version-Specific Install** — Install a specific version with `I`
@@ -65,6 +66,9 @@ winget-tui
 | `i` | Install selected package |
 | `I` | Install a specific version of the selected package |
 | `u` | Upgrade selected package |
+| `p` | Pin selected package |
+| `P` | Unpin selected package |
+| `R` | Reset all pins (Pins view) |
 | `x` | Uninstall selected package |
 | `Space` | Toggle selection for batch upgrade (Upgrades view) |
 | `a` | Select / deselect all packages (Upgrades view) |
@@ -78,7 +82,7 @@ winget-tui
 
 ### Mouse Support
 
-- **Click** on tabs to switch views (Search / Installed / Upgrades)
+- **Click** on tabs to switch views (Search / Installed / Upgrades / Pins)
 - **Click** on the filter bar to cycle source filters
 - **Click** on the search bar to start typing a search
 - **Click** on a package row to select it and load details
@@ -92,6 +96,7 @@ winget-tui
 - **Installed** (default) — Lists all packages installed on your system
 - **Search** — Search the winget repository for new packages
 - **Upgrades** — Shows packages with available updates
+- **Pins** — Shows packages currently pinned from upgrades
 
 ## Configuration
 
@@ -103,7 +108,7 @@ You can customize the startup view and source filter with an optional config fil
 Example:
 
 ```toml
-default_view = "upgrades"    # installed | search | upgrades
+default_view = "upgrades"    # installed | search | upgrades | pins
 default_source = "winget"    # all | winget | msstore
 ```
 

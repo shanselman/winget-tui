@@ -14,6 +14,9 @@ pub trait WingetBackend: Send + Sync {
     /// List packages with available upgrades, optionally filtered by source
     async fn list_upgrades(&self, source: Option<&str>) -> Result<Vec<Package>>;
 
+    /// List pinned packages, optionally filtered by source
+    async fn list_pins(&self, source: Option<&str>) -> Result<Vec<Package>>;
+
     /// Show detailed info for a specific package
     async fn show(&self, id: &str) -> Result<PackageDetail>;
 
@@ -25,6 +28,15 @@ pub trait WingetBackend: Send + Sync {
 
     /// Upgrade a package by id
     async fn upgrade(&self, id: &str) -> Result<String>;
+
+    /// Add a pin for a package by id
+    async fn pin_add(&self, id: &str) -> Result<String>;
+
+    /// Remove a pin for a package by id
+    async fn pin_remove(&self, id: &str) -> Result<String>;
+
+    /// Reset all configured pins
+    async fn pin_reset(&self) -> Result<String>;
 
     /// List configured package sources
     #[allow(dead_code)]

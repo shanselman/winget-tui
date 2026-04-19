@@ -136,7 +136,7 @@ fn handle_normal_mode(
             app.show_help = !app.show_help;
         }
 
-        // Left/Right switch views (Search/Installed/Upgrades)
+        // Left/Right switch views (Search/Installed/Upgrades/Pins)
         KeyCode::Left => {
             switch_view(app, app.mode.cycle_back());
         }
@@ -302,6 +302,50 @@ fn handle_normal_mode(
                         operation: Operation::Upgrade { id },
                     });
                 }
+            }
+        }
+
+        // Pin selected package
+        KeyCode::Char('p') => {
+            if let Some(pkg) = app.selected_package() {
+                if pkg.is_truncated() {
+                    app.set_status(
+                        "Cannot pin: package ID was truncated by winget -- use winget directly",
+                    );
+                } else {
+                    let id = pkg.id.clone();
+                    app.confirm = Some(ConfirmDialog {
+                        message: format!("Pin {}?", id),
+                        operation: Operation::PinAdd { id },
+                    });
+                }
+            }
+        }
+
+        // Unpin selected package
+        KeyCode::Char('P') => {
+            if let Some(pkg) = app.selected_package() {
+                if pkg.is_truncated() {
+                    app.set_status(
+                        "Cannot unpin: package ID was truncated by winget -- use winget directly",
+                    );
+                } else {
+                    let id = pkg.id.clone();
+                    app.confirm = Some(ConfirmDialog {
+                        message: format!("Unpin {}?", id),
+                        operation: Operation::PinRemove { id },
+                    });
+                }
+            }
+        }
+
+        // Reset all pins (Pins view only)
+        KeyCode::Char('R') => {
+            if app.mode == AppMode::Pins {
+                app.confirm = Some(ConfirmDialog {
+                    message: "Reset all pins?".to_string(),
+                    operation: Operation::PinReset,
+                });
             }
         }
 
@@ -598,7 +642,7 @@ mod tests {
     use ratatui::layout::Rect;
 
     use super::*;
-    use crate::app::{App, ConfirmDialog, InputMode};
+    use crate::app::{App, AppMode, ConfirmDialog, InputMode};
     use crate::backend::WingetBackend;
     use crate::models::{Operation, Package, PackageDetail, Source};
 
@@ -626,6 +670,9 @@ mod tests {
         async fn list_upgrades(&self, _: Option<&str>) -> Result<Vec<Package>> {
             Ok(vec![])
         }
+        async fn list_pins(&self, _: Option<&str>) -> Result<Vec<Package>> {
+            Ok(vec![])
+        }
         async fn show(&self, _: &str) -> Result<PackageDetail> {
             Ok(PackageDetail::default())
         }
@@ -636,6 +683,15 @@ mod tests {
             Ok(String::new())
         }
         async fn upgrade(&self, _: &str) -> Result<String> {
+            Ok(String::new())
+        }
+        async fn pin_add(&self, _: &str) -> Result<String> {
+            Ok(String::new())
+        }
+        async fn pin_remove(&self, _: &str) -> Result<String> {
+            Ok(String::new())
+        }
+        async fn pin_reset(&self) -> Result<String> {
             Ok(String::new())
         }
         async fn list_sources(&self) -> Result<Vec<Source>> {
@@ -920,6 +976,40 @@ mod tests {
                 );
             }
             _ => panic!("expected Install operation"),
+        }
+    }
+
+    #[test]
+    fn normal_mode_p_sets_pin_add_confirm() {
+        let mut app = make_app_with_pkg("Test.App", "1.0", "");
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('p'), KeyModifiers::NONE);
+        let confirm = app.confirm.expect("confirm dialog should be set");
+        match confirm.operation {
+            Operation::PinAdd { id } => assert_eq!(id, "Test.App"),
+            _ => panic!("expected PinAdd operation"),
+        }
+    }
+
+    #[test]
+    fn normal_mode_shift_p_sets_pin_remove_confirm() {
+        let mut app = make_app_with_pkg("Test.App", "1.0", "");
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('P'), KeyModifiers::NONE);
+        let confirm = app.confirm.expect("confirm dialog should be set");
+        match confirm.operation {
+            Operation::PinRemove { id } => assert_eq!(id, "Test.App"),
+            _ => panic!("expected PinRemove operation"),
+        }
+    }
+
+    #[test]
+    fn normal_mode_shift_r_sets_pin_reset_confirm_in_pins_view() {
+        let mut app = make_app();
+        app.mode = AppMode::Pins;
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('R'), KeyModifiers::NONE);
+        let confirm = app.confirm.expect("confirm dialog should be set");
+        match confirm.operation {
+            Operation::PinReset => {}
+            _ => panic!("expected PinReset operation"),
         }
     }
 }

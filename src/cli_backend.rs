@@ -501,6 +501,16 @@ impl WingetBackend for CliBackend {
         Ok(self.parse_packages_from_table(&output))
     }
 
+    async fn list_pins(&self, source: Option<&str>) -> Result<Vec<Package>> {
+        let mut args = vec!["pin", "list"];
+        if let Some(src) = source {
+            args.push("--source");
+            args.push(src);
+        }
+        let output = self.run_winget(&args).await?;
+        Ok(self.parse_packages_from_table(&output))
+    }
+
     async fn show(&self, id: &str) -> Result<PackageDetail> {
         let output = self
             .run_winget(&["show", "--id", id, "--exact", "--accept-source-agreements"])
@@ -537,6 +547,20 @@ impl WingetBackend for CliBackend {
             "--accept-package-agreements",
         ])
         .await
+    }
+
+    async fn pin_add(&self, id: &str) -> Result<String> {
+        self.run_winget_strict(&["pin", "add", "--id", id, "--exact"])
+            .await
+    }
+
+    async fn pin_remove(&self, id: &str) -> Result<String> {
+        self.run_winget_strict(&["pin", "remove", "--id", id, "--exact"])
+            .await
+    }
+
+    async fn pin_reset(&self) -> Result<String> {
+        self.run_winget_strict(&["pin", "reset", "--force"]).await
     }
 
     async fn list_sources(&self) -> Result<Vec<Source>> {
@@ -784,6 +808,21 @@ Google Chrome                  Google.Chrome               131.0.6778  132.0.683
         let packages = backend.parse_packages_from_table(output);
         assert_eq!(packages.len(), 1, "should stop at first footer line");
         assert_eq!(packages[0].id, "Google.Chrome");
+    }
+
+    #[test]
+    fn parse_pin_list_table() {
+        let backend = CliBackend::new();
+        let output = "\
+Name                           Id                          Version   Source
+----------------------------------------------------------------------------------
+Google Chrome                  Google.Chrome               132.0.1   winget
+Microsoft Visual Studio Code   Microsoft.VisualStudioCode  1.95.3    winget
+";
+        let packages = backend.parse_packages_from_table(output);
+        assert_eq!(packages.len(), 2);
+        assert_eq!(packages[0].id, "Google.Chrome");
+        assert_eq!(packages[1].id, "Microsoft.VisualStudioCode");
     }
 
     #[test]

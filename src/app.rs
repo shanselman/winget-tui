@@ -59,6 +59,7 @@ pub enum AppMode {
     Search,
     Installed,
     Upgrades,
+    Pins,
 }
 
 impl AppMode {
@@ -66,15 +67,17 @@ impl AppMode {
         match self {
             Self::Search => Self::Installed,
             Self::Installed => Self::Upgrades,
-            Self::Upgrades => Self::Search,
+            Self::Upgrades => Self::Pins,
+            Self::Pins => Self::Search,
         }
     }
 
     pub fn cycle_back(&self) -> Self {
         match self {
-            Self::Search => Self::Upgrades,
+            Self::Search => Self::Pins,
             Self::Installed => Self::Search,
             Self::Upgrades => Self::Installed,
+            Self::Pins => Self::Upgrades,
         }
     }
 
@@ -84,6 +87,7 @@ impl AppMode {
             Self::Search => "Search",
             Self::Installed => "Installed",
             Self::Upgrades => "Upgrades",
+            Self::Pins => "Pins",
         }
     }
 }
@@ -285,6 +289,7 @@ impl App {
                 }
                 AppMode::Installed => backend.list_installed(source_arg).await,
                 AppMode::Upgrades => backend.list_upgrades(source_arg).await,
+                AppMode::Pins => backend.list_pins(source_arg).await,
             };
 
             match result {
@@ -361,6 +366,9 @@ impl App {
                 Operation::Install { id, version } => backend.install(id, version.as_deref()).await,
                 Operation::Uninstall { id } => backend.uninstall(id).await,
                 Operation::Upgrade { id } => backend.upgrade(id).await,
+                Operation::PinAdd { id } => backend.pin_add(id).await,
+                Operation::PinRemove { id } => backend.pin_remove(id).await,
+                Operation::PinReset => backend.pin_reset().await,
                 Operation::BatchUpgrade { ids } => {
                     // Execute sequentially to avoid Windows Installer conflicts
                     let total = ids.len();
@@ -465,8 +473,13 @@ impl App {
                     match &result.operation {
                         Operation::Install { id, .. }
                         | Operation::Uninstall { id }
-                        | Operation::Upgrade { id } => {
+                        | Operation::Upgrade { id }
+                        | Operation::PinAdd { id }
+                        | Operation::PinRemove { id } => {
                             self.detail_cache.remove(id);
+                        }
+                        Operation::PinReset => {
+                            self.detail_cache.clear();
                         }
                         Operation::BatchUpgrade { ids } => {
                             for id in ids {
@@ -542,6 +555,9 @@ mod tests {
             self.show_calls.lock().unwrap().push(id.to_string());
             Ok(PackageDetail::default())
         }
+        async fn list_pins(&self, _: Option<&str>) -> Result<Vec<Package>> {
+            Ok(vec![])
+        }
         async fn install(&self, _: &str, _: Option<&str>) -> Result<String> {
             Ok(String::new())
         }
@@ -549,6 +565,15 @@ mod tests {
             Ok(String::new())
         }
         async fn upgrade(&self, _: &str) -> Result<String> {
+            Ok(String::new())
+        }
+        async fn pin_add(&self, _: &str) -> Result<String> {
+            Ok(String::new())
+        }
+        async fn pin_remove(&self, _: &str) -> Result<String> {
+            Ok(String::new())
+        }
+        async fn pin_reset(&self) -> Result<String> {
             Ok(String::new())
         }
         async fn list_sources(&self) -> Result<Vec<Source>> {
@@ -693,14 +718,16 @@ mod tests {
     fn app_mode_cycle_forward() {
         assert_eq!(AppMode::Search.cycle(), AppMode::Installed);
         assert_eq!(AppMode::Installed.cycle(), AppMode::Upgrades);
-        assert_eq!(AppMode::Upgrades.cycle(), AppMode::Search);
+        assert_eq!(AppMode::Upgrades.cycle(), AppMode::Pins);
+        assert_eq!(AppMode::Pins.cycle(), AppMode::Search);
     }
 
     #[test]
     fn app_mode_cycle_back() {
-        assert_eq!(AppMode::Search.cycle_back(), AppMode::Upgrades);
+        assert_eq!(AppMode::Search.cycle_back(), AppMode::Pins);
         assert_eq!(AppMode::Installed.cycle_back(), AppMode::Search);
         assert_eq!(AppMode::Upgrades.cycle_back(), AppMode::Installed);
+        assert_eq!(AppMode::Pins.cycle_back(), AppMode::Upgrades);
     }
 
     #[test]
@@ -708,6 +735,7 @@ mod tests {
         assert_eq!(AppMode::Search.label(), "Search");
         assert_eq!(AppMode::Installed.label(), "Installed");
         assert_eq!(AppMode::Upgrades.label(), "Upgrades");
+        assert_eq!(AppMode::Pins.label(), "Pins");
     }
 
     // ── move_selection ────────────────────────────────────────────────────────

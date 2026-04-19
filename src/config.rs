@@ -6,7 +6,7 @@
 ///
 /// Supported keys (all optional):
 /// ```toml
-/// default_view   = "installed"   # "installed" | "search" | "upgrades"
+/// default_view   = "installed"   # "installed" | "search" | "upgrades" | "pins"
 /// default_source = "all"         # "all" | "winget" | "msstore"
 /// ```
 use crate::app::AppMode;
@@ -83,6 +83,7 @@ impl Config {
                     cfg.default_view = match value {
                         "search" => AppMode::Search,
                         "upgrades" => AppMode::Upgrades,
+                        "pins" => AppMode::Pins,
                         _ => AppMode::Installed,
                     };
                 }
@@ -128,6 +129,12 @@ mod tests {
     fn parse_default_view_upgrades() {
         let cfg = Config::parse(r#"default_view = "upgrades""#);
         assert_eq!(cfg.default_view, AppMode::Upgrades);
+    }
+
+    #[test]
+    fn parse_default_view_pins() {
+        let cfg = Config::parse(r#"default_view = "pins""#);
+        assert_eq!(cfg.default_view, AppMode::Pins);
     }
 
     #[test]
