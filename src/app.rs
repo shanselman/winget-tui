@@ -148,6 +148,32 @@ pub struct App {
     pub message_rx: tokio::sync::mpsc::UnboundedReceiver<AppMessage>,
 }
 
+/// Compare two package version strings numerically, component by component.
+///
+/// Version strings are split on `.`, `-`, and `+`. Each component is compared
+/// numerically when both sides parse as `u64`; otherwise lexicographically.
+/// This avoids the lexicographic pitfall where `"10.0"` sorts before `"2.0"`.
+fn compare_versions(a: &str, b: &str) -> std::cmp::Ordering {
+    fn split(v: &str) -> Vec<&str> {
+        v.split(['.', '-', '+']).collect()
+    }
+    let parts_a = split(a);
+    let parts_b = split(b);
+    let len = parts_a.len().max(parts_b.len());
+    for i in 0..len {
+        let pa = parts_a.get(i).copied().unwrap_or("");
+        let pb = parts_b.get(i).copied().unwrap_or("");
+        let ord = match (pa.parse::<u64>(), pb.parse::<u64>()) {
+            (Ok(na), Ok(nb)) => na.cmp(&nb),
+            _ => pa.cmp(pb),
+        };
+        if ord != std::cmp::Ordering::Equal {
+            return ord;
+        }
+    }
+    std::cmp::Ordering::Equal
+}
+
 impl App {
     pub fn new(backend: Arc<dyn WingetBackend>, cfg: Config) -> Self {
         let (message_tx, message_rx) = tokio::sync::mpsc::unbounded_channel();
@@ -219,7 +245,7 @@ impl App {
             }
             SortField::Version => {
                 self.filtered_packages
-                    .sort_by(|a, b| a.version.cmp(&b.version));
+                    .sort_by(|a, b| compare_versions(&a.version, &b.version));
                 if self.sort_dir == SortDir::Desc {
                     self.filtered_packages.reverse();
                 }
@@ -1047,6 +1073,44 @@ mod tests {
             .map(|p| p.version.as_str())
             .collect();
         assert_eq!(versions, ["1.0", "2.0", "3.0"]);
+    }
+
+    #[test]
+    fn apply_filter_sort_by_version_numeric_multi_digit() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.packages = vec![
+            make_package("A", "A.A", "10.0"),
+            make_package("B", "B.B", "2.0"),
+            make_package("C", "C.C", "1.9"),
+        ];
+        app.sort_field = crate::models::SortField::Version;
+        app.sort_dir = crate::models::SortDir::Asc;
+        app.apply_filter();
+        let versions: Vec<&str> = app
+            .filtered_packages
+            .iter()
+            .map(|p| p.version.as_str())
+            .collect();
+        assert_eq!(versions, ["1.9", "2.0", "10.0"]);
+    }
+
+    // ── compare_versions ─────────────────────────────────────────────────────
+
+    #[test]
+    fn compare_versions_numeric_beats_lexicographic() {
+        assert_eq!(compare_versions("2.0", "10.0"), std::cmp::Ordering::Less);
+        assert_eq!(compare_versions("1.9", "1.10"), std::cmp::Ordering::Less);
+    }
+
+    #[test]
+    fn compare_versions_equal() {
+        assert_eq!(compare_versions("1.2.3", "1.2.3"), std::cmp::Ordering::Equal);
+    }
+
+    #[test]
+    fn compare_versions_windows_quad() {
+        assert_eq!(compare_versions("10.0.19041.0", "10.0.22621.0"), std::cmp::Ordering::Less);
     }
 
     // ── process_messages ──────────────────────────────────────────────────────
