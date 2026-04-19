@@ -364,32 +364,36 @@ fn handle_normal_mode(
         }
 
         // Open homepage
-        KeyCode::Char('o') => {
-            if let Some(detail) = &app.detail {
-                if !detail.homepage.is_empty() {
-                    let url = detail.homepage.clone();
-                    if open_url(&url) {
-                        app.set_status(format!("Opening {}...", url));
-                    } else {
-                        app.set_status("Blocked: URL must start with http:// or https://");
-                    }
+        KeyCode::Char('o') => match &app.detail {
+            None => app.set_status("No package selected"),
+            Some(detail) if detail.homepage.is_empty() => {
+                app.set_status("No homepage URL available for this package")
+            }
+            Some(detail) => {
+                let url = detail.homepage.clone();
+                if open_url(&url) {
+                    app.set_status(format!("Opening {}...", url));
+                } else {
+                    app.set_status("Blocked: URL must start with http:// or https://");
                 }
             }
-        }
+        },
 
         // Open release notes / changelog in default browser
-        KeyCode::Char('c') => {
-            if let Some(detail) = &app.detail {
-                if !detail.release_notes_url.is_empty() {
-                    let url = detail.release_notes_url.clone();
-                    if open_url(&url) {
-                        app.set_status(format!("Opening changelog {}…", url));
-                    } else {
-                        app.set_status("Blocked: URL must start with http:// or https://");
-                    }
+        KeyCode::Char('c') => match &app.detail {
+            None => app.set_status("No package selected"),
+            Some(detail) if detail.release_notes_url.is_empty() => {
+                app.set_status("No changelog URL available for this package")
+            }
+            Some(detail) => {
+                let url = detail.release_notes_url.clone();
+                if open_url(&url) {
+                    app.set_status(format!("Opening changelog {}…", url));
+                } else {
+                    app.set_status("Blocked: URL must start with http:// or https://");
                 }
             }
-        }
+        },
 
         // Sort: cycle through Name↑ → Name↓ → ID↑ → ID↓ → Version↑ → Version↓ → None
         KeyCode::Char('S') => {
@@ -934,5 +938,50 @@ mod tests {
             }
             _ => panic!("expected Install operation"),
         }
+    }
+
+    // ── open homepage / changelog feedback ───────────────────────────────────
+
+    #[test]
+    fn open_homepage_no_detail_shows_status() {
+        let mut app = make_app();
+        // no detail loaded
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('o'), KeyModifiers::NONE);
+        assert_eq!(app.status_message, "No package selected");
+    }
+
+    #[test]
+    fn open_homepage_empty_url_shows_status() {
+        let mut app = make_app();
+        app.detail = Some(PackageDetail {
+            homepage: String::new(),
+            ..PackageDetail::default()
+        });
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('o'), KeyModifiers::NONE);
+        assert_eq!(
+            app.status_message,
+            "No homepage URL available for this package"
+        );
+    }
+
+    #[test]
+    fn open_changelog_no_detail_shows_status() {
+        let mut app = make_app();
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('c'), KeyModifiers::NONE);
+        assert_eq!(app.status_message, "No package selected");
+    }
+
+    #[test]
+    fn open_changelog_empty_url_shows_status() {
+        let mut app = make_app();
+        app.detail = Some(PackageDetail {
+            release_notes_url: String::new(),
+            ..PackageDetail::default()
+        });
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('c'), KeyModifiers::NONE);
+        assert_eq!(
+            app.status_message,
+            "No changelog URL available for this package"
+        );
     }
 }
