@@ -71,6 +71,24 @@ impl CliBackend {
         Self
     }
 
+    fn list_installed_args(source: Option<&str>) -> Vec<&str> {
+        let mut args = vec!["list", "--accept-source-agreements"];
+        if let Some(src) = source {
+            args.push("--source");
+            args.push(src);
+        }
+        args
+    }
+
+    fn list_upgrades_args(source: Option<&str>) -> Vec<&str> {
+        let mut args = vec!["upgrade", "--accept-source-agreements", "--include-pinned"];
+        if let Some(src) = source {
+            args.push("--source");
+            args.push(src);
+        }
+        args
+    }
+
     /// Check whether `winget` is reachable on PATH.
     ///
     /// Runs `winget --version` synchronously (before the TUI starts).
@@ -583,21 +601,13 @@ impl WingetBackend for CliBackend {
     }
 
     async fn list_installed(&self, source: Option<&str>) -> Result<Vec<Package>> {
-        let mut args = vec!["list", "--accept-source-agreements", "--include-pinned"];
-        if let Some(src) = source {
-            args.push("--source");
-            args.push(src);
-        }
+        let args = Self::list_installed_args(source);
         let output = self.run_winget(&args).await?;
         Ok(self.parse_packages_from_table(&output))
     }
 
     async fn list_upgrades(&self, source: Option<&str>) -> Result<Vec<Package>> {
-        let mut args = vec!["upgrade", "--accept-source-agreements", "--include-pinned"];
-        if let Some(src) = source {
-            args.push("--source");
-            args.push(src);
-        }
+        let args = Self::list_upgrades_args(source);
         let output = self.run_winget(&args).await?;
         Ok(self.parse_packages_from_table(&output))
     }
@@ -820,6 +830,25 @@ Google Chrome                  Google.Chrome               131.0.6  winget
         assert_eq!(packages[0].id, "Google.Chrome");
         assert_eq!(packages[0].source, "winget");
         assert!(packages[0].available_version.is_empty());
+    }
+
+    #[test]
+    fn installed_list_args_do_not_use_include_pinned() {
+        let args = CliBackend::list_installed_args(Some("winget"));
+        assert_eq!(args[0], "list");
+        assert!(
+            !args.contains(&"--include-pinned"),
+            "winget list does not accept --include-pinned in the installed flow"
+        );
+        assert!(args.ends_with(&["--source", "winget"]));
+    }
+
+    #[test]
+    fn upgrade_list_args_keep_include_pinned() {
+        let args = CliBackend::list_upgrades_args(Some("winget"));
+        assert_eq!(args[0], "upgrade");
+        assert!(args.contains(&"--include-pinned"));
+        assert!(args.ends_with(&["--source", "winget"]));
     }
 
     #[test]
