@@ -1,11 +1,10 @@
 {
-  "r": "2026-04-19",
-  "run": "24629834268",
+  "r": "2026-04-20",
+  "run": "24643872156",
   "mo": "2026-04-",
   "monthly": "#118 (April 2026)",
-  "last_pr": "fix-url-open-feedback-2026-04-19",
+  "last_pr": "feat-local-filter-2026-04-20",
   "comments_made": {
-    "80": "2026-04-16",
     "83": "2026-04-16",
     "88": "2026-04-14",
     "126": "2026-04-19"
@@ -13,12 +12,10 @@
   "open_prs": [
     "repo-assist/fix-version-sort-2026-04-16",
     "repo-assist/test-improvements-2026-04-17",
-    "repo-assist/perf-sort-cached-key-2026-04-17",
-    "repo-assist/eng-cargo-update-2026-04-17",
-    "repo-assist/fix-pageup-viewport-2026-04-18",
-    "repo-assist/fix-truncated-id-ascii-dots-2026-04-18",
     "repo-assist/feat-export-csv-2026-04-19",
-    "repo-assist/fix-url-open-feedback-2026-04-19"
+    "repo-assist/test-more-coverage-2026-04-20",
+    "repo-assist/feat-local-filter-2026-04-20"
   ],
-  "notes": "Issues #80, #83, #88 all closed by shanselman. Issue #115 blocked by integrity policy. Issue #117 blocked local-filter feat (AGENTS.md protected file). Monthly summary #118 updated. Issue #126 labelled bug + commented. PR created for url-open-feedback (open homepage/changelog status messages). 153 tests passing."
+  "copilot_open_prs": ["#125 Pins view (Copilot coding agent)"],
+  "notes": "v0.7.0 released - merged PRs #120 (perf sort), #121 (cargo update), #122 (PageUp fix), #123 (is_truncated ASCII), fix-url-open-feedback. Still open: #116 version sort, #119 test improvements, #124 CSV export, #125 Pins view (Copilot). Issue #117 real-time local filter now implemented in PR feat-local-filter-2026-04-20. 175 tests passing."
 }
