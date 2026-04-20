@@ -152,28 +152,55 @@ pub struct App {
 
 /// Compare two package version strings numerically, component by component.
 ///
-/// Version strings are split on `.`, `-`, and `+`. Each component is compared
-/// numerically when both sides parse as `u64`; otherwise lexicographically.
-/// This avoids the lexicographic pitfall where `"10.0"` sorts before `"2.0"`.
-fn compare_versions(a: &str, b: &str) -> std::cmp::Ordering {
-    fn split(v: &str) -> Vec<&str> {
-        v.split(['.', '-', '+']).collect()
-    }
-    let parts_a = split(a);
-    let parts_b = split(b);
-    let len = parts_a.len().max(parts_b.len());
-    for i in 0..len {
-        let pa = parts_a.get(i).copied().unwrap_or("");
-        let pb = parts_b.get(i).copied().unwrap_or("");
-        let ord = match (pa.parse::<u64>(), pb.parse::<u64>()) {
-            (Ok(na), Ok(nb)) => na.cmp(&nb),
-            _ => pa.cmp(pb),
-        };
-        if ord != std::cmp::Ordering::Equal {
-            return ord;
+/// A single component of a version string.
+///
+/// Stores the original string slice alongside its parsed `u64` value (if any).
+/// `Ord` mirrors the `compare_versions` comparison rule: if **both** sides
+/// parsed as a number, compare numerically; otherwise fall back to lexicographic
+/// order on the original component string — preserving exact semantics while
+/// allowing `sort_by_cached_key` to pre-compute keys once per element.
+#[derive(Eq, PartialEq)]
+struct VersionPart {
+    src: String,
+    num: Option<u64>,
+}
+
+impl Ord for VersionPart {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        match (self.num, other.num) {
+            (Some(a), Some(b)) => a.cmp(&b),
+            _ => self.src.cmp(&other.src),
         }
     }
-    std::cmp::Ordering::Equal
+}
+
+impl PartialOrd for VersionPart {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+/// Pre-compute a sortable key for a version string.
+///
+/// Splitting and parsing is done **once** per element (O(N)) rather than on
+/// every pairwise comparison (O(N log N)), avoiding repeated `Vec` allocations
+/// and `u64` parses during the sort.
+fn version_key(v: &str) -> Vec<VersionPart> {
+    v.split(['.', '-', '+'])
+        .map(|s| VersionPart {
+            num: s.parse::<u64>().ok(),
+            src: s.to_string(),
+        })
+        .collect()
+}
+
+/// Compare two version strings component-by-component.
+///
+/// Kept for use in unit tests; production sorting uses `version_key` +
+/// `sort_by_cached_key`.
+#[cfg(test)]
+fn compare_versions(a: &str, b: &str) -> std::cmp::Ordering {
+    version_key(a).cmp(&version_key(b))
 }
 
 impl App {
@@ -245,7 +272,7 @@ impl App {
         // Apply sort if a field is selected.
         // sort_by_cached_key computes the key exactly once per element (O(N))
         // rather than on every comparison (O(N log N)), avoiding repeated heap
-        // allocations from to_lowercase() for Name and Id sorts.
+        // allocations: to_lowercase() for Name/Id, and split+parse for Version.
         match self.sort_field {
             SortField::None => {}
             SortField::Name => {
@@ -263,8 +290,10 @@ impl App {
                 }
             }
             SortField::Version => {
+                // Pre-compute a VersionPart key once per element (O(N)) so the
+                // comparator doesn't re-split and re-parse on every comparison.
                 self.filtered_packages
-                    .sort_by(|a, b| compare_versions(&a.version, &b.version));
+                    .sort_by_cached_key(|p| version_key(&p.version));
                 if self.sort_dir == SortDir::Desc {
                     self.filtered_packages.reverse();
                 }
