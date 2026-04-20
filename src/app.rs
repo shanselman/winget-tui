@@ -1371,4 +1371,125 @@ mod tests {
         app.process_messages();
         assert!(app.detail.is_none(), "stale detail should not be displayed");
     }
+
+    // ── FocusZone ────────────────────────────────────────────────────────────
+
+    #[test]
+    fn focus_zone_toggle_list_to_detail() {
+        assert_eq!(FocusZone::PackageList.toggle(), FocusZone::DetailPanel);
+    }
+
+    #[test]
+    fn focus_zone_toggle_detail_to_list() {
+        assert_eq!(FocusZone::DetailPanel.toggle(), FocusZone::PackageList);
+    }
+
+    #[test]
+    fn focus_zone_toggle_is_involution() {
+        let zone = FocusZone::PackageList;
+        assert_eq!(zone.toggle().toggle(), zone);
+    }
+
+    // ── cycle_sort ────────────────────────────────────────────────────────────
+
+    #[test]
+    fn cycle_sort_progresses_through_all_states() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.cycle_sort();
+        assert_eq!(app.sort_field, crate::models::SortField::Name);
+        assert_eq!(app.sort_dir, crate::models::SortDir::Asc);
+        app.cycle_sort();
+        assert_eq!(app.sort_dir, crate::models::SortDir::Desc);
+        app.cycle_sort();
+        assert_eq!(app.sort_field, crate::models::SortField::Id);
+        assert_eq!(app.sort_dir, crate::models::SortDir::Asc);
+        app.cycle_sort();
+        assert_eq!(app.sort_dir, crate::models::SortDir::Desc);
+        app.cycle_sort();
+        assert_eq!(app.sort_field, crate::models::SortField::Version);
+        assert_eq!(app.sort_dir, crate::models::SortDir::Asc);
+        app.cycle_sort();
+        assert_eq!(app.sort_dir, crate::models::SortDir::Desc);
+        app.cycle_sort();
+        assert_eq!(app.sort_field, crate::models::SortField::None);
+    }
+
+    // ── scroll_detail ─────────────────────────────────────────────────────────
+
+    #[test]
+    fn scroll_detail_forward_clamps_at_max() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.layout.detail_panel.height = 10;
+        app.detail_content_lines = 20;
+        app.detail_scroll = 0;
+        app.scroll_detail(100);
+        assert_eq!(app.detail_scroll, 13);
+    }
+
+    #[test]
+    fn scroll_detail_backward_clamps_at_zero() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.layout.detail_panel.height = 10;
+        app.detail_content_lines = 20;
+        app.detail_scroll = 5;
+        app.scroll_detail(-100);
+        assert_eq!(app.detail_scroll, 0);
+    }
+
+    #[test]
+    fn scroll_detail_with_short_content_stays_at_zero() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.layout.detail_panel.height = 20;
+        app.detail_content_lines = 5;
+        app.detail_scroll = 0;
+        app.scroll_detail(10);
+        assert_eq!(app.detail_scroll, 0);
+    }
+
+    // ── detail_cache ──────────────────────────────────────────────────────────
+
+    #[test]
+    fn detail_loaded_is_cached() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.detail_generation = 1;
+        let detail = PackageDetail {
+            id: "Google.Chrome".to_string(),
+            name: "Google Chrome".to_string(),
+            version: "132.0".to_string(),
+            ..PackageDetail::default()
+        };
+        app.message_tx
+            .send(AppMessage::DetailLoaded {
+                generation: 1,
+                detail,
+            })
+            .unwrap();
+        app.process_messages();
+        assert!(app.detail_cache.contains_key("Google.Chrome"));
+    }
+
+    #[test]
+    fn load_detail_uses_cache_on_second_call() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy.clone() as Arc<dyn WingetBackend>);
+        let cached = PackageDetail {
+            id: "Google.Chrome".to_string(),
+            name: "Google Chrome".to_string(),
+            version: "132.0".to_string(),
+            publisher: "Google LLC".to_string(),
+            ..PackageDetail::default()
+        };
+        app.detail_cache
+            .insert("Google.Chrome".to_string(), cached);
+        let calls_before = spy.show_calls().len();
+        app.load_detail("Google.Chrome");
+        assert_eq!(spy.show_calls().len(), calls_before);
+        assert_eq!(app.detail.as_ref().unwrap().name, "Google Chrome");
+        assert!(!app.detail_loading);
+    }
 }
