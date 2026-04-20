@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use anyhow::{bail, Context, Result};
 use async_trait::async_trait;
 use unicode_width::UnicodeWidthChar;
@@ -87,6 +89,71 @@ impl CliBackend {
             args.push(src);
         }
         args
+    }
+
+    fn compare_versions_like(a: &str, b: &str) -> Ordering {
+        let a = a.trim();
+        let b = b.trim();
+        let a_unknown = a.is_empty() || a.eq_ignore_ascii_case("unknown");
+        let b_unknown = b.is_empty() || b.eq_ignore_ascii_case("unknown");
+        match (a_unknown, b_unknown) {
+            (true, false) => return Ordering::Less,
+            (false, true) => return Ordering::Greater,
+            _ => {}
+        }
+
+        let parse_parts = |s: &str| {
+            s.split(['.', '-', '_'])
+                .map(|part| {
+                    part.parse::<u64>()
+                        .map(|n| (Some(n), String::new()))
+                        .unwrap_or((None, part.to_ascii_lowercase()))
+                })
+                .collect::<Vec<_>>()
+        };
+
+        let a_parts = parse_parts(a);
+        let b_parts = parse_parts(b);
+        for (left, right) in a_parts.iter().zip(b_parts.iter()) {
+            let ord = match (left.0, right.0) {
+                (Some(l), Some(r)) => l.cmp(&r),
+                _ => left.1.cmp(&right.1),
+            };
+            if ord != Ordering::Equal {
+                return ord;
+            }
+        }
+
+        a_parts.len().cmp(&b_parts.len())
+    }
+
+    fn prefer_package(candidate: &Package, existing: &Package) -> bool {
+        let version_ord = Self::compare_versions_like(&candidate.version, &existing.version);
+        if version_ord != Ordering::Equal {
+            return version_ord == Ordering::Greater;
+        }
+
+        let candidate_score = usize::from(!candidate.available_version.is_empty())
+            + usize::from(!candidate.source.is_empty());
+        let existing_score = usize::from(!existing.available_version.is_empty())
+            + usize::from(!existing.source.is_empty());
+        candidate_score > existing_score
+    }
+
+    fn dedupe_packages(packages: Vec<Package>) -> Vec<Package> {
+        let mut deduped: Vec<Package> = Vec::new();
+        for pkg in packages {
+            if let Some(existing) = deduped.iter_mut().find(|current| {
+                current.id == pkg.id && current.source.eq_ignore_ascii_case(&pkg.source)
+            }) {
+                if Self::prefer_package(&pkg, existing) {
+                    *existing = pkg;
+                }
+            } else {
+                deduped.push(pkg);
+            }
+        }
+        deduped
     }
 
     /// Check whether `winget` is reachable on PATH.
@@ -597,19 +664,25 @@ impl WingetBackend for CliBackend {
             args.push(src);
         }
         let output = self.run_winget(&args).await?;
-        Ok(self.parse_packages_from_table(&output))
+        Ok(Self::dedupe_packages(
+            self.parse_packages_from_table(&output),
+        ))
     }
 
     async fn list_installed(&self, source: Option<&str>) -> Result<Vec<Package>> {
         let args = Self::list_installed_args(source);
         let output = self.run_winget(&args).await?;
-        Ok(self.parse_packages_from_table(&output))
+        Ok(Self::dedupe_packages(
+            self.parse_packages_from_table(&output),
+        ))
     }
 
     async fn list_upgrades(&self, source: Option<&str>) -> Result<Vec<Package>> {
         let args = Self::list_upgrades_args(source);
         let output = self.run_winget(&args).await?;
-        Ok(self.parse_packages_from_table(&output))
+        Ok(Self::dedupe_packages(
+            self.parse_packages_from_table(&output),
+        ))
     }
 
     async fn show(&self, id: &str) -> Result<PackageDetail> {
@@ -849,6 +922,32 @@ Google Chrome                  Google.Chrome               131.0.6  winget
         assert_eq!(args[0], "upgrade");
         assert!(args.contains(&"--include-pinned"));
         assert!(args.ends_with(&["--source", "winget"]));
+    }
+
+    #[test]
+    fn dedupe_packages_prefers_newer_version_for_same_id_and_source() {
+        let packages = vec![
+            Package {
+                name: "ScreenToGif".to_string(),
+                id: "NickeManarin.ScreenToGif".to_string(),
+                version: "2.41.5".to_string(),
+                source: "winget".to_string(),
+                available_version: String::new(),
+                pin_state: PinState::None,
+            },
+            Package {
+                name: "ScreenToGif".to_string(),
+                id: "NickeManarin.ScreenToGif".to_string(),
+                version: "2.43.1".to_string(),
+                source: "winget".to_string(),
+                available_version: String::new(),
+                pin_state: PinState::None,
+            },
+        ];
+
+        let deduped = CliBackend::dedupe_packages(packages);
+        assert_eq!(deduped.len(), 1);
+        assert_eq!(deduped[0].version, "2.43.1");
     }
 
     #[test]

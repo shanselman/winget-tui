@@ -352,6 +352,27 @@ impl App {
         FRAMES[self.tick % FRAMES.len()]
     }
 
+    fn ensure_detail_hint(detail: &mut PackageDetail) {
+        if !detail.description.is_empty()
+            || !detail.publisher.is_empty()
+            || !detail.homepage.is_empty()
+            || !detail.license.is_empty()
+        {
+            return;
+        }
+
+        let source = if detail.source.is_empty() {
+            "the configured winget sources"
+        } else if detail.source.eq_ignore_ascii_case("local") {
+            "local install records"
+        } else {
+            "the package manifest"
+        };
+
+        detail.description =
+            format!("Additional metadata is not available from {source} for this package.");
+    }
+
     pub fn refresh_view(&mut self) {
         self.view_generation += 1;
         let generation = self.view_generation;
@@ -592,6 +613,8 @@ impl App {
                     } else {
                         detail
                     };
+                    let mut merged = merged;
+                    Self::ensure_detail_hint(&mut merged);
                     // Cache for instant retrieval on revisit
                     if !merged.id.is_empty() {
                         self.detail_cache.insert(merged.id.clone(), merged.clone());
@@ -631,6 +654,10 @@ impl App {
                 AppMessage::Error(msg) => {
                     self.set_status(format!("Error: {msg}"));
                     self.loading = false;
+                    self.detail_loading = false;
+                    if let Some(detail) = &mut self.detail {
+                        Self::ensure_detail_hint(detail);
+                    }
                 }
                 AppMessage::StatusUpdate(msg) => {
                     self.set_status(msg);
@@ -1213,6 +1240,7 @@ mod tests {
     fn process_messages_error_sets_status() {
         let spy = SpyBackend::new();
         let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.detail_loading = true;
         app.message_tx
             .send(AppMessage::Error("something broke".to_string()))
             .unwrap();
@@ -1220,6 +1248,10 @@ mod tests {
         assert!(
             app.status_message.contains("something broke"),
             "status should contain the error text"
+        );
+        assert!(
+            !app.detail_loading,
+            "detail loading should stop after an error"
         );
     }
 
@@ -1291,6 +1323,34 @@ mod tests {
         let loaded = app.detail.as_ref().expect("detail should be set");
         assert_eq!(loaded.id, "Google.Chrome");
         assert!(!app.detail_loading);
+    }
+
+    #[test]
+    fn sparse_detail_gets_fallback_description() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.detail_generation = 1;
+        app.detail = Some(PackageDetail {
+            id: "ARP\\Machine\\X64\\Steam App 3065800".to_string(),
+            name: "Marathon".to_string(),
+            version: "Unknown".to_string(),
+            source: "local".to_string(),
+            ..PackageDetail::default()
+        });
+        app.message_tx
+            .send(AppMessage::DetailLoaded {
+                generation: 1,
+                detail: PackageDetail::default(),
+            })
+            .unwrap();
+        app.process_messages();
+        let loaded = app.detail.as_ref().expect("detail should be set");
+        assert!(
+            loaded
+                .description
+                .contains("Additional metadata is not available"),
+            "sparse details should explain why rich metadata is missing"
+        );
     }
 
     #[test]
