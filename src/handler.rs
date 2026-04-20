@@ -33,6 +33,7 @@ pub fn handle_events(app: &mut App) -> anyhow::Result<bool> {
 
             match app.input_mode {
                 InputMode::Search => handle_search_input(app, key.code),
+                InputMode::LocalFilter => handle_local_filter_input(app, key.code),
                 InputMode::Normal => handle_normal_mode(app, key.code, key.modifiers),
                 InputMode::VersionInput => unreachable!("handled above"),
             }
@@ -217,12 +218,13 @@ fn handle_normal_mode(
             load_detail_for_selected(app);
         }
 
-        // Search — switch to search view and enter input mode
+        // Search (in Search view) or local filter (in Installed/Upgrades views)
         KeyCode::Char('/') | KeyCode::Char('s') => {
-            if app.mode != AppMode::Search {
-                switch_view(app, AppMode::Search);
+            if app.mode == AppMode::Search {
+                app.input_mode = InputMode::Search;
+            } else {
+                app.input_mode = InputMode::LocalFilter;
             }
-            app.input_mode = InputMode::Search;
         }
 
         // Filter
@@ -424,6 +426,9 @@ fn switch_view(app: &mut App, new_mode: AppMode) {
     app.detail_generation += 1;
     app.focus = FocusZone::PackageList;
     app.loading = true;
+    // Clear any in-memory filter so it doesn't carry over to the new view
+    app.local_filter.clear();
+    app.input_mode = InputMode::Normal;
     app.set_status("Loading...");
     app.refresh_view();
 }
@@ -437,6 +442,30 @@ fn list_page_size(app: &App) -> usize {
     } else {
         h
     }
+}
+
+fn handle_local_filter_input(app: &mut App, key: KeyCode) -> anyhow::Result<bool> {
+    match key {
+        KeyCode::Esc => {
+            app.local_filter.clear();
+            app.input_mode = InputMode::Normal;
+            app.apply_filter();
+        }
+        KeyCode::Enter => {
+            // Keep filter active but exit input mode so navigation keys work
+            app.input_mode = InputMode::Normal;
+        }
+        KeyCode::Backspace => {
+            app.local_filter.pop();
+            app.apply_filter();
+        }
+        KeyCode::Char(c) => {
+            app.local_filter.push(c);
+            app.apply_filter();
+        }
+        _ => {}
+    }
+    Ok(false)
 }
 
 fn load_detail_for_selected(app: &mut App) {
@@ -485,9 +514,13 @@ fn handle_mouse(app: &mut App, mouse: crossterm::event::MouseEvent) -> anyhow::R
                 return Ok(false);
             }
 
-            // Click on search bar (only visible on search page)
+            // Click on search/filter bar — activate the appropriate input mode
             if app.layout.search_bar.width > 0 && in_rect(col, row, app.layout.search_bar) {
-                app.input_mode = InputMode::Search;
+                if app.mode == AppMode::Search {
+                    app.input_mode = InputMode::Search;
+                } else {
+                    app.input_mode = InputMode::LocalFilter;
+                }
                 return Ok(false);
             }
 
@@ -1064,5 +1097,114 @@ mod tests {
         // Selection should NOT move — only the viewport offset changes
         assert_eq!(app.selected, 2);
         assert_eq!(app.table_state.offset(), 2); // scrolled up by 3
+    }
+
+    // ── local filter key (/) in Installed view ────────────────────────────────
+
+    #[test]
+    fn slash_key_in_installed_view_enters_local_filter_mode() {
+        let mut app = make_app();
+        app.mode = AppMode::Installed;
+
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('/'), KeyModifiers::NONE);
+
+        assert_eq!(
+            app.input_mode,
+            InputMode::LocalFilter,
+            "'/' in Installed view should enter LocalFilter mode (not switch to Search)"
+        );
+        assert_eq!(app.mode, AppMode::Installed, "view should remain Installed");
+    }
+
+    #[test]
+    fn slash_key_in_search_view_enters_search_mode() {
+        let mut app = make_app();
+        app.mode = AppMode::Search;
+
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('/'), KeyModifiers::NONE);
+
+        assert_eq!(
+            app.input_mode,
+            InputMode::Search,
+            "'/' in Search view should enter Search mode"
+        );
+    }
+
+    #[test]
+    fn local_filter_char_input_updates_filter_and_narrows_list() {
+        let mut app = make_app_with_pkgs(3);
+        app.mode = AppMode::Installed;
+        // Override packages with recognisable names
+        app.packages = vec![
+            crate::models::Package {
+                id: "Google.Chrome".into(),
+                name: "Google Chrome".into(),
+                version: "120.0".into(),
+                source: "winget".into(),
+                available_version: String::new(),
+            },
+            crate::models::Package {
+                id: "Mozilla.Firefox".into(),
+                name: "Mozilla Firefox".into(),
+                version: "115.0".into(),
+                source: "winget".into(),
+                available_version: String::new(),
+            },
+        ];
+        app.filtered_packages = app.packages.clone();
+        app.input_mode = InputMode::LocalFilter;
+
+        let _ = handle_local_filter_input(&mut app, KeyCode::Char('c'));
+        let _ = handle_local_filter_input(&mut app, KeyCode::Char('h'));
+
+        assert_eq!(
+            app.local_filter, "ch",
+            "chars should be appended to local_filter"
+        );
+        assert_eq!(
+            app.filtered_packages.len(),
+            1,
+            "list should be narrowed to packages matching 'ch'"
+        );
+        assert_eq!(app.filtered_packages[0].id, "Google.Chrome");
+    }
+
+    #[test]
+    fn local_filter_esc_clears_filter_and_restores_list() {
+        let mut app = make_app_with_pkgs(3);
+        app.mode = AppMode::Installed;
+        app.local_filter = "pkg0".to_string();
+        app.apply_filter();
+        app.input_mode = InputMode::LocalFilter;
+
+        let _ = handle_local_filter_input(&mut app, KeyCode::Esc);
+
+        assert!(app.local_filter.is_empty(), "Esc should clear local_filter");
+        assert_eq!(app.input_mode, InputMode::Normal);
+        assert_eq!(
+            app.filtered_packages.len(),
+            3,
+            "full list should be restored"
+        );
+    }
+
+    #[test]
+    fn local_filter_enter_keeps_filter_but_exits_input_mode() {
+        let mut app = make_app_with_pkgs(3);
+        app.mode = AppMode::Installed;
+        app.local_filter = "pkg".to_string();
+        app.input_mode = InputMode::LocalFilter;
+
+        let _ = handle_local_filter_input(&mut app, KeyCode::Enter);
+
+        assert_eq!(
+            app.local_filter, "pkg",
+            "Enter should not clear local_filter"
+        );
+        assert_eq!(
+            app.input_mode,
+            InputMode::Normal,
+            "Enter should return to Normal mode"
+        );
     }
 }

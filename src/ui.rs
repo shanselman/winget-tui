@@ -17,7 +17,10 @@ use crate::theme;
 
 pub fn draw(f: &mut Frame, app: &mut App) {
     let header_height = theme::LOGO_HEIGHT; // logo + tabs, no extra spacing
-    let show_search_bar = app.mode == AppMode::Search || app.input_mode == InputMode::Search;
+    let show_search_bar = app.mode == AppMode::Search
+        || app.input_mode == InputMode::Search
+        || app.input_mode == InputMode::LocalFilter
+        || (!app.local_filter.is_empty() && app.mode != AppMode::Search);
 
     if show_search_bar {
         let chunks = Layout::default()
@@ -136,24 +139,43 @@ fn draw_search_bar(f: &mut Frame, app: &mut App, area: Rect) {
     // Store region for mouse clicks
     app.layout.search_bar = area;
 
-    let search_style = if app.input_mode == InputMode::Search {
+    let is_local_filter = app.mode != AppMode::Search;
+
+    let active = if is_local_filter {
+        app.input_mode == InputMode::LocalFilter
+    } else {
+        app.input_mode == InputMode::Search
+    };
+
+    let bar_style = if active {
         Style::default().fg(theme::TEXT_PRIMARY).bg(theme::SURFACE)
     } else {
         Style::default().fg(theme::TEXT_SECONDARY)
     };
 
-    let search_text = if app.search_query.is_empty() && app.input_mode != InputMode::Search {
+    let bar_text = if is_local_filter {
+        if app.local_filter.is_empty() && !active {
+            " / to filter...".to_string()
+        } else {
+            format!(" {}", app.local_filter)
+        }
+    } else if app.search_query.is_empty() && !active {
         " / to search...".to_string()
     } else {
         format!(" {}", app.search_query)
     };
 
-    let search = Paragraph::new(search_text).style(search_style);
-    f.render_widget(search, area);
+    let bar = Paragraph::new(bar_text).style(bar_style);
+    f.render_widget(bar, area);
 
-    // Show cursor in search mode
-    if app.input_mode == InputMode::Search {
-        let cursor_x = area.x + 1 + UnicodeWidthStr::width(app.search_query.as_str()) as u16;
+    // Show cursor when actively typing
+    if active {
+        let text = if is_local_filter {
+            &app.local_filter
+        } else {
+            &app.search_query
+        };
+        let cursor_x = area.x + 1 + UnicodeWidthStr::width(text.as_str()) as u16;
         f.set_cursor_position((cursor_x, area.y));
     }
 }
@@ -330,9 +352,7 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
         return;
     }
 
-    let table = Table::new(rows, &widths)
-        .header(header)
-        .block(block);
+    let table = Table::new(rows, &widths).header(header).block(block);
 
     f.render_stateful_widget(table, area, &mut app.table_state);
 
@@ -675,6 +695,13 @@ fn draw_status_bar(f: &mut Frame, app: &App, area: Rect) {
             sep.clone(),
             Span::styled(" Bksp ", key_style),
             Span::styled(" Delete ", label_style),
+        ]),
+        InputMode::LocalFilter => Line::from(vec![
+            Span::styled(" Esc ", key_style),
+            Span::styled(" Clear filter ", label_style),
+            sep.clone(),
+            Span::styled(" Enter ", key_style),
+            Span::styled(" Done ", label_style),
         ]),
         InputMode::Normal => Line::from(vec![
             Span::styled(" / ", key_style),

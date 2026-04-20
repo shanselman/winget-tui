@@ -95,6 +95,9 @@ pub enum InputMode {
     Search,
     /// Inline prompt for typing a specific version before installing
     VersionInput,
+    /// Inline filter bar that narrows the already-loaded list without a network call.
+    /// Used in Installed and Upgrades views (Search view uses `Search` mode instead).
+    LocalFilter,
 }
 
 /// Confirmation dialog state
@@ -110,6 +113,8 @@ pub struct App {
     pub focus: FocusZone,
     pub source_filter: SourceFilter,
     pub search_query: String,
+    /// Active substring filter in Installed/Upgrades views (filters in-memory, no network call).
+    pub local_filter: String,
     pub packages: Vec<Package>,
     pub filtered_packages: Vec<Package>,
     pub selected: usize,
@@ -183,6 +188,7 @@ impl App {
             focus: FocusZone::PackageList,
             source_filter: cfg.default_source,
             search_query: String::new(),
+            local_filter: String::new(),
             packages: Vec::new(),
             filtered_packages: Vec::new(),
             selected: 0,
@@ -222,6 +228,15 @@ impl App {
                     pkg.source = src.to_string();
                 }
             }
+        }
+        // In Installed/Upgrades views, apply the in-memory local filter (case-insensitive
+        // substring match on name or ID).  Search view skips this because winget already
+        // filters server-side based on search_query.
+        if !self.local_filter.is_empty() && self.mode != AppMode::Search {
+            let query = self.local_filter.to_lowercase();
+            self.filtered_packages.retain(|p| {
+                p.name.to_lowercase().contains(&query) || p.id.to_lowercase().contains(&query)
+            });
         }
         // Apply sort if a field is selected.
         // sort_by_cached_key computes the key exactly once per element (O(N))
@@ -765,7 +780,10 @@ mod tests {
             spy.show_calls().is_empty(),
             "winget show must not be called for truncated id"
         );
-        assert!(!app.detail_loading, "should not be loading for truncated id");
+        assert!(
+            !app.detail_loading,
+            "should not be loading for truncated id"
+        );
     }
 
     #[test]
@@ -779,7 +797,10 @@ mod tests {
             spy.show_calls().is_empty(),
             "winget show must not be called for ASCII-dot truncated id"
         );
-        assert!(!app.detail_loading, "should not be loading for ASCII-dot truncated id");
+        assert!(
+            !app.detail_loading,
+            "should not be loading for ASCII-dot truncated id"
+        );
     }
 
     #[tokio::test]
@@ -1095,7 +1116,85 @@ mod tests {
         assert_eq!(versions, ["1.9", "2.0", "10.0"]);
     }
 
-    // ── compare_versions ─────────────────────────────────────────────────────
+    // ── local_filter ─────────────────────────────────────────────────────────
+
+    #[test]
+    fn local_filter_narrows_installed_list_by_name_substring() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.mode = AppMode::Installed;
+        app.packages = vec![
+            make_package("Visual Studio Code", "Microsoft.VisualStudioCode", "1.0"),
+            make_package("Google Chrome", "Google.Chrome", "120.0"),
+            make_package("VLC Media Player", "VideoLAN.VLC", "3.0"),
+        ];
+        app.local_filter = "vis".to_string();
+        app.apply_filter();
+        // "Visual Studio Code" matches by name; other two do not
+        assert_eq!(app.filtered_packages.len(), 1);
+        assert_eq!(app.filtered_packages[0].id, "Microsoft.VisualStudioCode");
+    }
+
+    #[test]
+    fn local_filter_is_case_insensitive() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.mode = AppMode::Installed;
+        app.packages = vec![
+            make_package("Google Chrome", "Google.Chrome", "120.0"),
+            make_package("Mozilla Firefox", "Mozilla.Firefox", "115.0"),
+        ];
+        app.local_filter = "CHROME".to_string();
+        app.apply_filter();
+        assert_eq!(app.filtered_packages.len(), 1);
+        assert_eq!(app.filtered_packages[0].id, "Google.Chrome");
+    }
+
+    #[test]
+    fn local_filter_matches_on_id_as_well_as_name() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.mode = AppMode::Installed;
+        app.packages = vec![
+            make_package("Microsoft Teams", "Microsoft.Teams", "1.0"),
+            make_package("Signal", "OpenWhisperSystems.Signal", "7.0"),
+        ];
+        // "whisper" is in the ID, not the display name
+        app.local_filter = "whisper".to_string();
+        app.apply_filter();
+        assert_eq!(app.filtered_packages.len(), 1);
+        assert_eq!(app.filtered_packages[0].id, "OpenWhisperSystems.Signal");
+    }
+
+    #[test]
+    fn local_filter_empty_string_shows_all_packages() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.mode = AppMode::Installed;
+        app.packages = make_packages(5);
+        app.local_filter = String::new();
+        app.apply_filter();
+        assert_eq!(app.filtered_packages.len(), 5);
+    }
+
+    #[test]
+    fn local_filter_not_applied_in_search_mode() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.mode = AppMode::Search;
+        app.packages = vec![
+            make_package("Google Chrome", "Google.Chrome", "120.0"),
+            make_package("Mozilla Firefox", "Mozilla.Firefox", "115.0"),
+        ];
+        // Even with a local_filter set, Search mode ignores it (winget filters server-side)
+        app.local_filter = "chrome".to_string();
+        app.apply_filter();
+        assert_eq!(
+            app.filtered_packages.len(),
+            2,
+            "local_filter must not apply in Search mode"
+        );
+    }
 
     #[test]
     fn compare_versions_numeric_beats_lexicographic() {
@@ -1105,12 +1204,18 @@ mod tests {
 
     #[test]
     fn compare_versions_equal() {
-        assert_eq!(compare_versions("1.2.3", "1.2.3"), std::cmp::Ordering::Equal);
+        assert_eq!(
+            compare_versions("1.2.3", "1.2.3"),
+            std::cmp::Ordering::Equal
+        );
     }
 
     #[test]
     fn compare_versions_windows_quad() {
-        assert_eq!(compare_versions("10.0.19041.0", "10.0.22621.0"), std::cmp::Ordering::Less);
+        assert_eq!(
+            compare_versions("10.0.19041.0", "10.0.22621.0"),
+            std::cmp::Ordering::Less
+        );
     }
 
     // ── process_messages ──────────────────────────────────────────────────────
