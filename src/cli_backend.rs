@@ -1083,7 +1083,10 @@ Release Notes:
 Release Notes Url: https://github.com/gitui-org/gitui/releases/tag/v0.28.1
 ";
         let detail = backend.parse_show_output(output);
-        assert_eq!(detail.name, "gitui", "name must not be overwritten by release notes");
+        assert_eq!(
+            detail.name, "gitui",
+            "name must not be overwritten by release notes"
+        );
         assert_eq!(detail.id, "StephanDilly.gitui");
         assert_eq!(detail.publisher, "Stephan Dilly");
         assert_eq!(

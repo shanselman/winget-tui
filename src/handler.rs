@@ -1065,4 +1065,120 @@ mod tests {
         assert_eq!(app.selected, 2);
         assert_eq!(app.table_state.offset(), 2); // scrolled up by 3
     }
+
+    #[tokio::test]
+    async fn mouse_wheel_down_scrolls_viewport_not_selection() {
+        let mut app = make_app_with_pkgs(10);
+        app.layout.package_list = rect(0, 10, 40, 12);
+        app.selected = 2;
+        *app.table_state.offset_mut() = 0;
+
+        let _ = handle_mouse(
+            &mut app,
+            MouseEvent {
+                kind: MouseEventKind::ScrollDown,
+                column: 5,
+                row: 12,
+                modifiers: KeyModifiers::NONE,
+            },
+        );
+
+        // Selection should NOT move — only the viewport offset changes
+        assert_eq!(app.selected, 2);
+        assert_eq!(app.table_state.offset(), 3); // scrolled down by 3
+    }
+
+    // ── multi-select (Space / a) ──────────────────────────────────────────────
+
+    #[tokio::test]
+    async fn space_key_toggles_package_selection_in_upgrades_view() {
+        let mut app = make_app_with_pkgs(3);
+        app.mode = AppMode::Upgrades;
+        app.selected = 1;
+
+        let _ = handle_normal_mode(&mut app, KeyCode::Char(' '), KeyModifiers::NONE);
+
+        assert!(
+            app.selected_packages.contains(&1),
+            "Space should add the current row to selected_packages"
+        );
+    }
+
+    #[tokio::test]
+    async fn space_key_deselects_already_selected_package() {
+        let mut app = make_app_with_pkgs(3);
+        app.mode = AppMode::Upgrades;
+        app.selected = 0;
+        app.selected_packages.insert(0);
+
+        let _ = handle_normal_mode(&mut app, KeyCode::Char(' '), KeyModifiers::NONE);
+
+        assert!(
+            !app.selected_packages.contains(&0),
+            "Space should remove already-selected row from selected_packages"
+        );
+    }
+
+    #[test]
+    fn select_all_key_selects_all_packages_in_upgrades_view() {
+        let mut app = make_app_with_pkgs(4);
+        app.mode = AppMode::Upgrades;
+
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('a'), KeyModifiers::NONE);
+
+        assert_eq!(
+            app.selected_packages.len(),
+            app.filtered_packages.len(),
+            "'a' should select all packages"
+        );
+    }
+
+    #[test]
+    fn select_all_key_deselects_all_when_all_already_selected() {
+        let mut app = make_app_with_pkgs(4);
+        app.mode = AppMode::Upgrades;
+        app.selected_packages = (0..4).collect();
+
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('a'), KeyModifiers::NONE);
+
+        assert!(
+            app.selected_packages.is_empty(),
+            "'a' should deselect all when all are already selected"
+        );
+    }
+
+    // ── refresh key ──────────────────────────────────────────────────────────
+
+    #[tokio::test]
+    async fn refresh_key_sets_loading_and_status() {
+        let mut app = make_app();
+        let prev_gen = app.view_generation;
+
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('r'), KeyModifiers::NONE);
+
+        assert!(app.loading, "'r' should set loading to true");
+        assert_eq!(app.status_message, "Refreshing...");
+        assert!(
+            app.view_generation > prev_gen,
+            "'r' should increment view_generation"
+        );
+    }
+
+    // ── source filter key ─────────────────────────────────────────────────────
+
+    #[tokio::test]
+    async fn source_filter_key_cycles_filter_and_triggers_refresh() {
+        use crate::models::SourceFilter;
+        let mut app = make_app();
+        assert_eq!(app.source_filter, SourceFilter::All);
+
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('f'), KeyModifiers::NONE);
+
+        assert_eq!(
+            app.source_filter,
+            SourceFilter::Winget,
+            "'f' should cycle source filter to Winget"
+        );
+        assert!(app.loading, "'f' should trigger a reload");
+    }
 }

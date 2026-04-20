@@ -330,9 +330,7 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
         return;
     }
 
-    let table = Table::new(rows, &widths)
-        .header(header)
-        .block(block);
+    let table = Table::new(rows, &widths).header(header).block(block);
 
     f.render_stateful_widget(table, area, &mut app.table_state);
 

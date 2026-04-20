@@ -765,7 +765,10 @@ mod tests {
             spy.show_calls().is_empty(),
             "winget show must not be called for truncated id"
         );
-        assert!(!app.detail_loading, "should not be loading for truncated id");
+        assert!(
+            !app.detail_loading,
+            "should not be loading for truncated id"
+        );
     }
 
     #[test]
@@ -779,7 +782,10 @@ mod tests {
             spy.show_calls().is_empty(),
             "winget show must not be called for ASCII-dot truncated id"
         );
-        assert!(!app.detail_loading, "should not be loading for ASCII-dot truncated id");
+        assert!(
+            !app.detail_loading,
+            "should not be loading for ASCII-dot truncated id"
+        );
     }
 
     #[tokio::test]
@@ -1105,12 +1111,18 @@ mod tests {
 
     #[test]
     fn compare_versions_equal() {
-        assert_eq!(compare_versions("1.2.3", "1.2.3"), std::cmp::Ordering::Equal);
+        assert_eq!(
+            compare_versions("1.2.3", "1.2.3"),
+            std::cmp::Ordering::Equal
+        );
     }
 
     #[test]
     fn compare_versions_windows_quad() {
-        assert_eq!(compare_versions("10.0.19041.0", "10.0.22621.0"), std::cmp::Ordering::Less);
+        assert_eq!(
+            compare_versions("10.0.19041.0", "10.0.22621.0"),
+            std::cmp::Ordering::Less
+        );
     }
 
     // ── process_messages ──────────────────────────────────────────────────────
@@ -1216,5 +1228,194 @@ mod tests {
             .unwrap();
         app.process_messages();
         assert!(app.detail.is_none(), "stale detail should not be displayed");
+    }
+
+    // ── OperationComplete ────────────────────────────────────────────────────
+
+    #[tokio::test]
+    async fn process_messages_operation_complete_success_sets_status_and_clears_loading() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.loading = true;
+        app.message_tx
+            .send(AppMessage::OperationComplete(crate::models::OpResult {
+                operation: Operation::Upgrade {
+                    id: "Foo.Bar".into(),
+                },
+                success: true,
+                message: "ok".into(),
+            }))
+            .unwrap();
+        app.process_messages();
+        assert!(
+            app.status_message.contains("done"),
+            "status should contain 'done' on success"
+        );
+        assert!(
+            !app.loading,
+            "loading should be cleared after OperationComplete"
+        );
+    }
+
+    #[tokio::test]
+    async fn process_messages_operation_complete_failure_sets_failed_status() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.message_tx
+            .send(AppMessage::OperationComplete(crate::models::OpResult {
+                operation: Operation::Uninstall {
+                    id: "Foo.Bar".into(),
+                },
+                success: false,
+                message: "exit code 1".into(),
+            }))
+            .unwrap();
+        app.process_messages();
+        assert!(
+            app.status_message.contains("failed"),
+            "status should contain 'failed' on failure"
+        );
+    }
+
+    #[tokio::test]
+    async fn process_messages_operation_complete_invalidates_detail_cache() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        // Pre-populate cache for Foo.Bar
+        app.detail_cache.insert(
+            "Foo.Bar".into(),
+            PackageDetail {
+                id: "Foo.Bar".into(),
+                ..PackageDetail::default()
+            },
+        );
+        assert!(app.detail_cache.contains_key("Foo.Bar"));
+        app.message_tx
+            .send(AppMessage::OperationComplete(crate::models::OpResult {
+                operation: Operation::Upgrade {
+                    id: "Foo.Bar".into(),
+                },
+                success: true,
+                message: "ok".into(),
+            }))
+            .unwrap();
+        app.process_messages();
+        assert!(
+            !app.detail_cache.contains_key("Foo.Bar"),
+            "detail cache should be invalidated after upgrade"
+        );
+    }
+
+    #[tokio::test]
+    async fn process_messages_operation_complete_batch_upgrade_clears_selected_packages() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        // Pre-select some packages
+        app.selected_packages = [0usize, 1, 2].iter().cloned().collect();
+        app.message_tx
+            .send(AppMessage::OperationComplete(crate::models::OpResult {
+                operation: Operation::BatchUpgrade {
+                    ids: vec!["Foo.Bar".into(), "Baz.Qux".into()],
+                },
+                success: true,
+                message: "ok".into(),
+            }))
+            .unwrap();
+        app.process_messages();
+        assert!(
+            app.selected_packages.is_empty(),
+            "selected_packages should be cleared after BatchUpgrade"
+        );
+    }
+
+    // ── apply_filter source backfill ─────────────────────────────────────────
+
+    #[test]
+    fn apply_filter_backfills_source_when_source_filter_active() {
+        use crate::models::SourceFilter;
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        // winget omits Source column when a single source is queried
+        app.packages = vec![Package {
+            id: "Foo.Bar".into(),
+            name: "Foo Bar".into(),
+            version: "1.0".into(),
+            source: String::new(), // empty — as returned by winget --source winget
+            available_version: String::new(),
+        }];
+        app.source_filter = SourceFilter::Winget;
+        app.apply_filter();
+        assert_eq!(
+            app.filtered_packages[0].source, "winget",
+            "source should be backfilled from the active source filter"
+        );
+    }
+
+    // ── ensure_selection_visible ─────────────────────────────────────────────
+
+    #[test]
+    fn ensure_selection_visible_scrolls_down_when_selection_below_viewport() {
+        use ratatui::layout::Rect;
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        // height=12, border=1, padding=1, header=1 → viewport_rows = 12 - 3 = 9
+        app.layout.package_list = Rect {
+            x: 0,
+            y: 0,
+            width: 40,
+            height: 12,
+        };
+        *app.table_state.offset_mut() = 0;
+        app.selected = 10; // beyond viewport (rows 0..8)
+        app.ensure_selection_visible();
+        // offset should become 10 - 9 + 1 = 2
+        assert_eq!(
+            app.table_state.offset(),
+            2,
+            "offset should be adjusted so selected row is the last visible row"
+        );
+    }
+
+    #[test]
+    fn ensure_selection_visible_scrolls_up_when_selection_above_offset() {
+        use ratatui::layout::Rect;
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.layout.package_list = Rect {
+            x: 0,
+            y: 0,
+            width: 40,
+            height: 12,
+        };
+        *app.table_state.offset_mut() = 5;
+        app.selected = 2; // above current offset
+        app.ensure_selection_visible();
+        assert_eq!(
+            app.table_state.offset(),
+            2,
+            "offset should be set to selected when selection is above viewport"
+        );
+    }
+
+    #[test]
+    fn ensure_selection_visible_noop_when_viewport_rows_zero() {
+        use ratatui::layout::Rect;
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        // height <= 3 → viewport_rows = 0, early return
+        app.layout.package_list = Rect {
+            x: 0,
+            y: 0,
+            width: 40,
+            height: 2,
+        };
+        *app.table_state.offset_mut() = 5;
+        app.selected = 0;
+        app.ensure_selection_visible();
+        assert_eq!(
+            app.table_state.offset(),
+            5,
+            "offset should not change when viewport_rows == 0"
+        );
     }
 }
