@@ -14,6 +14,7 @@ A terminal user interface for [Windows Package Manager (winget)](https://github.
 - **Search & Discover** — Find packages across all winget sources
 - **Installed Packages** — View everything installed on your system
 - **Upgrade Management** — See updates at a glance and batch-upgrade multiple packages
+- **Pin Awareness** — Pin or unpin installed packages and filter pinned items without leaving the TUI
 - **Source Filtering** — Filter by source (winget, msstore, or all)
 - **Sortable Columns** — Sort by Name, ID, or Version (ascending or descending) with `S`
 - **Version-Specific Install** — Install a specific version with `I`
@@ -66,6 +67,8 @@ winget-tui
 | `I` | Install a specific version of the selected package |
 | `u` | Upgrade selected package |
 | `x` | Uninstall selected package |
+| `p` | Pin / unpin the selected installed package |
+| `P` | Cycle pin filter (All → Pinned only → Hide pinned) |
 | `Space` | Toggle selection for batch upgrade (Upgrades view) |
 | `a` | Select / deselect all packages (Upgrades view) |
 | `U` | Upgrade all selected packages (Upgrades view) |

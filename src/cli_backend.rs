@@ -5,7 +5,7 @@ use unicode_width::UnicodeWidthChar;
 use tokio::process::Command;
 
 use crate::backend::WingetBackend;
-use crate::models::{Package, PackageDetail, Source};
+use crate::models::{Package, PackageDetail, PackagePin, PinState, Source};
 
 pub struct CliBackend;
 
@@ -57,6 +57,13 @@ struct SourceCols {
     name: Option<usize>,
     arg: Option<usize>,
     source_type: Option<usize>,
+}
+
+#[derive(Copy, Clone)]
+struct PinCols {
+    id: Option<usize>,
+    pinned_version: Option<usize>,
+    pin_type: Option<usize>,
 }
 
 impl CliBackend {
@@ -351,6 +358,7 @@ impl CliBackend {
             version: sanitize_text(&pcols.version.map(&field).unwrap_or_default()),
             source: sanitize_text(&pcols.source.map(&field).unwrap_or_default()),
             available_version: sanitize_text(&pcols.available.map(&field).unwrap_or_default()),
+            pin_state: PinState::None,
         })
     }
 
@@ -442,6 +450,93 @@ impl CliBackend {
         map
     }
 
+    fn pin_column_map(cols: &[(&str, usize)]) -> PinCols {
+        let mut map = PinCols {
+            id: Self::find_column_ci(cols, &["id", "id."]),
+            pinned_version: Self::find_column_ci(
+                cols,
+                &[
+                    "pinned",
+                    "pinned version",
+                    "pinnedversion",
+                    "version",
+                    "versión",
+                    "versão",
+                ],
+            ),
+            pin_type: Self::find_column_ci(cols, &["type", "typ", "tipo"]),
+        };
+        if map.id.is_none() && cols.len() >= 4 {
+            map.id = Some(1);
+            if cols.len() >= 5 {
+                map.pinned_version = map.pinned_version.or(Some(3));
+                map.pin_type = map.pin_type.or(Some(4));
+            } else {
+                map.pinned_version = map.pinned_version.or(Some(2));
+                map.pin_type = map.pin_type.or(Some(3));
+            }
+        }
+        map
+    }
+
+    fn parse_pin_state(pin_type: &str, pinned_version: &str) -> PinState {
+        let kind = pin_type.trim().to_ascii_lowercase();
+        let version = pinned_version.trim();
+
+        if kind.contains("block") {
+            PinState::Blocking
+        } else if !version.is_empty() && !version.eq_ignore_ascii_case("latest") {
+            PinState::Gating(version.to_string())
+        } else if kind.contains("gate") {
+            if version.is_empty() {
+                PinState::Pinned
+            } else {
+                PinState::Gating(version.to_string())
+            }
+        } else if kind.contains("pin") || !kind.is_empty() {
+            PinState::Pinned
+        } else {
+            PinState::None
+        }
+    }
+
+    fn parse_pins_from_table(&self, output: &str) -> Vec<PackagePin> {
+        if output.to_ascii_lowercase().contains("no pins configured") {
+            return Vec::new();
+        }
+
+        let lines: Vec<&str> = output.lines().collect();
+        let sep_idx = match Self::find_table_separator(&lines) {
+            Some(i) => i,
+            None => return Vec::new(),
+        };
+
+        let header = lines[sep_idx - 1];
+        let col_positions = Self::detect_columns(header);
+        let col_map = Self::pin_column_map(&col_positions);
+
+        lines[sep_idx + 1..]
+            .iter()
+            .filter(|l| !l.trim().is_empty())
+            .filter_map(|line| {
+                let field = |idx| Self::extract_field(line, &col_positions, idx);
+
+                let id = col_map.id.map(&field).unwrap_or_default();
+                if id.is_empty() {
+                    return None;
+                }
+
+                let pinned_version = col_map.pinned_version.map(&field).unwrap_or_default();
+                let pin_type = col_map.pin_type.map(&field).unwrap_or_default();
+
+                Some(PackagePin {
+                    id: sanitize_text(&id),
+                    pin_state: Self::parse_pin_state(&pin_type, &pinned_version),
+                })
+            })
+            .collect()
+    }
+
     #[allow(dead_code)]
     fn parse_sources_from_table(&self, output: &str) -> Vec<Source> {
         let lines: Vec<&str> = output.lines().collect();
@@ -488,7 +583,7 @@ impl WingetBackend for CliBackend {
     }
 
     async fn list_installed(&self, source: Option<&str>) -> Result<Vec<Package>> {
-        let mut args = vec!["list", "--accept-source-agreements"];
+        let mut args = vec!["list", "--accept-source-agreements", "--include-pinned"];
         if let Some(src) = source {
             args.push("--source");
             args.push(src);
@@ -498,7 +593,7 @@ impl WingetBackend for CliBackend {
     }
 
     async fn list_upgrades(&self, source: Option<&str>) -> Result<Vec<Package>> {
-        let mut args = vec!["upgrade", "--accept-source-agreements"];
+        let mut args = vec!["upgrade", "--accept-source-agreements", "--include-pinned"];
         if let Some(src) = source {
             args.push("--source");
             args.push(src);
@@ -543,6 +638,21 @@ impl WingetBackend for CliBackend {
             "--accept-package-agreements",
         ])
         .await
+    }
+
+    async fn list_pins(&self) -> Result<Vec<PackagePin>> {
+        let output = self.run_winget(&["pin", "list"]).await?;
+        Ok(self.parse_pins_from_table(&output))
+    }
+
+    async fn pin(&self, id: &str) -> Result<String> {
+        self.run_winget_strict(&["pin", "add", "--id", id, "--exact", "--installed"])
+            .await
+    }
+
+    async fn unpin(&self, id: &str) -> Result<String> {
+        self.run_winget_strict(&["pin", "remove", "--id", id, "--exact", "--installed"])
+            .await
     }
 
     async fn list_sources(&self) -> Result<Vec<Source>> {
@@ -710,6 +820,34 @@ Google Chrome                  Google.Chrome               131.0.6  winget
         assert_eq!(packages[0].id, "Google.Chrome");
         assert_eq!(packages[0].source, "winget");
         assert!(packages[0].available_version.is_empty());
+    }
+
+    #[test]
+    fn parse_pin_list_table() {
+        let backend = CliBackend::new();
+        let output = "\
+Name            Id                      Source   Pinned Version   Type
+------------------------------------------------------------------------
+PowerToys       Microsoft.PowerToys     winget   Latest           Pinning
+Git             Git.Git                 winget   2.45.*           Gating
+Contoso App     Contoso.App             winget                    Blocking
+";
+        let pins = backend.parse_pins_from_table(output);
+        assert_eq!(pins.len(), 3);
+        assert_eq!(pins[0].id, "Microsoft.PowerToys");
+        assert!(matches!(pins[0].pin_state, PinState::Pinned));
+        assert!(matches!(
+            pins[1].pin_state,
+            PinState::Gating(ref v) if v == "2.45.*"
+        ));
+        assert!(matches!(pins[2].pin_state, PinState::Blocking));
+    }
+
+    #[test]
+    fn parse_pin_list_no_pins_message() {
+        let backend = CliBackend::new();
+        let pins = backend.parse_pins_from_table("There are no pins configured.");
+        assert!(pins.is_empty());
     }
 
     #[test]
@@ -1083,7 +1221,10 @@ Release Notes:
 Release Notes Url: https://github.com/gitui-org/gitui/releases/tag/v0.28.1
 ";
         let detail = backend.parse_show_output(output);
-        assert_eq!(detail.name, "gitui", "name must not be overwritten by release notes");
+        assert_eq!(
+            detail.name, "gitui",
+            "name must not be overwritten by release notes"
+        );
         assert_eq!(detail.id, "StephanDilly.gitui");
         assert_eq!(detail.publisher, "Stephan Dilly");
         assert_eq!(

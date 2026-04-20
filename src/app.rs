@@ -7,7 +7,8 @@ use ratatui::widgets::TableState;
 use crate::backend::WingetBackend;
 use crate::config::Config;
 use crate::models::{
-    OpResult, Operation, Package, PackageDetail, SortDir, SortField, SourceFilter,
+    OpResult, Operation, Package, PackageDetail, PackagePin, PinFilter, SortDir, SortField,
+    SourceFilter,
 };
 
 /// Stores UI layout regions for mouse hit-testing
@@ -109,6 +110,7 @@ pub struct App {
     pub input_mode: InputMode,
     pub focus: FocusZone,
     pub source_filter: SourceFilter,
+    pub pin_filter: PinFilter,
     pub search_query: String,
     pub packages: Vec<Package>,
     pub filtered_packages: Vec<Package>,
@@ -175,6 +177,18 @@ fn compare_versions(a: &str, b: &str) -> std::cmp::Ordering {
 }
 
 impl App {
+    fn annotate_pins(packages: &mut [Package], pins: Vec<PackagePin>) {
+        let pin_map: HashMap<String, _> = pins
+            .into_iter()
+            .map(|pin| (pin.id, pin.pin_state))
+            .collect();
+        for pkg in packages {
+            if let Some(pin_state) = pin_map.get(&pkg.id) {
+                pkg.pin_state = pin_state.clone();
+            }
+        }
+    }
+
     pub fn new(backend: Arc<dyn WingetBackend>, cfg: Config) -> Self {
         let (message_tx, message_rx) = tokio::sync::mpsc::unbounded_channel();
         Self {
@@ -182,6 +196,7 @@ impl App {
             input_mode: InputMode::Normal,
             focus: FocusZone::PackageList,
             source_filter: cfg.default_source,
+            pin_filter: PinFilter::All,
             search_query: String::new(),
             packages: Vec::new(),
             filtered_packages: Vec::new(),
@@ -222,6 +237,10 @@ impl App {
                     pkg.source = src.to_string();
                 }
             }
+        }
+        if self.mode != AppMode::Search {
+            self.filtered_packages
+                .retain(|pkg| self.pin_filter.matches(&pkg.pin_state));
         }
         // Apply sort if a field is selected.
         // sort_by_cached_key computes the key exactly once per element (O(N))
@@ -320,6 +339,14 @@ impl App {
         self.set_status(label);
     }
 
+    pub fn cycle_pin_filter(&mut self) {
+        self.pin_filter = self.pin_filter.cycle();
+        self.selected = 0;
+        self.apply_filter();
+        self.ensure_selection_visible();
+        self.set_status(format!("{}", self.pin_filter));
+    }
+
     pub fn spinner(&self) -> char {
         const FRAMES: &[char] = &['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
         FRAMES[self.tick % FRAMES.len()]
@@ -348,7 +375,18 @@ impl App {
             };
 
             match result {
-                Ok(packages) => {
+                Ok(mut packages) => {
+                    if mode != AppMode::Search {
+                        match backend.list_pins().await {
+                            Ok(pins) => Self::annotate_pins(&mut packages, pins),
+                            Err(e) => {
+                                let _ = tx.send(AppMessage::StatusUpdate(format!(
+                                    "Pin info unavailable: {}",
+                                    e
+                                )));
+                            }
+                        }
+                    }
                     let _ = tx.send(AppMessage::PackagesLoaded {
                         generation,
                         packages,
@@ -403,6 +441,7 @@ impl App {
                     } else {
                         pkg.source.clone()
                     },
+                    pin_state: pkg.pin_state.clone(),
                     description: format!(
                         "{}\n\n\
                          This package has no manifest in any configured winget source. \
@@ -427,6 +466,7 @@ impl App {
                 name: pkg.name.clone(),
                 version: pkg.version.clone(),
                 source: pkg.source.clone(),
+                pin_state: pkg.pin_state.clone(),
                 ..PackageDetail::default()
             });
         }
@@ -458,6 +498,8 @@ impl App {
                 Operation::Install { id, version } => backend.install(id, version.as_deref()).await,
                 Operation::Uninstall { id } => backend.uninstall(id).await,
                 Operation::Upgrade { id } => backend.upgrade(id).await,
+                Operation::Pin { id } => backend.pin(id).await,
+                Operation::Unpin { id } => backend.unpin(id).await,
                 Operation::BatchUpgrade { ids } => {
                     // Execute sequentially to avoid Windows Installer conflicts
                     let total = ids.len();
@@ -562,7 +604,9 @@ impl App {
                     match &result.operation {
                         Operation::Install { id, .. }
                         | Operation::Uninstall { id }
-                        | Operation::Upgrade { id } => {
+                        | Operation::Upgrade { id }
+                        | Operation::Pin { id }
+                        | Operation::Unpin { id } => {
                             self.detail_cache.remove(id);
                         }
                         Operation::BatchUpgrade { ids } => {
@@ -605,7 +649,7 @@ mod tests {
 
     use super::*;
     use crate::backend::WingetBackend;
-    use crate::models::{Package, PackageDetail, Source};
+    use crate::models::{Package, PackageDetail, PackagePin, PinState, Source};
 
     /// Minimal backend that records `show` calls
     struct SpyBackend {
@@ -648,6 +692,15 @@ mod tests {
         async fn upgrade(&self, _: &str) -> Result<String> {
             Ok(String::new())
         }
+        async fn list_pins(&self) -> Result<Vec<PackagePin>> {
+            Ok(vec![])
+        }
+        async fn pin(&self, _: &str) -> Result<String> {
+            Ok(String::new())
+        }
+        async fn unpin(&self, _: &str) -> Result<String> {
+            Ok(String::new())
+        }
         async fn list_sources(&self) -> Result<Vec<Source>> {
             Ok(vec![])
         }
@@ -664,6 +717,7 @@ mod tests {
             version: "1.0".to_string(),
             source: "winget".to_string(),
             available_version: String::new(),
+            pin_state: PinState::None,
         }
     }
 
@@ -765,7 +819,10 @@ mod tests {
             spy.show_calls().is_empty(),
             "winget show must not be called for truncated id"
         );
-        assert!(!app.detail_loading, "should not be loading for truncated id");
+        assert!(
+            !app.detail_loading,
+            "should not be loading for truncated id"
+        );
     }
 
     #[test]
@@ -779,7 +836,10 @@ mod tests {
             spy.show_calls().is_empty(),
             "winget show must not be called for ASCII-dot truncated id"
         );
-        assert!(!app.detail_loading, "should not be loading for ASCII-dot truncated id");
+        assert!(
+            !app.detail_loading,
+            "should not be loading for ASCII-dot truncated id"
+        );
     }
 
     #[tokio::test]
@@ -827,6 +887,7 @@ mod tests {
                 version: "1.0".to_string(),
                 source: "winget".to_string(),
                 available_version: String::new(),
+                pin_state: PinState::None,
             })
             .collect()
     }
@@ -939,6 +1000,7 @@ mod tests {
             version: version.to_string(),
             source: "winget".to_string(),
             available_version: String::new(),
+            pin_state: PinState::None,
         }
     }
 
@@ -1095,6 +1157,32 @@ mod tests {
         assert_eq!(versions, ["1.9", "2.0", "10.0"]);
     }
 
+    #[test]
+    fn apply_filter_pinned_only_keeps_pinned_packages() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        let mut pinned = make_package("Pinned", "Pinned.App", "1.0");
+        pinned.pin_state = PinState::Pinned;
+        let unpinned = make_package("Regular", "Regular.App", "1.0");
+        app.mode = AppMode::Installed;
+        app.pin_filter = PinFilter::PinnedOnly;
+        app.packages = vec![pinned, unpinned];
+        app.apply_filter();
+        assert_eq!(app.filtered_packages.len(), 1);
+        assert_eq!(app.filtered_packages[0].id, "Pinned.App");
+    }
+
+    #[test]
+    fn cycle_pin_filter_updates_state() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        assert_eq!(app.pin_filter, PinFilter::All);
+        app.cycle_pin_filter();
+        assert_eq!(app.pin_filter, PinFilter::PinnedOnly);
+        app.cycle_pin_filter();
+        assert_eq!(app.pin_filter, PinFilter::UnpinnedOnly);
+    }
+
     // ── compare_versions ─────────────────────────────────────────────────────
 
     #[test]
@@ -1105,12 +1193,18 @@ mod tests {
 
     #[test]
     fn compare_versions_equal() {
-        assert_eq!(compare_versions("1.2.3", "1.2.3"), std::cmp::Ordering::Equal);
+        assert_eq!(
+            compare_versions("1.2.3", "1.2.3"),
+            std::cmp::Ordering::Equal
+        );
     }
 
     #[test]
     fn compare_versions_windows_quad() {
-        assert_eq!(compare_versions("10.0.19041.0", "10.0.22621.0"), std::cmp::Ordering::Less);
+        assert_eq!(
+            compare_versions("10.0.19041.0", "10.0.22621.0"),
+            std::cmp::Ordering::Less
+        );
     }
 
     // ── process_messages ──────────────────────────────────────────────────────

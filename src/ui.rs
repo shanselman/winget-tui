@@ -189,6 +189,15 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
             }
         }
     };
+    let title = if app.mode != AppMode::Search {
+        match app.pin_filter {
+            crate::models::PinFilter::All => title,
+            crate::models::PinFilter::PinnedOnly => format!("{title} -- only 📌"),
+            crate::models::PinFilter::UnpinnedOnly => format!("{title} -- hide 📌"),
+        }
+    } else {
+        title
+    };
 
     let header_cells = if app.mode == AppMode::Upgrades {
         let dir = app.sort_dir;
@@ -252,7 +261,12 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
 
             let cells: Vec<Cell> = if app.mode == AppMode::Upgrades {
                 vec![
-                    Cell::from(format!("{}{}", prefix, truncate(&pkg.name, 18))),
+                    Cell::from(format!(
+                        "{}{}{}",
+                        prefix,
+                        pkg.pin_state.short_marker(),
+                        truncate(&pkg.name, 18)
+                    )),
                     Cell::from(truncate(&pkg.id, 25)),
                     Cell::from(pkg.version.clone()),
                     Cell::from(Span::styled(
@@ -263,7 +277,12 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
                 ]
             } else {
                 vec![
-                    Cell::from(format!("{}{}", prefix, truncate(&pkg.name, 18))),
+                    Cell::from(format!(
+                        "{}{}{}",
+                        prefix,
+                        pkg.pin_state.short_marker(),
+                        truncate(&pkg.name, 18)
+                    )),
                     Cell::from(truncate(&pkg.id, 28)),
                     Cell::from(pkg.version.clone()),
                     Cell::from(pkg.source.clone()),
@@ -313,6 +332,21 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
             match app.mode {
                 AppMode::Search if app.search_query.is_empty() => " Type / to search for packages",
                 AppMode::Search => " No results found",
+                AppMode::Installed
+                    if matches!(app.pin_filter, crate::models::PinFilter::PinnedOnly) =>
+                {
+                    " No pinned packages found"
+                }
+                AppMode::Installed
+                    if matches!(app.pin_filter, crate::models::PinFilter::UnpinnedOnly) =>
+                {
+                    " All visible packages are pinned"
+                }
+                AppMode::Upgrades
+                    if matches!(app.pin_filter, crate::models::PinFilter::PinnedOnly) =>
+                {
+                    " No pinned packages with upgrades found"
+                }
                 AppMode::Installed => " No packages found",
                 AppMode::Upgrades => " All packages are up to date!",
             }
@@ -330,9 +364,7 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
         return;
     }
 
-    let table = Table::new(rows, &widths)
-        .header(header)
-        .block(block);
+    let table = Table::new(rows, &widths).header(header).block(block);
 
     f.render_stateful_widget(table, area, &mut app.table_state);
 
@@ -425,6 +457,14 @@ fn draw_detail_panel(f: &mut Frame, app: &mut App, area: Rect) {
             ]),
         ]);
 
+        if detail.pin_state.is_pinned() {
+            lines.push(Line::from(vec![
+                Span::styled("  Pin       ", label_style),
+                Span::styled("📌 ", Style::default().fg(theme::ACCENT)),
+                Span::raw(detail.pin_state.label()),
+            ]));
+        }
+
         if !detail.license.is_empty() {
             lines.push(Line::from(vec![
                 Span::styled("  License   ", label_style),
@@ -508,6 +548,16 @@ fn draw_detail_panel(f: &mut Frame, app: &mut App, area: Rect) {
                     Span::styled(" x ", theme::action_danger()),
                     Span::raw(" Uninstall"),
                 ]));
+                lines.push(Line::raw(""));
+                lines.push(Line::from(vec![
+                    Span::raw("  "),
+                    Span::styled(" p ", theme::action_key()),
+                    Span::raw(if detail.pin_state.is_pinned() {
+                        " Remove pin"
+                    } else {
+                        " Pin current version"
+                    }),
+                ]));
             }
             AppMode::Upgrades => {
                 lines.push(Line::from(vec![
@@ -532,6 +582,16 @@ fn draw_detail_panel(f: &mut Frame, app: &mut App, area: Rect) {
                     Span::raw("  "),
                     Span::styled(" a ", theme::action_key()),
                     Span::raw(" All"),
+                ]));
+                lines.push(Line::raw(""));
+                lines.push(Line::from(vec![
+                    Span::raw("  "),
+                    Span::styled(" p ", theme::action_key()),
+                    Span::raw(if detail.pin_state.is_pinned() {
+                        " Remove pin"
+                    } else {
+                        " Pin current version"
+                    }),
                 ]));
                 if !app.selected_packages.is_empty() {
                     lines.push(Line::raw(""));
@@ -609,13 +669,25 @@ fn draw_detail_panel(f: &mut Frame, app: &mut App, area: Rect) {
 fn draw_status_bar(f: &mut Frame, app: &App, area: Rect) {
     let filter_text = format!(" {} ", app.source_filter);
     let filter_len = UnicodeWidthStr::width(filter_text.as_str()) as u16 + 2; // + padding
+    let show_pin_badge = app.mode != AppMode::Search;
+    let pin_text = match app.pin_filter {
+        crate::models::PinFilter::All => " 📌 all ".to_string(),
+        crate::models::PinFilter::PinnedOnly => " 📌 only ".to_string(),
+        crate::models::PinFilter::UnpinnedOnly => " 📌 hide ".to_string(),
+    };
+    let pin_len = if show_pin_badge {
+        UnicodeWidthStr::width(pin_text.as_str()) as u16 + 1
+    } else {
+        0
+    };
 
     let chunks = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([
             Constraint::Length(filter_len), // filter badge
+            Constraint::Length(pin_len),    // pin badge
             Constraint::Min(1),             // status message
-            Constraint::Length(70),         // global hotkeys
+            Constraint::Length(88),         // global hotkeys
         ])
         .split(area);
 
@@ -634,6 +706,22 @@ fn draw_status_bar(f: &mut Frame, app: &App, area: Rect) {
     let filter_badge = Paragraph::new(filter_text).style(filter_style);
     f.render_widget(filter_badge, chunks[0]);
 
+    if show_pin_badge {
+        let pin_style = match app.pin_filter {
+            crate::models::PinFilter::All => {
+                Style::default().fg(theme::TEXT_PRIMARY).bg(theme::SURFACE)
+            }
+            crate::models::PinFilter::PinnedOnly => {
+                Style::default().fg(theme::TEXT_ON_ACCENT).bg(theme::ACCENT)
+            }
+            crate::models::PinFilter::UnpinnedOnly => {
+                Style::default().fg(theme::TEXT_ON_ACCENT).bg(theme::INFO)
+            }
+        };
+        let pin_badge = Paragraph::new(pin_text).style(pin_style);
+        f.render_widget(pin_badge, chunks[1]);
+    }
+
     // Status message with spinner when loading
     let status_text = if app.loading {
         format!(" {} {}", app.spinner(), app.status_message)
@@ -649,7 +737,7 @@ fn draw_status_bar(f: &mut Frame, app: &App, area: Rect) {
             theme::status_normal()
         };
     let status = Paragraph::new(status_text).style(status_style);
-    f.render_widget(status, chunks[1]);
+    f.render_widget(status, chunks[2]);
 
     // Global hotkey badges
     let key_style = theme::action_key();
@@ -681,7 +769,13 @@ fn draw_status_bar(f: &mut Frame, app: &App, area: Rect) {
             Span::styled(" Search ", label_style),
             sep.clone(),
             Span::styled(" f ", key_style),
-            Span::styled(" Filter ", label_style),
+            Span::styled(" Source ", label_style),
+            sep.clone(),
+            Span::styled(" p ", key_style),
+            Span::styled(" Pin ", label_style),
+            sep.clone(),
+            Span::styled(" P ", key_style),
+            Span::styled(" Pins ", label_style),
             sep.clone(),
             Span::styled(" r ", key_style),
             Span::styled(" Refresh ", label_style),
@@ -697,7 +791,7 @@ fn draw_status_bar(f: &mut Frame, app: &App, area: Rect) {
     let hints = Paragraph::new(hotkeys)
         .style(Style::default().bg(theme::SURFACE))
         .alignment(Alignment::Right);
-    f.render_widget(hints, chunks[2]);
+    f.render_widget(hints, chunks[3]);
 }
 
 fn draw_confirm_dialog(f: &mut Frame, confirm: &ConfirmDialog) {
@@ -861,6 +955,10 @@ fn draw_help_overlay(f: &mut Frame) {
             Span::raw("Upgrade selected package"),
         ]),
         Line::from(vec![
+            Span::styled("  p           ", key),
+            Span::raw("Pin / unpin current installed version"),
+        ]),
+        Line::from(vec![
             Span::styled("  x           ", key),
             Span::raw("Uninstall selected package"),
         ]),
@@ -875,6 +973,10 @@ fn draw_help_overlay(f: &mut Frame) {
         Line::from(vec![
             Span::styled("  U           ", key),
             Span::raw("Batch upgrade selected packages"),
+        ]),
+        Line::from(vec![
+            Span::styled("  P           ", key),
+            Span::raw("Cycle pinned filter"),
         ]),
         Line::from(vec![
             Span::styled("  Enter       ", key),

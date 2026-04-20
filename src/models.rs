@@ -45,6 +45,74 @@ impl SortDir {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub enum PinState {
+    #[default]
+    None,
+    Pinned,
+    Blocking,
+    Gating(String),
+}
+
+impl PinState {
+    pub fn is_pinned(&self) -> bool {
+        !matches!(self, Self::None)
+    }
+
+    pub fn short_marker(&self) -> &'static str {
+        if self.is_pinned() {
+            "📌 "
+        } else {
+            ""
+        }
+    }
+
+    pub fn label(&self) -> String {
+        match self {
+            Self::None => "Not pinned".to_string(),
+            Self::Pinned => "Pinned for upgrade-all".to_string(),
+            Self::Blocking => "Blocked from upgrades".to_string(),
+            Self::Gating(version) => format!("Pinned to {version}"),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum PinFilter {
+    #[default]
+    All,
+    PinnedOnly,
+    UnpinnedOnly,
+}
+
+impl PinFilter {
+    pub fn cycle(&self) -> Self {
+        match self {
+            Self::All => Self::PinnedOnly,
+            Self::PinnedOnly => Self::UnpinnedOnly,
+            Self::UnpinnedOnly => Self::All,
+        }
+    }
+
+    pub fn matches(&self, pin_state: &PinState) -> bool {
+        match self {
+            Self::All => true,
+            Self::PinnedOnly => pin_state.is_pinned(),
+            Self::UnpinnedOnly => !pin_state.is_pinned(),
+        }
+    }
+}
+
+impl fmt::Display for PinFilter {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::All => write!(f, "Pins: all"),
+            Self::PinnedOnly => write!(f, "Pins: only 📌"),
+            Self::UnpinnedOnly => write!(f, "Pins: hide 📌"),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SourceFilter {
     All,
@@ -95,6 +163,8 @@ pub struct Package {
     /// Only present in upgrade listings
     #[serde(alias = "AvailableVersion", default)]
     pub available_version: String,
+    #[serde(skip, default)]
+    pub pin_state: PinState,
 }
 
 impl Package {
@@ -120,6 +190,7 @@ pub struct PackageDetail {
     pub license: String,
     pub source: String,
     pub release_notes_url: String,
+    pub pin_state: PinState,
 }
 
 impl PackageDetail {
@@ -148,8 +219,19 @@ impl PackageDetail {
             homepage: pick(self.homepage, &base.homepage),
             license: pick(self.license, &base.license),
             release_notes_url: pick(self.release_notes_url, &base.release_notes_url),
+            pin_state: if self.pin_state.is_pinned() {
+                self.pin_state
+            } else {
+                base.pin_state.clone()
+            },
         }
     }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct PackagePin {
+    pub id: String,
+    pub pin_state: PinState,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -168,6 +250,8 @@ pub enum Operation {
     Install { id: String, version: Option<String> },
     Uninstall { id: String },
     Upgrade { id: String },
+    Pin { id: String },
+    Unpin { id: String },
     BatchUpgrade { ids: Vec<String> },
 }
 
@@ -183,6 +267,8 @@ impl fmt::Display for Operation {
             }
             Self::Uninstall { id } => write!(f, "Uninstalling {id}"),
             Self::Upgrade { id } => write!(f, "Upgrading {id}"),
+            Self::Pin { id } => write!(f, "Pinning {id}"),
+            Self::Unpin { id } => write!(f, "Unpinning {id}"),
             Self::BatchUpgrade { ids } => write!(f, "Batch upgrading {} packages", ids.len()),
         }
     }
@@ -207,6 +293,7 @@ mod tests {
             version: "1.0".to_string(),
             source: "winget".to_string(),
             available_version: String::new(),
+            pin_state: PinState::None,
         }
     }
 
@@ -239,6 +326,24 @@ mod tests {
         assert_eq!(SourceFilter::All.to_string(), "All");
         assert_eq!(SourceFilter::Winget.to_string(), "winget");
         assert_eq!(SourceFilter::MsStore.to_string(), "msstore");
+    }
+
+    #[test]
+    fn pin_filter_cycle() {
+        assert_eq!(PinFilter::All.cycle(), PinFilter::PinnedOnly);
+        assert_eq!(PinFilter::PinnedOnly.cycle(), PinFilter::UnpinnedOnly);
+        assert_eq!(PinFilter::UnpinnedOnly.cycle(), PinFilter::All);
+    }
+
+    #[test]
+    fn pin_state_helpers() {
+        assert!(!PinState::None.is_pinned());
+        assert!(PinState::Pinned.is_pinned());
+        assert_eq!(PinState::Blocking.label(), "Blocked from upgrades");
+        assert_eq!(
+            PinState::Gating("1.2.*".to_string()).label(),
+            "Pinned to 1.2.*"
+        );
     }
 
     // ── Package::is_truncated ─────────────────────────────────────────────────
@@ -337,6 +442,7 @@ mod tests {
             license: "Proprietary".to_string(),
             source: "winget".to_string(),
             release_notes_url: String::new(),
+            pin_state: PinState::None,
         };
         let base = PackageDetail {
             id: "OLD.ID".to_string(),

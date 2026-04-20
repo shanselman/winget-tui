@@ -234,6 +234,19 @@ fn handle_normal_mode(
             app.refresh_view();
         }
 
+        // Pin filter
+        KeyCode::Char('P') => {
+            if app.mode == AppMode::Search {
+                app.set_status("Pinned filter is available in Installed and Upgrades");
+            } else {
+                app.cycle_pin_filter();
+                if let Some(pkg) = app.selected_package() {
+                    let id = pkg.id.clone();
+                    app.load_detail(&id);
+                }
+            }
+        }
+
         // Refresh
         KeyCode::Char('r') => {
             app.loading = true;
@@ -254,6 +267,30 @@ fn handle_normal_mode(
                         message: format!("Install {}?", id),
                         operation: Operation::Install { id, version: None },
                     });
+                }
+            }
+        }
+
+        // Pin / unpin the selected installed package
+        KeyCode::Char('p') => {
+            if app.mode == AppMode::Search {
+                app.set_status("Pinning applies to installed packages, not search results");
+            } else if let Some(pkg) = app.selected_package() {
+                if pkg.is_truncated() {
+                    app.set_status(
+                        "Cannot pin: package ID was truncated by winget — use winget directly",
+                    );
+                } else {
+                    let id = pkg.id.clone();
+                    let (message, operation) = if pkg.pin_state.is_pinned() {
+                        (format!("Remove pin for {}?", id), Operation::Unpin { id })
+                    } else {
+                        (
+                            format!("Pin {} to its current installed version?", id),
+                            Operation::Pin { id },
+                        )
+                    };
+                    app.confirm = Some(ConfirmDialog { message, operation });
                 }
             }
         }
@@ -622,7 +659,7 @@ mod tests {
     use super::*;
     use crate::app::{App, ConfirmDialog, InputMode};
     use crate::backend::WingetBackend;
-    use crate::models::{Operation, Package, PackageDetail, Source};
+    use crate::models::{Operation, Package, PackageDetail, PackagePin, PinState, Source};
 
     // ── helpers ──────────────────────────────────────────────────────────────
 
@@ -660,6 +697,15 @@ mod tests {
         async fn upgrade(&self, _: &str) -> Result<String> {
             Ok(String::new())
         }
+        async fn list_pins(&self) -> Result<Vec<PackagePin>> {
+            Ok(vec![])
+        }
+        async fn pin(&self, _: &str) -> Result<String> {
+            Ok(String::new())
+        }
+        async fn unpin(&self, _: &str) -> Result<String> {
+            Ok(String::new())
+        }
         async fn list_sources(&self) -> Result<Vec<Source>> {
             Ok(vec![])
         }
@@ -677,6 +723,7 @@ mod tests {
             version: version.to_string(),
             source: "winget".to_string(),
             available_version: available.to_string(),
+            pin_state: PinState::None,
         }];
         app.filtered_packages = app.packages.clone();
         app.selected = 0;
@@ -692,6 +739,7 @@ mod tests {
                 version: "1.0.0".to_string(),
                 source: "winget".to_string(),
                 available_version: String::new(),
+                pin_state: PinState::None,
             })
             .collect();
         app.filtered_packages = app.packages.clone();
