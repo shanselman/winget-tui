@@ -352,6 +352,7 @@ fn handle_normal_mode(
         // Batch Upgrade (Shift+U)
         KeyCode::Char('U') => {
             if app.mode == AppMode::Upgrades && !app.selected_packages.is_empty() {
+                let selected_count = app.selected_packages.len();
                 let ids: Vec<String> = app
                     .selected_packages
                     .iter()
@@ -368,11 +369,22 @@ fn handle_normal_mode(
                     );
                 } else {
                     let count = ids.len();
+                    let skipped = selected_count - count;
+                    let skip_note = if skipped > 0 {
+                        format!(
+                            " ({} skipped — truncated ID{})",
+                            skipped,
+                            if skipped == 1 { "" } else { "s" }
+                        )
+                    } else {
+                        String::new()
+                    };
                     app.confirm = Some(ConfirmDialog {
                         message: format!(
-                            "Upgrade {} selected package{}?",
+                            "Upgrade {} package{}{}?",
                             count,
-                            if count == 1 { "" } else { "s" }
+                            if count == 1 { "" } else { "s" },
+                            skip_note
                         ),
                         operation: Operation::BatchUpgrade { ids },
                     });
@@ -1112,5 +1124,87 @@ mod tests {
         // Selection should NOT move — only the viewport offset changes
         assert_eq!(app.selected, 2);
         assert_eq!(app.table_state.offset(), 2); // scrolled up by 3
+    }
+
+    // ── batch upgrade truncated-ID warning ───────────────────────────────────
+
+    fn make_package_with_id(id: &str) -> Package {
+        Package {
+            id: id.to_string(),
+            name: format!("Package {id}"),
+            version: "1.0".to_string(),
+            source: "winget".to_string(),
+            available_version: "2.0".to_string(),
+            pin_state: PinState::None,
+        }
+    }
+
+    fn make_upgrades_app(packages: Vec<Package>) -> App {
+        let mut app = make_app();
+        app.mode = crate::app::AppMode::Upgrades;
+        app.filtered_packages = packages.clone();
+        app.packages = packages;
+        app
+    }
+
+    #[test]
+    fn batch_upgrade_all_valid_ids_no_skip_note() {
+        let mut app = make_upgrades_app(vec![
+            make_package_with_id("Google.Chrome"),
+            make_package_with_id("Mozilla.Firefox"),
+        ]);
+        app.selected_packages = [0, 1].iter().cloned().collect();
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('U'), KeyModifiers::NONE);
+        let confirm = app.confirm.expect("should show confirm dialog");
+        assert!(
+            !confirm.message.contains("skipped"),
+            "no skip note when all IDs valid: {:?}",
+            confirm.message
+        );
+        assert!(
+            confirm.message.contains("2 packages"),
+            "should mention 2 packages: {:?}",
+            confirm.message
+        );
+    }
+
+    #[test]
+    fn batch_upgrade_some_truncated_ids_shows_skip_count() {
+        let mut app = make_upgrades_app(vec![
+            make_package_with_id("Google.Chrome"),
+            make_package_with_id("Some.Very.Long.Package.Na..."), // truncated
+            make_package_with_id("Mozilla.Firefox"),
+        ]);
+        app.selected_packages = [0, 1, 2].iter().cloned().collect();
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('U'), KeyModifiers::NONE);
+        let confirm = app
+            .confirm
+            .expect("should show confirm dialog with valid IDs");
+        assert!(
+            confirm.message.contains("1 skipped"),
+            "should mention 1 skipped: {:?}",
+            confirm.message
+        );
+        assert!(
+            confirm.message.contains("2 packages"),
+            "should upgrade the 2 valid packages: {:?}",
+            confirm.message
+        );
+    }
+
+    #[test]
+    fn batch_upgrade_all_truncated_ids_shows_error_status() {
+        let mut app = make_upgrades_app(vec![make_package_with_id("Truncated.Package.Na...")]);
+        app.selected_packages = [0].iter().cloned().collect();
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('U'), KeyModifiers::NONE);
+        assert!(
+            app.confirm.is_none(),
+            "should not show confirm when all IDs truncated"
+        );
+        assert!(
+            app.status_message.contains("truncated"),
+            "status should mention truncated IDs: {:?}",
+            app.status_message
+        );
     }
 }
