@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Modifier, Style},
@@ -199,17 +201,17 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
         title
     };
 
-    let header_cells = if app.mode == AppMode::Upgrades {
+    let header_cells: Vec<Cow<'_, str>> = if app.mode == AppMode::Upgrades {
         let dir = app.sort_dir;
         vec![
-            format!(
+            Cow::Owned(format!(
                 "     {}",
                 sort_header("Name", SortField::Name, app.sort_field, dir)
-            ),
+            )),
             sort_header("ID", SortField::Id, app.sort_field, dir),
             sort_header("Version", SortField::Version, app.sort_field, dir),
-            "Available".to_string(),
-            "Source".to_string(),
+            Cow::Borrowed("Available"),
+            Cow::Borrowed("Source"),
         ]
     } else {
         let dir = app.sort_dir;
@@ -217,14 +219,14 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
             sort_header("Name", SortField::Name, app.sort_field, dir),
             sort_header("ID", SortField::Id, app.sort_field, dir),
             sort_header("Version", SortField::Version, app.sort_field, dir),
-            "Source".to_string(),
+            Cow::Borrowed("Source"),
         ]
     };
 
     let header = Row::new(
         header_cells
             .iter()
-            .map(|h| Cell::from(h.as_str()).style(theme::table_header())),
+            .map(|h| Cell::from(h.as_ref()).style(theme::table_header())),
     )
     .height(1);
 
@@ -268,12 +270,12 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
                         truncate(&pkg.name, 18)
                     )),
                     Cell::from(truncate(&pkg.id, 25)),
-                    Cell::from(pkg.version.clone()),
+                    Cell::from(pkg.version.as_str()),
                     Cell::from(Span::styled(
                         &pkg.available_version,
                         Style::default().fg(theme::SUCCESS),
                     )),
-                    Cell::from(pkg.source.clone()),
+                    Cell::from(pkg.source.as_str()),
                 ]
             } else {
                 vec![
@@ -284,8 +286,8 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
                         truncate(&pkg.name, 18)
                     )),
                     Cell::from(truncate(&pkg.id, 28)),
-                    Cell::from(pkg.version.clone()),
-                    Cell::from(pkg.source.clone()),
+                    Cell::from(pkg.version.as_str()),
+                    Cell::from(pkg.source.as_str()),
                 ]
             };
 
@@ -1041,11 +1043,11 @@ fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
 }
 
 /// Build a column header string, appending a ↑/↓ indicator if this column is active.
-fn sort_header(label: &str, field: SortField, active: SortField, dir: SortDir) -> String {
+fn sort_header(label: &str, field: SortField, active: SortField, dir: SortDir) -> Cow<'_, str> {
     if active == field {
-        format!("{}{}", label, dir.indicator())
+        Cow::Owned(format!("{}{}", label, dir.indicator()))
     } else {
-        label.to_string()
+        Cow::Borrowed(label)
     }
 }
 
@@ -1144,6 +1146,7 @@ fn word_wrap(text: &str, max_width: usize) -> Vec<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::{SortDir, SortField};
 
     #[test]
     fn truncate_ascii_within_limit() {
@@ -1178,6 +1181,27 @@ mod tests {
     fn truncate_mixed_ascii_cjk() {
         // "hi你好" = 2 + 4 = 6 cols; max=5 -> keep "hi你" (4 cols) + ellipsis
         assert_eq!(truncate("hi你好", 5), "hi你\u{2026}");
+    }
+
+    #[test]
+    fn sort_header_returns_plain_label_when_inactive() {
+        assert_eq!(
+            sort_header("Version", SortField::Version, SortField::Name, SortDir::Asc),
+            "Version"
+        );
+    }
+
+    #[test]
+    fn sort_header_appends_indicator_when_active() {
+        assert_eq!(
+            sort_header(
+                "Version",
+                SortField::Version,
+                SortField::Version,
+                SortDir::Desc
+            ),
+            "Version ↓"
+        );
     }
 
     // ── centered_rect ─────────────────────────────────────────────────────────
