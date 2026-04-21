@@ -782,6 +782,9 @@ fn draw_status_bar(f: &mut Frame, app: &App, area: Rect) {
             Span::styled(" r ", key_style),
             Span::styled(" Refresh ", label_style),
             sep.clone(),
+            Span::styled(" e ", key_style),
+            Span::styled(" Export ", label_style),
+            sep.clone(),
             Span::styled(" ? ", key_style),
             Span::styled(" Help ", label_style),
             sep,
@@ -975,6 +978,10 @@ fn draw_help_overlay(f: &mut Frame) {
         Line::from(vec![
             Span::styled("  U           ", key),
             Span::raw("Batch upgrade selected packages"),
+        ]),
+        Line::from(vec![
+            Span::styled("  e           ", key),
+            Span::raw("Export current list to CSV"),
         ]),
         Line::from(vec![
             Span::styled("  P           ", key),

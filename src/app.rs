@@ -581,6 +581,64 @@ impl App {
         });
     }
 
+    /// Export the currently visible package list to a CSV file in the working directory.
+    pub fn export_list_csv(&self) -> Result<String, String> {
+        if self.filtered_packages.is_empty() {
+            return Err("Nothing to export: list is empty".to_string());
+        }
+
+        let filename = match self.mode {
+            AppMode::Installed => "winget-installed.csv",
+            AppMode::Upgrades => "winget-upgrades.csv",
+            AppMode::Search => "winget-search.csv",
+        };
+
+        let file = std::fs::File::create(filename)
+            .map_err(|e| format!("Cannot create {filename}: {e}"))?;
+        let mut writer = std::io::BufWriter::new(file);
+        let include_available = self.mode == AppMode::Upgrades;
+        self.write_csv(&mut writer, include_available)
+            .map_err(|e| format!("Cannot write {filename}: {e}"))?;
+
+        Ok(filename.to_string())
+    }
+
+    fn write_csv(
+        &self,
+        writer: &mut dyn std::io::Write,
+        include_available: bool,
+    ) -> std::io::Result<()> {
+        if include_available {
+            writeln!(writer, "Name,Id,Version,Source,AvailableVersion")?;
+        } else {
+            writeln!(writer, "Name,Id,Version,Source")?;
+        }
+
+        for pkg in &self.filtered_packages {
+            if include_available {
+                writeln!(
+                    writer,
+                    "{},{},{},{},{}",
+                    csv_escape(&pkg.name),
+                    csv_escape(&pkg.id),
+                    csv_escape(&pkg.version),
+                    csv_escape(&pkg.source),
+                    csv_escape(&pkg.available_version)
+                )?;
+            } else {
+                writeln!(
+                    writer,
+                    "{},{},{},{}",
+                    csv_escape(&pkg.name),
+                    csv_escape(&pkg.id),
+                    csv_escape(&pkg.version),
+                    csv_escape(&pkg.source)
+                )?;
+            }
+        }
+        Ok(())
+    }
+
     pub fn process_messages(&mut self) {
         while let Ok(msg) = self.message_rx.try_recv() {
             match msg {
@@ -678,6 +736,14 @@ impl App {
                 }
             }
         }
+    }
+}
+
+fn csv_escape(s: &str) -> String {
+    if s.contains(',') || s.contains('"') || s.contains('\n') || s.contains('\r') {
+        format!("\"{}\"", s.replace('"', "\"\""))
+    } else {
+        s.to_string()
     }
 }
 
@@ -1358,6 +1424,74 @@ mod tests {
         app.process_messages();
         assert_eq!(app.filtered_packages.len(), 3);
         assert!(!app.loading);
+    }
+
+    #[test]
+    fn export_list_csv_empty_list_returns_error() {
+        let spy = SpyBackend::new();
+        let app = make_app(spy as Arc<dyn WingetBackend>);
+        assert!(app.export_list_csv().is_err());
+    }
+
+    #[test]
+    fn write_csv_installed_uses_four_column_header() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.mode = AppMode::Installed;
+        app.filtered_packages = make_packages(1);
+
+        let mut buf = Vec::new();
+        app.write_csv(&mut buf, false).unwrap();
+
+        let content = String::from_utf8(buf).unwrap();
+        assert!(content.starts_with("Name,Id,Version,Source\n"));
+    }
+
+    #[test]
+    fn write_csv_upgrades_uses_five_column_header() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.mode = AppMode::Upgrades;
+        app.filtered_packages = make_packages(1);
+
+        let mut buf = Vec::new();
+        app.write_csv(&mut buf, true).unwrap();
+
+        let content = String::from_utf8(buf).unwrap();
+        assert!(content.starts_with("Name,Id,Version,Source,AvailableVersion\n"));
+    }
+
+    #[test]
+    fn write_csv_quotes_commas_and_embedded_quotes() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.filtered_packages = vec![Package {
+            name: "App, \"Pro\"".to_string(),
+            id: "App.Pro".to_string(),
+            version: "1.0".to_string(),
+            source: "winget".to_string(),
+            available_version: String::new(),
+            pin_state: PinState::None,
+        }];
+
+        let mut buf = Vec::new();
+        app.write_csv(&mut buf, false).unwrap();
+
+        let content = String::from_utf8(buf).unwrap();
+        assert!(content.contains("\"App, \"\"Pro\"\"\""));
+    }
+
+    #[test]
+    fn write_csv_row_count_matches_package_count() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.filtered_packages = make_packages(5);
+
+        let mut buf = Vec::new();
+        app.write_csv(&mut buf, false).unwrap();
+
+        let content = String::from_utf8(buf).unwrap();
+        assert_eq!(content.lines().count(), 6);
     }
 
     #[test]

@@ -18,6 +18,7 @@ A terminal user interface for [Windows Package Manager (winget)](https://github.
 - **Source Filtering** — Filter by source (winget, msstore, or all)
 - **Sortable Columns** — Sort by Name, ID, or Version (ascending or descending) with `S`
 - **Version-Specific Install** — Install a specific version with `I`
+- **CSV Export** — Save the current visible package list to a CSV file with `e`
 - **Package Details** — View publisher, description, license, homepage, and release notes
 - **Graceful Local Package Info** — Non-winget installs still show a useful explanation when rich manifest metadata is unavailable
 - **Scrollable Details Pane** — Read long descriptions without losing your place in the package list
@@ -64,6 +65,7 @@ winget-tui
 | `Enter` | Submit search / show details |
 | `f` | Cycle source filter (All → winget → msstore) |
 | `r` | Refresh current view |
+| `e` | Export the current visible package list to CSV |
 | `i` | Install selected package |
 | `I` | Install a specific version of the selected package |
 | `u` | Upgrade selected package |

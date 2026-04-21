@@ -254,6 +254,20 @@ fn handle_normal_mode(
             app.refresh_view();
         }
 
+        // Export current visible list to CSV
+        KeyCode::Char('e') => match app.export_list_csv() {
+            Ok(path) => app.set_status(format!(
+                "Exported {} package{} to {path}",
+                app.filtered_packages.len(),
+                if app.filtered_packages.len() == 1 {
+                    ""
+                } else {
+                    "s"
+                }
+            )),
+            Err(msg) => app.set_status(msg),
+        },
+
         // Install
         KeyCode::Char('i') => {
             if let Some(pkg) = app.selected_package() {
@@ -1139,6 +1153,13 @@ mod tests {
             app.status_message,
             "No changelog URL available for this package"
         );
+    }
+
+    #[test]
+    fn export_empty_list_shows_status() {
+        let mut app = make_app();
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('e'), KeyModifiers::NONE);
+        assert_eq!(app.status_message, "Nothing to export: list is empty");
     }
 
     // ── mouse hit-testing ────────────────────────────────────────────────────
