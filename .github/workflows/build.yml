@@ -66,7 +66,7 @@ jobs:
 
       - name: Sign executables with Trusted Signing
         if: startsWith(github.ref, 'refs/tags/')
-        uses: azure/trusted-signing-action@db7a3a6bd3912025c705162fb7475389f5b69ec6  # v1
+        uses: azure/trusted-signing-action@b443cf8ea4124818d2ea9f043cba29fc3ec47b16  # v1.2.0
         with:
           azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
