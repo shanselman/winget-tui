@@ -155,25 +155,39 @@ pub struct App {
 /// Version strings are split on `.`, `-`, and `+`. Each component is compared
 /// numerically when both sides parse as `u64`; otherwise lexicographically.
 /// This avoids the lexicographic pitfall where `"10.0"` sorts before `"2.0"`.
-fn compare_versions(a: &str, b: &str) -> std::cmp::Ordering {
-    fn split(v: &str) -> Vec<&str> {
-        v.split(['.', '-', '+']).collect()
-    }
-    let parts_a = split(a);
-    let parts_b = split(b);
-    let len = parts_a.len().max(parts_b.len());
-    for i in 0..len {
-        let pa = parts_a.get(i).copied().unwrap_or("");
-        let pb = parts_b.get(i).copied().unwrap_or("");
-        let ord = match (pa.parse::<u64>(), pb.parse::<u64>()) {
-            (Ok(na), Ok(nb)) => na.cmp(&nb),
-            _ => pa.cmp(pb),
-        };
-        if ord != std::cmp::Ordering::Equal {
-            return ord;
+#[derive(Debug, Clone, Eq, PartialEq)]
+struct VersionPart {
+    num: Option<u64>,
+    src: String,
+}
+
+impl Ord for VersionPart {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        match (self.num, other.num) {
+            (Some(left), Some(right)) => left.cmp(&right),
+            _ => self.src.cmp(&other.src),
         }
     }
-    std::cmp::Ordering::Equal
+}
+
+impl PartialOrd for VersionPart {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+fn version_key(v: &str) -> Vec<VersionPart> {
+    v.split(['.', '-', '+'])
+        .map(|part| VersionPart {
+            num: part.parse::<u64>().ok(),
+            src: part.to_string(),
+        })
+        .collect()
+}
+
+#[cfg(test)]
+fn compare_versions(a: &str, b: &str) -> std::cmp::Ordering {
+    version_key(a).cmp(&version_key(b))
 }
 
 impl App {
@@ -264,7 +278,7 @@ impl App {
             }
             SortField::Version => {
                 self.filtered_packages
-                    .sort_by(|a, b| compare_versions(&a.version, &b.version));
+                    .sort_by_cached_key(|pkg| version_key(&pkg.version));
                 if self.sort_dir == SortDir::Desc {
                     self.filtered_packages.reverse();
                 }
@@ -1264,6 +1278,14 @@ mod tests {
     fn compare_versions_windows_quad() {
         assert_eq!(
             compare_versions("10.0.19041.0", "10.0.22621.0"),
+            std::cmp::Ordering::Less
+        );
+    }
+
+    #[test]
+    fn compare_versions_text_suffixes_sort_lexicographically() {
+        assert_eq!(
+            compare_versions("1.0-beta", "1.0-rc"),
             std::cmp::Ordering::Less
         );
     }
