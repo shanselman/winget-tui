@@ -1484,8 +1484,7 @@ mod tests {
             publisher: "Google LLC".to_string(),
             ..PackageDetail::default()
         };
-        app.detail_cache
-            .insert("Google.Chrome".to_string(), cached);
+        app.detail_cache.insert("Google.Chrome".to_string(), cached);
         let calls_before = spy.show_calls().len();
         app.load_detail("Google.Chrome");
         assert_eq!(spy.show_calls().len(), calls_before);
