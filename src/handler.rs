@@ -335,7 +335,7 @@ fn handle_normal_mode(
                         (format!("Remove pin for {}?", id), Operation::Unpin { id })
                     } else {
                         (
-                            format!("Pin {} to its current installed version?", id),
+                            format!("Pin {} and block upgrades until unpinned?", id),
                             Operation::Pin { id },
                         )
                     };

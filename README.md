@@ -71,7 +71,7 @@ winget-tui
 | `I` | Install a specific version of the selected package |
 | `u` | Upgrade selected package |
 | `x` | Uninstall selected package |
-| `p` | Pin / unpin the selected installed package |
+| `p` | Pin / unpin the selected installed package (blocks upgrades) |
 | `P` | Cycle pin filter (All → Pinned only → Hide pinned) |
 | `Space` | Toggle selection for batch upgrade (Upgrades view) |
 | `a` | Select / deselect all packages (Upgrades view) |

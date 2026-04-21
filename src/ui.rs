@@ -984,7 +984,7 @@ fn draw_help_overlay(f: &mut Frame) {
         ]),
         Line::from(vec![
             Span::styled("  p           ", key),
-            Span::raw("Pin / unpin current installed version"),
+            Span::raw("Pin / unpin package (block upgrades)"),
         ]),
         Line::from(vec![
             Span::styled("  x           ", key),

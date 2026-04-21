@@ -148,6 +148,8 @@ pub struct App {
     pub detail_cache: HashMap<String, PackageDetail>,
     /// Indices into filtered_packages that are selected for batch operations
     pub selected_packages: HashSet<usize>,
+    /// A high-signal status message to restore after the next list refresh completes.
+    pub post_refresh_status: Option<String>,
     pub backend: Arc<dyn WingetBackend>,
     pub message_tx: tokio::sync::mpsc::UnboundedSender<AppMessage>,
     pub message_rx: tokio::sync::mpsc::UnboundedReceiver<AppMessage>,
@@ -238,6 +240,7 @@ impl App {
             detail_generation: 0,
             detail_cache: HashMap::new(),
             selected_packages: HashSet::new(),
+            post_refresh_status: None,
             backend,
             message_tx,
             message_rx,
@@ -674,10 +677,14 @@ impl App {
                     }
                     self.loading = false;
                     let count = self.filtered_packages.len();
-                    self.set_status(format!(
-                        "{count} package{} found",
-                        if count == 1 { "" } else { "s" }
-                    ));
+                    if let Some(status) = self.post_refresh_status.take() {
+                        self.set_status(status);
+                    } else {
+                        self.set_status(format!(
+                            "{count} package{} found",
+                            if count == 1 { "" } else { "s" }
+                        ));
+                    }
                     // Auto-load detail for the (restored) selected package
                     if let Some(pkg) = self.selected_package() {
                         let id = pkg.id.clone();
@@ -721,19 +728,29 @@ impl App {
                             self.selected_packages.clear();
                         }
                     }
-                    if result.success {
-                        self.set_status(format!("{} — done", result.operation));
+                    let status = if result.success {
+                        let detail = result.message.trim();
+                        if detail.is_empty() {
+                            format!("{} — done", result.operation)
+                        } else {
+                            format!("{} — {}", result.operation, detail)
+                        }
                     } else {
-                        self.set_status(format!(
-                            "{} — failed: {}",
-                            result.operation, result.message
-                        ));
-                    }
+                        format!("{} — failed: {}", result.operation, result.message)
+                    };
+                    self.set_status(status.clone());
                     self.loading = false;
-                    // Refresh the view after operation completes
-                    self.refresh_view();
+                    // Refresh after successful mutations, or after a batch-upgrade
+                    // attempt where some items may still have changed state.
+                    if result.success || matches!(result.operation, Operation::BatchUpgrade { .. })
+                    {
+                        self.post_refresh_status = Some(status);
+                        self.loading = true;
+                        self.refresh_view();
+                    }
                 }
                 AppMessage::Error(msg) => {
+                    self.post_refresh_status = None;
                     self.set_status(format!("Error: {msg}"));
                     self.loading = false;
                     self.detail_loading = false;
@@ -1482,6 +1499,28 @@ mod tests {
         app.process_messages();
         assert_eq!(app.filtered_packages.len(), 3);
         assert!(!app.loading);
+    }
+
+    #[tokio::test]
+    async fn process_messages_packages_loaded_preserves_post_refresh_status() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.view_generation = 1;
+        app.post_refresh_status = Some("Pinning 7zip.7zip — Pin added successfully".into());
+        app.message_tx
+            .send(AppMessage::PackagesLoaded {
+                generation: 1,
+                packages: Vec::new(),
+            })
+            .unwrap();
+
+        app.process_messages();
+
+        assert_eq!(
+            app.status_message,
+            "Pinning 7zip.7zip — Pin added successfully"
+        );
+        assert!(app.post_refresh_status.is_none());
     }
 
     #[test]

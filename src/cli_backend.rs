@@ -91,6 +91,29 @@ impl CliBackend {
         args
     }
 
+    fn pin_add_args(id: &str) -> Vec<&str> {
+        vec![
+            "pin",
+            "add",
+            "--id",
+            id,
+            "--exact",
+            "--blocking",
+            "--disable-interactivity",
+        ]
+    }
+
+    fn pin_remove_args(id: &str) -> Vec<&str> {
+        vec![
+            "pin",
+            "remove",
+            "--id",
+            id,
+            "--exact",
+            "--disable-interactivity",
+        ]
+    }
+
     fn compare_versions_like(a: &str, b: &str) -> Ordering {
         let a = a.trim();
         let b = b.trim();
@@ -729,13 +752,11 @@ impl WingetBackend for CliBackend {
     }
 
     async fn pin(&self, id: &str) -> Result<String> {
-        self.run_winget_strict(&["pin", "add", "--id", id, "--exact", "--installed"])
-            .await
+        self.run_winget_strict(&Self::pin_add_args(id)).await
     }
 
     async fn unpin(&self, id: &str) -> Result<String> {
-        self.run_winget_strict(&["pin", "remove", "--id", id, "--exact", "--installed"])
-            .await
+        self.run_winget_strict(&Self::pin_remove_args(id)).await
     }
 
     async fn list_sources(&self) -> Result<Vec<Source>> {
@@ -922,6 +943,20 @@ Google Chrome                  Google.Chrome               131.0.6  winget
         assert_eq!(args[0], "upgrade");
         assert!(args.contains(&"--include-pinned"));
         assert!(args.ends_with(&["--source", "winget"]));
+    }
+
+    #[test]
+    fn pin_add_args_use_blocking_mode() {
+        let args = CliBackend::pin_add_args("7zip.7zip");
+        assert!(args.contains(&"--blocking"));
+        assert!(!args.contains(&"--installed"));
+    }
+
+    #[test]
+    fn pin_remove_args_do_not_use_installed_flag() {
+        let args = CliBackend::pin_remove_args("7zip.7zip");
+        assert!(!args.contains(&"--installed"));
+        assert!(args.contains(&"--disable-interactivity"));
     }
 
     #[test]
