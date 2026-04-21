@@ -352,6 +352,7 @@ fn handle_normal_mode(
         // Batch Upgrade (Shift+U)
         KeyCode::Char('U') => {
             if app.mode == AppMode::Upgrades && !app.selected_packages.is_empty() {
+                let selected_count = app.selected_packages.len();
                 let ids: Vec<String> = app
                     .selected_packages
                     .iter()
@@ -368,11 +369,22 @@ fn handle_normal_mode(
                     );
                 } else {
                     let count = ids.len();
+                    let skipped = selected_count.saturating_sub(count);
+                    let skipped_note = if skipped > 0 {
+                        format!(
+                            " ({} skipped — truncated ID{})",
+                            skipped,
+                            if skipped == 1 { "" } else { "s" }
+                        )
+                    } else {
+                        String::new()
+                    };
                     app.confirm = Some(ConfirmDialog {
                         message: format!(
-                            "Upgrade {} selected package{}?",
+                            "Upgrade {} selected package{}{}?",
                             count,
-                            if count == 1 { "" } else { "s" }
+                            if count == 1 { "" } else { "s" },
+                            skipped_note
                         ),
                         operation: Operation::BatchUpgrade { ids },
                     });
@@ -1007,6 +1019,81 @@ mod tests {
             }
             _ => panic!("expected Install operation"),
         }
+    }
+
+    #[test]
+    fn batch_upgrade_confirm_uses_clean_count_when_all_ids_are_valid() {
+        let mut app = make_app_with_pkgs(2);
+        app.mode = AppMode::Upgrades;
+        app.selected_packages = [0usize, 1usize].into_iter().collect();
+
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('U'), KeyModifiers::NONE);
+
+        let confirm = app.confirm.expect("confirm dialog should be set");
+        assert_eq!(confirm.message, "Upgrade 2 selected packages?");
+        match confirm.operation {
+            Operation::BatchUpgrade { ids } => assert_eq!(ids.len(), 2),
+            _ => panic!("expected BatchUpgrade operation"),
+        }
+    }
+
+    #[test]
+    fn batch_upgrade_confirm_reports_truncated_skips() {
+        let mut app = make_app();
+        app.mode = AppMode::Upgrades;
+        app.packages = vec![
+            Package {
+                id: "Good.App".to_string(),
+                name: "Good".to_string(),
+                version: "1.0".to_string(),
+                source: "winget".to_string(),
+                available_version: "1.1".to_string(),
+                pin_state: PinState::None,
+            },
+            Package {
+                id: "Bad.App...".to_string(),
+                name: "Bad".to_string(),
+                version: "1.0".to_string(),
+                source: "winget".to_string(),
+                available_version: "1.1".to_string(),
+                pin_state: PinState::None,
+            },
+        ];
+        app.filtered_packages = app.packages.clone();
+        app.selected_packages = [0usize, 1usize].into_iter().collect();
+
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('U'), KeyModifiers::NONE);
+
+        let confirm = app.confirm.expect("confirm dialog should be set");
+        assert!(confirm.message.contains("Upgrade 1 selected package"));
+        assert!(confirm.message.contains("1 skipped"));
+        match confirm.operation {
+            Operation::BatchUpgrade { ids } => assert_eq!(ids, vec!["Good.App".to_string()]),
+            _ => panic!("expected BatchUpgrade operation"),
+        }
+    }
+
+    #[test]
+    fn batch_upgrade_all_truncated_shows_status_and_skips_confirm() {
+        let mut app = make_app();
+        app.mode = AppMode::Upgrades;
+        app.packages = vec![Package {
+            id: "Only.Bad...".to_string(),
+            name: "Bad".to_string(),
+            version: "1.0".to_string(),
+            source: "winget".to_string(),
+            available_version: "1.1".to_string(),
+            pin_state: PinState::None,
+        }];
+        app.filtered_packages = app.packages.clone();
+        app.selected_packages = [0usize].into_iter().collect();
+
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('U'), KeyModifiers::NONE);
+
+        assert!(app.confirm.is_none(), "no confirm dialog should be shown");
+        assert!(app
+            .status_message
+            .contains("all selected packages have truncated IDs"));
     }
 
     // ── open homepage / changelog feedback ───────────────────────────────────

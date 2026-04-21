@@ -986,6 +986,21 @@ mod tests {
         assert_eq!(app.selected, 1);
     }
 
+    #[test]
+    fn ensure_selection_visible_scrolls_viewport_down() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.packages = make_packages(20);
+        app.filtered_packages = app.packages.clone();
+        app.layout.package_list.height = 8; // 5 visible rows after header/borders
+        app.selected = 9;
+        *app.table_state.offset_mut() = 0;
+
+        app.ensure_selection_visible();
+
+        assert_eq!(app.table_state.offset(), 5);
+    }
+
     // ── selected_package ──────────────────────────────────────────────────────
 
     #[test]
@@ -1074,6 +1089,25 @@ mod tests {
             app.selected_packages.is_empty(),
             "selected_packages should be cleared by apply_filter"
         );
+    }
+
+    #[test]
+    fn apply_filter_backfills_source_when_server_omits_it() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.source_filter = SourceFilter::Winget;
+        app.packages = vec![Package {
+            name: "Pkg One".to_string(),
+            id: "Pkg.One".to_string(),
+            version: "1.0.0".to_string(),
+            source: String::new(),
+            available_version: String::new(),
+            pin_state: PinState::None,
+        }];
+
+        app.apply_filter();
+
+        assert_eq!(app.filtered_packages[0].source, "winget");
     }
 
     #[test]
@@ -1264,6 +1298,27 @@ mod tests {
             .unwrap();
         app.process_messages();
         assert_eq!(app.status_message, "hello");
+    }
+
+    #[tokio::test]
+    async fn process_messages_batch_upgrade_completion_clears_multi_select() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.selected_packages = [0usize, 1usize].into_iter().collect();
+        app.message_tx
+            .send(AppMessage::OperationComplete(OpResult {
+                operation: Operation::BatchUpgrade {
+                    ids: vec!["Pkg.One".into(), "Pkg.Two".into()],
+                },
+                success: true,
+                message: "done".into(),
+            }))
+            .unwrap();
+
+        app.process_messages();
+
+        assert!(app.selected_packages.is_empty());
+        assert!(app.status_message.contains("done"));
     }
 
     #[tokio::test]
