@@ -19,7 +19,10 @@ use crate::theme;
 
 pub fn draw(f: &mut Frame, app: &mut App) {
     let header_height = theme::LOGO_HEIGHT; // logo + tabs, no extra spacing
-    let show_search_bar = app.mode == AppMode::Search || app.input_mode == InputMode::Search;
+    let show_search_bar = app.mode == AppMode::Search
+        || app.input_mode == InputMode::Search
+        || app.input_mode == InputMode::LocalFilter
+        || !app.local_filter.is_empty();
 
     if show_search_bar {
         let chunks = Layout::default()
@@ -138,24 +141,34 @@ fn draw_search_bar(f: &mut Frame, app: &mut App, area: Rect) {
     // Store region for mouse clicks
     app.layout.search_bar = area;
 
-    let search_style = if app.input_mode == InputMode::Search {
-        Style::default().fg(theme::TEXT_PRIMARY).bg(theme::SURFACE)
+    let search_style =
+        if app.input_mode == InputMode::Search || app.input_mode == InputMode::LocalFilter {
+            Style::default().fg(theme::TEXT_PRIMARY).bg(theme::SURFACE)
+        } else {
+            Style::default().fg(theme::TEXT_SECONDARY)
+        };
+
+    let (active_text, placeholder) = if app.mode == AppMode::Search {
+        (app.search_query.as_str(), " / to search...")
     } else {
-        Style::default().fg(theme::TEXT_SECONDARY)
+        (app.local_filter.as_str(), " / to filter...")
     };
 
-    let search_text = if app.search_query.is_empty() && app.input_mode != InputMode::Search {
-        " / to search...".to_string()
+    let search_text = if active_text.is_empty()
+        && app.input_mode != InputMode::Search
+        && app.input_mode != InputMode::LocalFilter
+    {
+        placeholder.to_string()
     } else {
-        format!(" {}", app.search_query)
+        format!(" {}", active_text)
     };
 
     let search = Paragraph::new(search_text).style(search_style);
     f.render_widget(search, area);
 
     // Show cursor in search mode
-    if app.input_mode == InputMode::Search {
-        let cursor_x = area.x + 1 + UnicodeWidthStr::width(app.search_query.as_str()) as u16;
+    if matches!(app.input_mode, InputMode::Search | InputMode::LocalFilter) {
+        let cursor_x = area.x + 1 + UnicodeWidthStr::width(active_text) as u16;
         f.set_cursor_position((cursor_x, area.y));
     }
 }
@@ -756,6 +769,16 @@ fn draw_status_bar(f: &mut Frame, app: &App, area: Rect) {
             Span::styled(" Enter ", key_style),
             Span::styled(" Search ", label_style),
         ]),
+        InputMode::LocalFilter => Line::from(vec![
+            Span::styled(" Esc ", key_style),
+            Span::styled(" Clear ", label_style),
+            sep.clone(),
+            Span::styled(" Enter ", key_style),
+            Span::styled(" Done ", label_style),
+            sep.clone(),
+            Span::styled(" Bksp ", key_style),
+            Span::styled(" Delete ", label_style),
+        ]),
         InputMode::VersionInput => Line::from(vec![
             Span::styled(" Esc ", key_style),
             Span::styled(" Cancel ", label_style),
@@ -768,7 +791,7 @@ fn draw_status_bar(f: &mut Frame, app: &App, area: Rect) {
         ]),
         InputMode::Normal => Line::from(vec![
             Span::styled(" / ", key_style),
-            Span::styled(" Search ", label_style),
+            Span::styled(" Search/Filter ", label_style),
             sep.clone(),
             Span::styled(" f ", key_style),
             Span::styled(" Source ", label_style),
@@ -935,7 +958,7 @@ fn draw_help_overlay(f: &mut Frame) {
         ]),
         Line::from(vec![
             Span::styled("  /           ", key),
-            Span::raw("Focus search"),
+            Span::raw("Search or local filter"),
         ]),
         Line::from(vec![
             Span::styled("  f           ", key),

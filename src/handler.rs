@@ -33,6 +33,7 @@ pub fn handle_events(app: &mut App) -> anyhow::Result<bool> {
 
             match app.input_mode {
                 InputMode::Search => handle_search_input(app, key.code),
+                InputMode::LocalFilter => handle_local_filter_input(app, key.code),
                 InputMode::Normal => handle_normal_mode(app, key.code, key.modifiers),
                 InputMode::VersionInput => unreachable!("handled above"),
             }
@@ -114,6 +115,39 @@ fn handle_search_input(app: &mut App, key: KeyCode) -> anyhow::Result<bool> {
         }
         KeyCode::Char(c) => {
             app.search_query.push(c);
+        }
+        _ => {}
+    }
+    Ok(false)
+}
+
+fn handle_local_filter_input(app: &mut App, key: KeyCode) -> anyhow::Result<bool> {
+    match key {
+        KeyCode::Esc => {
+            app.input_mode = InputMode::Normal;
+            app.local_filter.clear();
+            app.apply_filter();
+            app.ensure_selection_visible();
+            load_detail_for_selected(app);
+            app.set_status("Filter cleared");
+        }
+        KeyCode::Enter => {
+            app.input_mode = InputMode::Normal;
+            app.apply_filter();
+            app.ensure_selection_visible();
+            load_detail_for_selected(app);
+        }
+        KeyCode::Backspace => {
+            app.local_filter.pop();
+            app.apply_filter();
+            app.ensure_selection_visible();
+            load_detail_for_selected(app);
+        }
+        KeyCode::Char(c) => {
+            app.local_filter.push(c);
+            app.apply_filter();
+            app.ensure_selection_visible();
+            load_detail_for_selected(app);
         }
         _ => {}
     }
@@ -217,12 +251,13 @@ fn handle_normal_mode(
             load_detail_for_selected(app);
         }
 
-        // Search — switch to search view and enter input mode
+        // Search in Search view, local filter in Installed/Upgrades
         KeyCode::Char('/') | KeyCode::Char('s') => {
-            if app.mode != AppMode::Search {
-                switch_view(app, AppMode::Search);
+            if app.mode == AppMode::Search {
+                app.input_mode = InputMode::Search;
+            } else {
+                app.input_mode = InputMode::LocalFilter;
             }
-            app.input_mode = InputMode::Search;
         }
 
         // Filter
@@ -479,6 +514,8 @@ fn switch_view(app: &mut App, new_mode: AppMode) {
         return;
     }
     app.mode = new_mode;
+    app.input_mode = InputMode::Normal;
+    app.local_filter.clear();
     app.selected = 0;
     app.selected_packages.clear();
     app.detail = None;
@@ -548,9 +585,13 @@ fn handle_mouse(app: &mut App, mouse: crossterm::event::MouseEvent) -> anyhow::R
                 return Ok(false);
             }
 
-            // Click on search bar (only visible on search page)
+            // Click on search/filter bar
             if app.layout.search_bar.width > 0 && in_rect(col, row, app.layout.search_bar) {
-                app.input_mode = InputMode::Search;
+                app.input_mode = if app.mode == AppMode::Search {
+                    InputMode::Search
+                } else {
+                    InputMode::LocalFilter
+                };
                 return Ok(false);
             }
 
@@ -773,6 +814,13 @@ mod tests {
         app
     }
 
+    fn test_runtime() -> tokio::runtime::Runtime {
+        tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .expect("current-thread runtime")
+    }
+
     // ── in_rect ──────────────────────────────────────────────────────────────
 
     #[test]
@@ -938,6 +986,95 @@ mod tests {
         // Empty query: input_mode switches to Normal but no search is triggered
         assert_eq!(app.input_mode, InputMode::Normal);
         assert!(app.search_query.is_empty());
+    }
+
+    #[test]
+    fn slash_key_in_installed_view_enters_local_filter_mode() {
+        let mut app = make_app();
+        app.mode = AppMode::Installed;
+
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('/'), KeyModifiers::NONE);
+
+        assert_eq!(app.input_mode, InputMode::LocalFilter);
+    }
+
+    #[test]
+    fn slash_key_in_search_view_enters_search_mode() {
+        let mut app = make_app();
+        app.mode = AppMode::Search;
+
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('/'), KeyModifiers::NONE);
+
+        assert_eq!(app.input_mode, InputMode::Search);
+    }
+
+    #[test]
+    fn local_filter_char_input_updates_filter_and_narrows_list() {
+        let mut app = make_app_with_pkgs(3);
+        app.mode = AppMode::Installed;
+        app.filtered_packages = vec![
+            Package {
+                id: "Google.Chrome".to_string(),
+                name: "Google Chrome".to_string(),
+                version: "1.0".to_string(),
+                source: "winget".to_string(),
+                available_version: String::new(),
+                pin_state: PinState::None,
+            },
+            Package {
+                id: "Mozilla.Firefox".to_string(),
+                name: "Mozilla Firefox".to_string(),
+                version: "1.0".to_string(),
+                source: "winget".to_string(),
+                available_version: String::new(),
+                pin_state: PinState::None,
+            },
+        ];
+        app.packages = app.filtered_packages.clone();
+        app.input_mode = InputMode::LocalFilter;
+        let rt = test_runtime();
+        let _guard = rt.enter();
+
+        let _ = handle_local_filter_input(&mut app, KeyCode::Char('c'));
+        let _ = handle_local_filter_input(&mut app, KeyCode::Char('h'));
+
+        assert_eq!(app.local_filter, "ch");
+        assert_eq!(app.filtered_packages.len(), 1);
+        assert_eq!(app.filtered_packages[0].id, "Google.Chrome");
+    }
+
+    #[test]
+    fn local_filter_esc_clears_filter_and_restores_list() {
+        let mut app = make_app_with_pkgs(2);
+        app.mode = AppMode::Installed;
+        app.local_filter = "pkg1".to_string();
+        app.input_mode = InputMode::LocalFilter;
+        app.apply_filter();
+        let rt = test_runtime();
+        let _guard = rt.enter();
+
+        let _ = handle_local_filter_input(&mut app, KeyCode::Esc);
+
+        assert_eq!(app.input_mode, InputMode::Normal);
+        assert!(app.local_filter.is_empty());
+        assert_eq!(app.filtered_packages.len(), 2);
+    }
+
+    #[test]
+    fn local_filter_enter_keeps_filter_but_exits_input_mode() {
+        let mut app = make_app_with_pkgs(2);
+        app.mode = AppMode::Installed;
+        app.local_filter = "pkg1".to_string();
+        app.input_mode = InputMode::LocalFilter;
+        app.apply_filter();
+        let rt = test_runtime();
+        let _guard = rt.enter();
+
+        let _ = handle_local_filter_input(&mut app, KeyCode::Enter);
+
+        assert_eq!(app.input_mode, InputMode::Normal);
+        assert_eq!(app.local_filter, "pkg1");
+        assert_eq!(app.filtered_packages.len(), 1);
     }
 
     // ── handle_version_input ─────────────────────────────────────────────────

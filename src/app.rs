@@ -96,6 +96,8 @@ pub enum InputMode {
     Search,
     /// Inline prompt for typing a specific version before installing
     VersionInput,
+    /// In-memory filtering for Installed/Upgrades views using the existing list.
+    LocalFilter,
 }
 
 /// Confirmation dialog state
@@ -112,6 +114,7 @@ pub struct App {
     pub source_filter: SourceFilter,
     pub pin_filter: PinFilter,
     pub search_query: String,
+    pub local_filter: String,
     pub packages: Vec<Package>,
     pub filtered_packages: Vec<Package>,
     pub selected: usize,
@@ -212,6 +215,7 @@ impl App {
             source_filter: cfg.default_source,
             pin_filter: PinFilter::All,
             search_query: String::new(),
+            local_filter: String::new(),
             packages: Vec::new(),
             filtered_packages: Vec::new(),
             selected: 0,
@@ -251,6 +255,12 @@ impl App {
                     pkg.source = src.to_string();
                 }
             }
+        }
+        if self.mode != AppMode::Search && !self.local_filter.is_empty() {
+            let query = self.local_filter.to_lowercase();
+            self.filtered_packages.retain(|pkg| {
+                pkg.name.to_lowercase().contains(&query) || pkg.id.to_lowercase().contains(&query)
+            });
         }
         if self.mode != AppMode::Search {
             self.filtered_packages
@@ -1296,6 +1306,54 @@ mod tests {
             .map(|p| p.version.as_str())
             .collect();
         assert_eq!(versions, ["1.9", "2.0", "10.0"]);
+    }
+
+    #[test]
+    fn local_filter_narrows_installed_list_by_name_substring() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.mode = AppMode::Installed;
+        app.packages = vec![
+            make_package("Visual Studio Code", "Microsoft.VisualStudioCode", "1.0"),
+            make_package("Google Chrome", "Google.Chrome", "120.0"),
+            make_package("VLC Media Player", "VideoLAN.VLC", "3.0"),
+        ];
+        app.local_filter = "vis".to_string();
+        app.apply_filter();
+
+        assert_eq!(app.filtered_packages.len(), 1);
+        assert_eq!(app.filtered_packages[0].id, "Microsoft.VisualStudioCode");
+    }
+
+    #[test]
+    fn local_filter_is_case_insensitive_and_matches_id() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.mode = AppMode::Installed;
+        app.packages = vec![
+            make_package("Google Chrome", "Google.Chrome", "120.0"),
+            make_package("Signal", "OpenWhisperSystems.Signal", "7.0"),
+        ];
+        app.local_filter = "WHISPER".to_string();
+        app.apply_filter();
+
+        assert_eq!(app.filtered_packages.len(), 1);
+        assert_eq!(app.filtered_packages[0].id, "OpenWhisperSystems.Signal");
+    }
+
+    #[test]
+    fn local_filter_is_ignored_in_search_mode() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.mode = AppMode::Search;
+        app.packages = vec![
+            make_package("Google Chrome", "Google.Chrome", "120.0"),
+            make_package("Mozilla Firefox", "Mozilla.Firefox", "115.0"),
+        ];
+        app.local_filter = "chrome".to_string();
+        app.apply_filter();
+
+        assert_eq!(app.filtered_packages.len(), 2);
     }
 
     #[test]

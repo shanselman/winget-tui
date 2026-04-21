@@ -16,6 +16,7 @@ A terminal user interface for [Windows Package Manager (winget)](https://github.
 - **Upgrade Management** — See updates at a glance and batch-upgrade multiple packages
 - **Pin Awareness** — Pin or unpin installed packages and filter pinned items without leaving the TUI
 - **Source Filtering** — Filter by source (winget, msstore, or all)
+- **Real-Time Local Filter** — Narrow Installed and Upgrades lists instantly with `/` or `s`
 - **Sortable Columns** — Sort by Name, ID, or Version (ascending or descending) with `S`
 - **Version-Specific Install** — Install a specific version with `I`
 - **CSV Export** — Save the current visible package list to a CSV file with `e`
@@ -61,7 +62,7 @@ winget-tui
 | `Home` / `End` | Jump to first / last |
 | `←` / `→` | Cycle views backward / forward |
 | `Tab` / `Shift+Tab` | Toggle focus between the package list and detail panel |
-| `/` or `s` | Focus search input |
+| `/` or `s` | Focus search in Search view, or local filter in Installed/Upgrades |
 | `Enter` | Submit search / show details |
 | `f` | Cycle source filter (All → winget → msstore) |
 | `r` | Refresh current view |
