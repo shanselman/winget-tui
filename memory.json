@@ -1,6 +1,6 @@
 {
-  "r": "2026-04-20",
-  "run": "24668360825",
+  "r": "2026-04-21",
+  "run": "24698764244",
   "mo": "2026-04-",
   "monthly": "#118 (April 2026)",
   "comments_made": {
@@ -9,6 +9,8 @@
     "126": "2026-04-19"
   },
   "open_prs": [
+    "repo-assist/fix-fmt-detail-cache-2026-04-21",
+    "repo-assist/eng-dependabot-2026-04-21",
     "repo-assist/fix-version-sort-2026-04-16",
     "repo-assist/test-improvements-2026-04-17",
     "repo-assist/feat-export-csv-2026-04-19",
@@ -18,5 +20,5 @@
     "repo-assist/perf-version-sort-cached-key-2026-04-20"
   ],
   "copilot_open_prs": ["#125 Pins view (Copilot coding agent)"],
-  "notes": "v0.8.0 released. Open PRs: #116 version sort, #119 tests, #124 CSV export, #125 Copilot Pins, #129 more tests, #130 local filter, plus 2 new this run (perf version sort, fix batch upgrade truncated warn). 178 tests passing."
+  "notes": "v0.8.0 released. CI was broken on main (fmt issue in app.rs test at L1484) — fixed this run. Open PRs: #116 version sort, #119 tests, #124 CSV export, #125 Copilot Pins, #129 more tests, #130 local filter, #131 batch-upgrade warn, #132 perf version sort, plus 2 new this run (fmt fix, dependabot config). 184 tests passing."
 }
