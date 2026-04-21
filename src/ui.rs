@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Modifier, Style},
@@ -199,17 +201,17 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
         title
     };
 
-    let header_cells = if app.mode == AppMode::Upgrades {
+    let header_cells: Vec<Cow<str>> = if app.mode == AppMode::Upgrades {
         let dir = app.sort_dir;
         vec![
-            format!(
+            Cow::Owned(format!(
                 "     {}",
                 sort_header("Name", SortField::Name, app.sort_field, dir)
-            ),
+            )),
             sort_header("ID", SortField::Id, app.sort_field, dir),
             sort_header("Version", SortField::Version, app.sort_field, dir),
-            "Available".to_string(),
-            "Source".to_string(),
+            Cow::Borrowed("Available"),
+            Cow::Borrowed("Source"),
         ]
     } else {
         let dir = app.sort_dir;
@@ -217,14 +219,14 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
             sort_header("Name", SortField::Name, app.sort_field, dir),
             sort_header("ID", SortField::Id, app.sort_field, dir),
             sort_header("Version", SortField::Version, app.sort_field, dir),
-            "Source".to_string(),
+            Cow::Borrowed("Source"),
         ]
     };
 
     let header = Row::new(
         header_cells
             .iter()
-            .map(|h| Cell::from(h.as_str()).style(theme::table_header())),
+            .map(|h| Cell::from(h.as_ref()).style(theme::table_header())),
     )
     .height(1);
 
@@ -268,12 +270,12 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
                         truncate(&pkg.name, 18)
                     )),
                     Cell::from(truncate(&pkg.id, 25)),
-                    Cell::from(pkg.version.clone()),
+                    Cell::from(pkg.version.as_str()),
                     Cell::from(Span::styled(
                         &pkg.available_version,
                         Style::default().fg(theme::SUCCESS),
                     )),
-                    Cell::from(pkg.source.clone()),
+                    Cell::from(pkg.source.as_str()),
                 ]
             } else {
                 vec![
@@ -284,8 +286,8 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
                         truncate(&pkg.name, 18)
                     )),
                     Cell::from(truncate(&pkg.id, 28)),
-                    Cell::from(pkg.version.clone()),
-                    Cell::from(pkg.source.clone()),
+                    Cell::from(pkg.version.as_str()),
+                    Cell::from(pkg.source.as_str()),
                 ]
             };
 
@@ -1041,11 +1043,16 @@ fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
 }
 
 /// Build a column header string, appending a ↑/↓ indicator if this column is active.
-fn sort_header(label: &str, field: SortField, active: SortField, dir: SortDir) -> String {
+fn sort_header<'a>(
+    label: &'a str,
+    field: SortField,
+    active: SortField,
+    dir: SortDir,
+) -> Cow<'a, str> {
     if active == field {
-        format!("{}{}", label, dir.indicator())
+        Cow::Owned(format!("{}{}", label, dir.indicator()))
     } else {
-        label.to_string()
+        Cow::Borrowed(label)
     }
 }
 
