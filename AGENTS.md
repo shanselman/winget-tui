@@ -63,17 +63,23 @@ default_source = "all"       # all | winget | msstore
 
 - `Left` / `Right`: switch views
 - `Tab` / `Shift+Tab`: toggle focus between list and details
-- `/` or `s`: focus search
+- `j` / `k`: move down / up (vim-style)
+- `/` or `s`: focus search (Search view) or local filter (Installed/Upgrades)
 - `f`: cycle source filter
+- `r`: refresh current view
+- `e`: export visible list to CSV
 - `i`: install
 - `I`: install a specific version
 - `u`: upgrade
 - `x`: uninstall
+- `p`: pin / unpin selected package (blocks upgrades)
+- `P`: cycle pin filter
 - `Space`, `a`, `U`: multi-select and batch upgrade in Upgrades view
 - `o`: open homepage
 - `c`: open changelog / release notes
 - `S`: cycle sorting
 - `?`: help
+- `q` / `Esc` / `Ctrl+C`: quit / close dialog
 
 ## Testing and validation
 

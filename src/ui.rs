@@ -957,6 +957,10 @@ fn draw_help_overlay(f: &mut Frame) {
             Span::raw("Switch view (Search / Installed / Upgrades)"),
         ]),
         Line::from(vec![
+            Span::styled("  Tab/S-Tab   ", key),
+            Span::raw("Toggle focus: list ↔ detail panel"),
+        ]),
+        Line::from(vec![
             Span::styled("  /           ", key),
             Span::raw("Search or local filter"),
         ]),
@@ -1017,6 +1021,10 @@ fn draw_help_overlay(f: &mut Frame) {
         Line::from(vec![
             Span::styled("  o           ", key),
             Span::raw("Open homepage in browser"),
+        ]),
+        Line::from(vec![
+            Span::styled("  c           ", key),
+            Span::raw("Open changelog / release notes in browser"),
         ]),
         Line::from(vec![
             Span::styled("  S           ", key),
