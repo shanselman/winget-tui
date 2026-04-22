@@ -1,6 +1,6 @@
 {
-  "r": "2026-04-21",
-  "run": "24724171062",
+  "r": "2026-04-22",
+  "run": "24754867180",
   "mo": "2026-04-",
   "monthly": "#118 (April 2026)",
   "comments_made": {
@@ -9,17 +9,8 @@
     "126": "2026-04-19"
   },
   "open_prs": [
-    "repo-assist/perf-render-loop-no-clone-2026-04-21",
-    "repo-assist/fix-fmt-detail-cache-2026-04-21",
-    "repo-assist/eng-dependabot-2026-04-21",
-    "repo-assist/fix-version-sort-2026-04-16",
-    "repo-assist/test-improvements-2026-04-17",
-    "repo-assist/feat-export-csv-2026-04-19",
-    "repo-assist/test-more-coverage-2026-04-20",
-    "repo-assist/feat-local-filter-2026-04-20",
-    "repo-assist/fix-batch-upgrade-truncated-warn-2026-04-20",
-    "repo-assist/perf-version-sort-cached-key-2026-04-20"
+    "repo-assist/eng-ci-updates-2026-04-22",
+    "repo-assist/fix-help-overlay-missing-keys-2026-04-22"
   ],
-  "copilot_open_prs": ["#125 Pins view (Copilot coding agent)"],
-  "notes": "v0.8.0 released. Open issues: #115 (integrity blocked), #117 (ours, local filter), #118 (monthly). No new human issues to comment on. Open PRs: #116 version sort, #119 tests, #124 CSV export, #125 Copilot Pins, #129 more tests, #130 local filter, #131 batch-upgrade warn, #132 perf version sort, plus: fmt fix branch, dependabot config branch, new perf render-loop branch. 190 tests passing."
+  "notes": "Many previous Repo Assist PRs were closed without merging by maintainer. Focus on minimal, high-value changes only. Current open: Dependabot #136/#139 (bundled by eng-ci branch), Copilot Pins #125. 210 tests passing on main."
 }
