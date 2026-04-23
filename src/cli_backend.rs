@@ -959,6 +959,88 @@ Google Chrome                  Google.Chrome               131.0.6  winget
         assert!(args.contains(&"--disable-interactivity"));
     }
 
+    // ── compare_versions_like ──────────────────────────────────────────────
+
+    #[test]
+    fn compare_versions_like_equal() {
+        assert_eq!(
+            CliBackend::compare_versions_like("1.2.3", "1.2.3"),
+            Ordering::Equal
+        );
+    }
+
+    #[test]
+    fn compare_versions_like_numeric_beats_lexicographic() {
+        assert_eq!(
+            CliBackend::compare_versions_like("2.0", "10.0"),
+            Ordering::Less
+        );
+    }
+
+    #[test]
+    fn compare_versions_like_unknown_is_less_than_real() {
+        assert_eq!(
+            CliBackend::compare_versions_like("unknown", "1.0"),
+            Ordering::Less
+        );
+        assert_eq!(
+            CliBackend::compare_versions_like("1.0", ""),
+            Ordering::Greater
+        );
+    }
+
+    #[test]
+    fn compare_versions_like_both_unknown_are_equal() {
+        assert_eq!(
+            CliBackend::compare_versions_like("unknown", "unknown"),
+            Ordering::Equal
+        );
+    }
+
+    #[test]
+    fn compare_versions_like_longer_wins_when_prefix_equal() {
+        assert_eq!(
+            CliBackend::compare_versions_like("1.0.0", "1.0"),
+            Ordering::Greater
+        );
+    }
+
+    // ── parse_pin_state ──────────────────────────────────────────────────
+
+    #[test]
+    fn parse_pin_state_blocking() {
+        assert_eq!(
+            CliBackend::parse_pin_state("Blocking", ""),
+            PinState::Blocking
+        );
+    }
+
+    #[test]
+    fn parse_pin_state_gating_with_version() {
+        assert_eq!(
+            CliBackend::parse_pin_state("Gating", "2.45.*"),
+            PinState::Gating("2.45.*".to_string())
+        );
+    }
+
+    #[test]
+    fn parse_pin_state_latest_is_pinned_not_gating() {
+        assert_eq!(
+            CliBackend::parse_pin_state("Pinning", "Latest"),
+            PinState::Pinned
+        );
+    }
+
+    #[test]
+    fn parse_pin_state_gating_empty_version_is_pinned() {
+        assert_eq!(CliBackend::parse_pin_state("Gating", ""), PinState::Pinned);
+    }
+
+    #[test]
+    fn parse_pin_state_empty_type_empty_version_is_none() {
+        assert_eq!(CliBackend::parse_pin_state("", ""), PinState::None);
+    }
+
     #[test]
     fn dedupe_packages_prefers_newer_version_for_same_id_and_source() {
         let packages = vec![

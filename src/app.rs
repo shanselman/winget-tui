@@ -1399,6 +1399,41 @@ mod tests {
         assert_eq!(app.pin_filter, PinFilter::UnpinnedOnly);
     }
 
+    // ── annotate_pins ──────────────────────────────────────────────────────
+
+    #[test]
+    fn annotate_pins_applies_matching_pin_state() {
+        let mut packages = vec![
+            make_package("Chrome", "Google.Chrome", "120.0"),
+            make_package("VS Code", "Microsoft.VisualStudioCode", "1.95"),
+        ];
+        let pins = vec![PackagePin {
+            id: "Google.Chrome".to_string(),
+            pin_state: PinState::Blocking,
+        }];
+        App::annotate_pins(&mut packages, pins);
+        assert_eq!(packages[0].pin_state, PinState::Blocking);
+        assert_eq!(packages[1].pin_state, PinState::None);
+    }
+
+    #[test]
+    fn annotate_pins_unmatched_pin_is_ignored() {
+        let mut packages = vec![make_package("Chrome", "Google.Chrome", "120.0")];
+        let pins = vec![PackagePin {
+            id: "NoSuch.Id".to_string(),
+            pin_state: PinState::Pinned,
+        }];
+        App::annotate_pins(&mut packages, pins);
+        assert_eq!(packages[0].pin_state, PinState::None);
+    }
+
+    #[test]
+    fn annotate_pins_empty_pins_leaves_packages_unchanged() {
+        let mut packages = vec![make_package("Chrome", "Google.Chrome", "120.0")];
+        App::annotate_pins(&mut packages, vec![]);
+        assert_eq!(packages[0].pin_state, PinState::None);
+    }
+
     // ── compare_versions ─────────────────────────────────────────────────────
 
     #[test]
