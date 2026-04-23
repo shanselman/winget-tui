@@ -346,6 +346,49 @@ mod tests {
         );
     }
 
+    #[test]
+    fn pin_state_short_marker_none_is_empty() {
+        assert_eq!(PinState::None.short_marker(), "");
+    }
+
+    #[test]
+    fn pin_state_short_marker_pinned_states_show_emoji() {
+        assert_eq!(PinState::Pinned.short_marker(), "📌 ");
+        assert_eq!(PinState::Blocking.short_marker(), "📌 ");
+        assert_eq!(PinState::Gating("2.0.*".to_string()).short_marker(), "📌 ");
+    }
+
+    #[test]
+    fn pin_filter_matches_all_accepts_any_state() {
+        assert!(PinFilter::All.matches(&PinState::None));
+        assert!(PinFilter::All.matches(&PinState::Pinned));
+        assert!(PinFilter::All.matches(&PinState::Blocking));
+        assert!(PinFilter::All.matches(&PinState::Gating("1.*".to_string())));
+    }
+
+    #[test]
+    fn pin_filter_matches_pinned_only_rejects_none() {
+        assert!(!PinFilter::PinnedOnly.matches(&PinState::None));
+        assert!(PinFilter::PinnedOnly.matches(&PinState::Pinned));
+        assert!(PinFilter::PinnedOnly.matches(&PinState::Blocking));
+        assert!(PinFilter::PinnedOnly.matches(&PinState::Gating("1.*".to_string())));
+    }
+
+    #[test]
+    fn pin_filter_matches_unpinned_only_accepts_none() {
+        assert!(PinFilter::UnpinnedOnly.matches(&PinState::None));
+        assert!(!PinFilter::UnpinnedOnly.matches(&PinState::Pinned));
+        assert!(!PinFilter::UnpinnedOnly.matches(&PinState::Blocking));
+        assert!(!PinFilter::UnpinnedOnly.matches(&PinState::Gating("1.*".to_string())));
+    }
+
+    #[test]
+    fn pin_filter_display() {
+        assert_eq!(PinFilter::All.to_string(), "Pins: all");
+        assert_eq!(PinFilter::PinnedOnly.to_string(), "Pins: only 📌");
+        assert_eq!(PinFilter::UnpinnedOnly.to_string(), "Pins: hide 📌");
+    }
+
     // ── Package::is_truncated ─────────────────────────────────────────────────
 
     #[test]

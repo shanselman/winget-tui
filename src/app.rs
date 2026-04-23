@@ -1680,6 +1680,49 @@ mod tests {
         assert!(app.detail.is_none(), "stale detail should not be displayed");
     }
 
+    // ── annotate_pins ─────────────────────────────────────────────────────────
+
+    #[test]
+    fn annotate_pins_applies_matching_pin_state() {
+        let mut packages = vec![pkg("Google.Chrome"), pkg("Microsoft.VisualStudioCode")];
+        let pins = vec![PackagePin {
+            id: "Google.Chrome".to_string(),
+            pin_state: PinState::Blocking,
+        }];
+        App::annotate_pins(&mut packages, pins);
+        assert_eq!(packages[0].pin_state, PinState::Blocking);
+        assert_eq!(packages[1].pin_state, PinState::None);
+    }
+
+    #[test]
+    fn annotate_pins_with_gating_version() {
+        let mut packages = vec![pkg("7zip.7zip")];
+        let pins = vec![PackagePin {
+            id: "7zip.7zip".to_string(),
+            pin_state: PinState::Gating("25.*".to_string()),
+        }];
+        App::annotate_pins(&mut packages, pins);
+        assert_eq!(packages[0].pin_state, PinState::Gating("25.*".to_string()));
+    }
+
+    #[test]
+    fn annotate_pins_unmatched_pin_is_ignored() {
+        let mut packages = vec![pkg("Google.Chrome")];
+        let pins = vec![PackagePin {
+            id: "NoSuchPackage.Id".to_string(),
+            pin_state: PinState::Pinned,
+        }];
+        App::annotate_pins(&mut packages, pins);
+        assert_eq!(packages[0].pin_state, PinState::None);
+    }
+
+    #[test]
+    fn annotate_pins_empty_pins_leaves_packages_unchanged() {
+        let mut packages = vec![pkg("Google.Chrome")];
+        App::annotate_pins(&mut packages, vec![]);
+        assert_eq!(packages[0].pin_state, PinState::None);
+    }
+
     // ── FocusZone ────────────────────────────────────────────────────────────
 
     #[test]

@@ -985,6 +985,142 @@ Google Chrome                  Google.Chrome               131.0.6  winget
         assert_eq!(deduped[0].version, "2.43.1");
     }
 
+    // ── compare_versions_like ─────────────────────────────────────────────────
+
+    #[test]
+    fn compare_versions_like_equal_versions() {
+        assert_eq!(
+            CliBackend::compare_versions_like("1.2.3", "1.2.3"),
+            Ordering::Equal
+        );
+    }
+
+    #[test]
+    fn compare_versions_like_numeric_beats_lexicographic() {
+        assert_eq!(
+            CliBackend::compare_versions_like("2.0", "10.0"),
+            Ordering::Less
+        );
+        assert_eq!(
+            CliBackend::compare_versions_like("10.0", "2.0"),
+            Ordering::Greater
+        );
+    }
+
+    #[test]
+    fn compare_versions_like_multi_component() {
+        assert_eq!(
+            CliBackend::compare_versions_like("1.9", "1.10"),
+            Ordering::Less
+        );
+        assert_eq!(
+            CliBackend::compare_versions_like("10.0.19041", "10.0.22621"),
+            Ordering::Less
+        );
+    }
+
+    #[test]
+    fn compare_versions_like_unknown_is_less_than_real_version() {
+        assert_eq!(
+            CliBackend::compare_versions_like("unknown", "1.0"),
+            Ordering::Less
+        );
+        assert_eq!(
+            CliBackend::compare_versions_like("1.0", "unknown"),
+            Ordering::Greater
+        );
+        assert_eq!(CliBackend::compare_versions_like("", "1.0"), Ordering::Less);
+    }
+
+    #[test]
+    fn compare_versions_like_both_unknown_are_equal() {
+        assert_eq!(
+            CliBackend::compare_versions_like("unknown", "unknown"),
+            Ordering::Equal
+        );
+        assert_eq!(CliBackend::compare_versions_like("", ""), Ordering::Equal);
+    }
+
+    #[test]
+    fn compare_versions_like_text_suffix_lexicographic() {
+        assert_eq!(
+            CliBackend::compare_versions_like("1.0-alpha", "1.0-beta"),
+            Ordering::Less
+        );
+        assert_eq!(
+            CliBackend::compare_versions_like("1.0-rc", "1.0-alpha"),
+            Ordering::Greater
+        );
+    }
+
+    #[test]
+    fn compare_versions_like_longer_version_wins_when_prefix_equal() {
+        assert_eq!(
+            CliBackend::compare_versions_like("1.0.0", "1.0"),
+            Ordering::Greater
+        );
+    }
+
+    // ── parse_pin_state ───────────────────────────────────────────────────────
+
+    #[test]
+    fn parse_pin_state_blocking_type() {
+        assert_eq!(
+            CliBackend::parse_pin_state("Blocking", ""),
+            PinState::Blocking
+        );
+        assert_eq!(
+            CliBackend::parse_pin_state("blocking", "1.0"),
+            PinState::Blocking,
+            "block type takes priority over version"
+        );
+    }
+
+    #[test]
+    fn parse_pin_state_gating_with_version() {
+        assert_eq!(
+            CliBackend::parse_pin_state("Gating", "2.45.*"),
+            PinState::Gating("2.45.*".to_string())
+        );
+        assert_eq!(
+            CliBackend::parse_pin_state("Pinning", "1.0.0"),
+            PinState::Gating("1.0.0".to_string()),
+            "non-empty non-latest version becomes Gating regardless of type"
+        );
+    }
+
+    #[test]
+    fn parse_pin_state_latest_version_is_not_gating() {
+        assert_eq!(
+            CliBackend::parse_pin_state("Pinning", "Latest"),
+            PinState::Pinned,
+            "version=='Latest' should not produce Gating"
+        );
+        assert_eq!(
+            CliBackend::parse_pin_state("Pinning", "latest"),
+            PinState::Pinned
+        );
+    }
+
+    #[test]
+    fn parse_pin_state_gating_empty_version_is_pinned() {
+        assert_eq!(
+            CliBackend::parse_pin_state("Gating", ""),
+            PinState::Pinned,
+            "gate type with no version should be Pinned"
+        );
+    }
+
+    #[test]
+    fn parse_pin_state_pin_type_no_version() {
+        assert_eq!(CliBackend::parse_pin_state("Pinning", ""), PinState::Pinned);
+    }
+
+    #[test]
+    fn parse_pin_state_empty_type_empty_version_is_none() {
+        assert_eq!(CliBackend::parse_pin_state("", ""), PinState::None);
+    }
+
     #[test]
     fn parse_pin_list_table() {
         let backend = CliBackend::new();
