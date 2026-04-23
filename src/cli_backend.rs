@@ -293,10 +293,10 @@ impl CliBackend {
         lines[sep_idx + 1..]
             .iter()
             .filter(|l| !l.trim().is_empty())
-            // Skip footer lines like "2 upgrades available." (digit(s) + space).
-            // Uses filter (not take_while) so a false positive only skips one line
-            // instead of silently dropping all remaining packages.
-            .filter(|l| !is_winget_footer_line(l))
+            // Stop at the first footer line (e.g. "61 upgrades available.").
+            // When pinned packages exist, winget appends a second mini-table
+            // after the footer; we must not parse into it.
+            .take_while(|l| !is_winget_footer_line(l))
             .filter_map(|line| self.parse_table_row(line, &col_positions, col_map))
             .collect()
     }
@@ -1094,6 +1094,35 @@ Google Chrome                  Google.Chrome               131.0.6778  132.0.683
     }
 
     #[test]
+    fn parse_upgrade_table_stops_before_second_pin_table() {
+        let backend = CliBackend::new();
+        // Real-world output when `--include-pinned` is used and pinned packages
+        // exist: winget appends a second mini-table after the footer. The parser
+        // must stop at the footer and not treat the second table as packages.
+        // (GitHub issue #144)
+        let output = "\
+Name                           Id                          Version     Available   Source
+-------------------------------------------------------------------------------------------------
+Google Chrome                  Google.Chrome               131.0.6778  132.0.6834  winget
+PowerToys (Preview) x64        Microsoft.PowerToys         0.96.0      0.98.1      winget
+2 upgrades available.
+
+1 package(s) have a pin that needs to be removed before upgrade
+Name Id      Version Available Source
+-------------------------------------
+Git  Git.Git 2.53.0  2.54.0    winget
+";
+        let packages = backend.parse_packages_from_table(output);
+        assert_eq!(
+            packages.len(),
+            2,
+            "must not include rows from the second pin table"
+        );
+        assert_eq!(packages[0].id, "Google.Chrome");
+        assert_eq!(packages[1].id, "Microsoft.PowerToys");
+    }
+
+    #[test]
     fn parse_table_with_digit_starting_package_name() {
         let backend = CliBackend::new();
         // 7-Zip starts with a digit — must NOT be treated as a footer line
@@ -1144,20 +1173,20 @@ Microsoft Windows Desktop Runtime 10.\u{2026} Microsoft.DotNet.DesktopRuntime.10
     fn parse_table_long_footer_not_treated_as_package() {
         let backend = CliBackend::new();
         // A long localized footer whose text extends into the ID column area.
-        // With filter (not take_while) + ID validation, this must not produce a package,
-        // AND Chrome after it must still be parsed.
+        // With take_while, parsing stops at this footer line. In real winget
+        // output, footers always appear after all package rows.
         let output = "\
 Name                           Id                          Version     Available   Source
 -------------------------------------------------------------------------------------------------
 Google Chrome                  Google.Chrome               131.0.6778  132.0.6834  winget
-2 Pakete verfuegen ueber Pins die ein Upgrade verhindern, ein Upgrade kann ueber winget durchgefuehrt
 Microsoft Visual Studio Code   Microsoft.VisualStudioCode  1.95.3      1.96.0      winget
+2 Pakete verfuegen ueber Pins die ein Upgrade verhindern, ein Upgrade kann ueber winget durchgefuehrt
 ";
         let packages = backend.parse_packages_from_table(output);
         assert_eq!(
             packages.len(),
             2,
-            "footer must be skipped, but VS Code after it must be kept"
+            "both packages before the footer must be kept"
         );
         assert_eq!(packages[0].id, "Google.Chrome");
         assert_eq!(packages[1].id, "Microsoft.VisualStudioCode");
