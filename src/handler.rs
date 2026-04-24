@@ -672,6 +672,7 @@ fn scrollbar_jump(app: &mut App, row: u16) {
     let new_idx = (ratio * (app.filtered_packages.len() - 1) as f64).round() as usize;
     if new_idx != app.selected {
         app.selected = new_idx;
+        app.ensure_selection_visible();
         load_detail_for_selected(app);
     }
 }
@@ -1357,5 +1358,30 @@ mod tests {
         // Selection should NOT move — only the viewport offset changes
         assert_eq!(app.selected, 2);
         assert_eq!(app.table_state.offset(), 2); // scrolled up by 3
+    }
+
+    #[tokio::test]
+    async fn scrollbar_jump_updates_viewport_to_show_selection() {
+        // 50 packages; list height 8 gives 5 visible rows (height - 3 border/header rows).
+        let mut app = make_app_with_pkgs(50);
+        // Place the list at row 0, height 8.
+        app.layout.package_list = rect(0, 0, 40, 8);
+        app.selected = 0;
+        *app.table_state.offset_mut() = 0;
+
+        // Click the very bottom of the scrollbar track → should jump to last package.
+        // track_top = list.y + 1 = 1, track_height = 8 - 2 = 6, bottom row = 6.
+        let bottom_track_row = 6u16;
+        scrollbar_jump(&mut app, bottom_track_row);
+
+        // Selection should be at the last package.
+        assert_eq!(app.selected, 49);
+        // Viewport must be adjusted so package 49 is visible.
+        // viewport_rows = 8 - 3 = 5; expected offset = 49 - 5 + 1 = 45.
+        assert_eq!(
+            app.table_state.offset(),
+            45,
+            "viewport should scroll to show selected package"
+        );
     }
 }
