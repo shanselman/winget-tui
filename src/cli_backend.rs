@@ -290,7 +290,7 @@ impl CliBackend {
         let col_positions = Self::detect_columns(header);
         let col_map = Self::package_column_map(&col_positions);
 
-        lines[sep_idx + 1..]
+        let mut packages: Vec<Package> = lines[sep_idx + 1..]
             .iter()
             .filter(|l| !l.trim().is_empty())
             // Stop at the first footer line (e.g. "61 upgrades available.").
@@ -298,7 +298,32 @@ impl CliBackend {
             // after the footer; we must not parse into it.
             .take_while(|l| !is_winget_footer_line(l))
             .filter_map(|line| self.parse_table_row(line, &col_positions, col_map))
-            .collect()
+            .collect();
+
+        // When `--include-pinned` is used, winget may append a second table
+        // after the footer for packages whose pins block upgrade. Parse that
+        // table too so pinned packages appear in the Upgrades view.
+        let remaining = &lines[sep_idx + 1..];
+        if let Some(footer_offset) = remaining
+            .iter()
+            .position(|l| !l.trim().is_empty() && is_winget_footer_line(l))
+        {
+            let after_footer = &remaining[footer_offset + 1..];
+            if let Some(sep2) = Self::find_table_separator(after_footer) {
+                let header2 = after_footer[sep2 - 1];
+                let cols2 = Self::detect_columns(header2);
+                let map2 = Self::package_column_map(&cols2);
+                let extra: Vec<Package> = after_footer[sep2 + 1..]
+                    .iter()
+                    .filter(|l| !l.trim().is_empty())
+                    .take_while(|l| !is_winget_footer_line(l))
+                    .filter_map(|line| self.parse_table_row(line, &cols2, map2))
+                    .collect();
+                packages.extend(extra);
+            }
+        }
+
+        packages
     }
 
     fn detect_columns(header: &str) -> Vec<(&str, usize)> {
@@ -1179,9 +1204,9 @@ Google Chrome                  Google.Chrome               131.0.6778  132.0.683
     fn parse_upgrade_table_stops_before_second_pin_table() {
         let backend = CliBackend::new();
         // Real-world output when `--include-pinned` is used and pinned packages
-        // exist: winget appends a second mini-table after the footer. The parser
-        // must stop at the footer and not treat the second table as packages.
-        // (GitHub issue #144)
+        // exist: winget appends a second mini-table after the footer.
+        // The parser should include packages from BOTH tables so pinned
+        // packages appear in the Upgrades view. (GitHub issues #144, #148)
         let output = "\
 Name                           Id                          Version     Available   Source
 -------------------------------------------------------------------------------------------------
@@ -1197,11 +1222,12 @@ Git  Git.Git 2.53.0  2.54.0    winget
         let packages = backend.parse_packages_from_table(output);
         assert_eq!(
             packages.len(),
-            2,
-            "must not include rows from the second pin table"
+            3,
+            "must include packages from both the main table and the pin table"
         );
         assert_eq!(packages[0].id, "Google.Chrome");
         assert_eq!(packages[1].id, "Microsoft.PowerToys");
+        assert_eq!(packages[2].id, "Git.Git");
     }
 
     #[test]
