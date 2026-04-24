@@ -673,6 +673,10 @@ impl App {
                     if let Some(id) = prev_id {
                         if let Some(idx) = self.filtered_packages.iter().position(|p| p.id == id) {
                             self.selected = idx;
+                            // Scroll the viewport so the restored cursor is visible.
+                            // Without this, packages that moved outside the current
+                            // viewport after a refresh appear selected but off-screen.
+                            self.ensure_selection_visible();
                         }
                     }
                     self.loading = false;
@@ -939,6 +943,39 @@ mod tests {
         assert!(
             app.selected < app.filtered_packages.len(),
             "selection must remain in bounds after package disappears"
+        );
+    }
+
+    #[tokio::test]
+    async fn packages_loaded_cursor_restore_adjusts_viewport() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+
+        // Set a small viewport (height=8 → 5 visible rows after header+borders)
+        app.layout.package_list.height = 8;
+
+        // Load 15 packages, then select index 10 and scroll viewport to show 6-10
+        app.view_generation = 1;
+        let pkgs: Vec<Package> = (0..15).map(|i| pkg(&format!("Pkg.{i:02}"))).collect();
+        deliver_packages(&mut app, pkgs);
+        app.selected = 10;
+        *app.table_state.offset_mut() = 6;
+
+        // Simulate a refresh that prepends 5 new packages, pushing Pkg.10 to index 15
+        app.view_generation = 2;
+        let mut new_pkgs: Vec<Package> = (0..5).map(|i| pkg(&format!("New.{i:02}"))).collect();
+        new_pkgs.extend((0..15).map(|i| pkg(&format!("Pkg.{i:02}"))));
+        deliver_packages(&mut app, new_pkgs);
+
+        // Cursor must follow Pkg.10 to its new index (15)
+        assert_eq!(app.selected, 15, "cursor should follow package to index 15");
+
+        // Viewport must have been adjusted so the selected row is visible
+        let viewport_rows = (app.layout.package_list.height.saturating_sub(3)) as usize; // 5
+        let offset = app.table_state.offset();
+        assert!(
+            app.selected >= offset && app.selected < offset + viewport_rows,
+            "viewport (offset={offset}, rows={viewport_rows}) must include selected index 15"
         );
     }
 
