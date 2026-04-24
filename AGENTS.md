@@ -62,7 +62,7 @@ default_source = "all"       # all | winget | msstore
 ## Keybindings
 
 - `↑` / `k`, `↓` / `j`: move selection up / down
-- `PgUp` / `PgDn`: jump 20 items
+- `PgUp` / `PgDn`: jump one page
 - `Home` / `End`: jump to first / last
 - `Left` / `Right`: switch views
 - `Tab` / `Shift+Tab`: toggle focus between list and details
