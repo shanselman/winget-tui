@@ -1,6 +1,6 @@
 {
-  "r": "2026-04-23",
-  "run": "24837084315",
+  "r": "2026-04-24",
+  "run": "24867119243",
   "mo": "2026-04-",
   "monthly": "#118 (April 2026)",
   "comments_made": {
@@ -9,10 +9,7 @@
     "126": "2026-04-19"
   },
   "open_prs": [
-    "repo-assist/eng-ci-updates-2026-04-22",
-    "repo-assist/fix-help-overlay-missing-keys-2026-04-22",
-    "repo-assist/test-improvements-2026-04-23",
-    "repo-assist/perf-truncate-cow-2026-04-23"
+    "repo-assist/fix-cursor-restore-viewport-2026-04-24"
   ],
-  "notes": "Many previous Repo Assist PRs were closed without merging by maintainer. Focus on minimal, high-value changes only. Open: Dependabot #136/#139 (bundled by eng-ci issue #141), Copilot Pins #125, help overlay issue #142. 210 tests passing. All human issues closed - only Repo Assist issues open. Latest PR: perf truncate Cow optimization in ui.rs."
+  "notes": "Many previous Repo Assist PRs were closed without merging by maintainer. Focus on minimal, high-value changes only. 230 tests passing. All human issues closed. Latest PR: fix cursor restore viewport - ensure_selection_visible called after cursor restore on refresh. Previous branches from 2026-04-22/23 no longer open."
 }
