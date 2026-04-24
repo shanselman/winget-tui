@@ -673,6 +673,7 @@ impl App {
                     if let Some(id) = prev_id {
                         if let Some(idx) = self.filtered_packages.iter().position(|p| p.id == id) {
                             self.selected = idx;
+                            self.ensure_selection_visible();
                         }
                     }
                     self.loading = false;
@@ -703,6 +704,14 @@ impl App {
                         detail
                     };
                     let mut merged = merged;
+                    // `winget show` returns the latest manifest version, not the
+                    // installed version.  Restore the installed version from the
+                    // package list so the detail pane shows the correct value.
+                    if let Some(pkg) = self.filtered_packages.iter().find(|p| p.id == merged.id) {
+                        if !pkg.version.is_empty() {
+                            merged.version = pkg.version.clone();
+                        }
+                    }
                     Self::ensure_detail_hint(&mut merged);
                     // Cache for instant retrieval on revisit
                     if !merged.id.is_empty() {
@@ -1694,6 +1703,46 @@ mod tests {
                 .contains("Additional metadata is not available"),
             "sparse details should explain why rich metadata is missing"
         );
+    }
+
+    #[test]
+    fn process_messages_detail_loaded_preserves_installed_version() {
+        // Issue #146: winget show returns the latest manifest version, but the
+        // detail pane should show the installed version from the package list.
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.detail_generation = 1;
+        app.mode = AppMode::Upgrades;
+        // Package list has installed version 0.96.0
+        app.filtered_packages = vec![Package {
+            id: "Microsoft.PowerToys".to_string(),
+            name: "PowerToys".to_string(),
+            version: "0.96.0".to_string(),
+            source: "winget".to_string(),
+            available_version: "0.98.1".to_string(),
+            pin_state: PinState::None,
+        }];
+        // winget show returns the latest manifest version 0.98.1
+        let detail = PackageDetail {
+            id: "Microsoft.PowerToys".to_string(),
+            name: "PowerToys".to_string(),
+            version: "0.98.1".to_string(),
+            publisher: "Microsoft".to_string(),
+            ..PackageDetail::default()
+        };
+        app.message_tx
+            .send(AppMessage::DetailLoaded {
+                generation: 1,
+                detail,
+            })
+            .unwrap();
+        app.process_messages();
+        let loaded = app.detail.as_ref().expect("detail should be set");
+        assert_eq!(
+            loaded.version, "0.96.0",
+            "detail should show installed version, not manifest version"
+        );
+        assert_eq!(loaded.publisher, "Microsoft");
     }
 
     #[test]

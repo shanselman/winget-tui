@@ -58,7 +58,7 @@ winget-tui
 |-----|--------|
 | `↑` / `k` | Move up |
 | `↓` / `j` | Move down |
-| `PgUp` / `PgDn` | Jump 20 items |
+| `PgUp` / `PgDn` | Jump one page |
 | `Home` / `End` | Jump to first / last |
 | `←` / `→` | Cycle views backward / forward |
 | `Tab` / `Shift+Tab` | Toggle focus between the package list and detail panel |

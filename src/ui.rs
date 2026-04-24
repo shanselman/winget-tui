@@ -946,7 +946,7 @@ fn draw_help_overlay(f: &mut Frame) {
         ]),
         Line::from(vec![
             Span::styled("  PgUp/PgDn   ", key),
-            Span::raw("Jump 20 items"),
+            Span::raw("Jump one page"),
         ]),
         Line::from(vec![
             Span::styled("  Home/End    ", key),

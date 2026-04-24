@@ -672,6 +672,7 @@ fn scrollbar_jump(app: &mut App, row: u16) {
     let new_idx = (ratio * (app.filtered_packages.len() - 1) as f64).round() as usize;
     if new_idx != app.selected {
         app.selected = new_idx;
+        app.ensure_selection_visible();
         load_detail_for_selected(app);
     }
 }
