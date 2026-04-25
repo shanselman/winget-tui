@@ -143,6 +143,46 @@ fn handle_local_filter_input(app: &mut App, key: KeyCode) -> anyhow::Result<bool
             app.ensure_selection_visible();
             load_detail_for_selected(app);
         }
+        // Allow navigating the filtered list without leaving filter mode
+        KeyCode::Up => {
+            app.move_selection(-1);
+            load_detail_for_selected(app);
+        }
+        KeyCode::Down => {
+            app.move_selection(1);
+            load_detail_for_selected(app);
+        }
+        KeyCode::PageUp => {
+            if !app.filtered_packages.is_empty() {
+                let page = list_page_size(app);
+                app.selected = app.selected.saturating_sub(page);
+                app.ensure_selection_visible();
+                load_detail_for_selected(app);
+            }
+        }
+        KeyCode::PageDown => {
+            if !app.filtered_packages.is_empty() {
+                let page = list_page_size(app);
+                let max = app.filtered_packages.len() - 1;
+                app.selected = (app.selected + page).min(max);
+                app.ensure_selection_visible();
+                load_detail_for_selected(app);
+            }
+        }
+        KeyCode::Home => {
+            if !app.filtered_packages.is_empty() {
+                app.selected = 0;
+                app.ensure_selection_visible();
+                load_detail_for_selected(app);
+            }
+        }
+        KeyCode::End => {
+            if !app.filtered_packages.is_empty() {
+                app.selected = app.filtered_packages.len() - 1;
+                app.ensure_selection_visible();
+                load_detail_for_selected(app);
+            }
+        }
         KeyCode::Char(c) => {
             app.local_filter.push(c);
             app.apply_filter();
@@ -1076,6 +1116,48 @@ mod tests {
         assert_eq!(app.input_mode, InputMode::Normal);
         assert_eq!(app.local_filter, "pkg1");
         assert_eq!(app.filtered_packages.len(), 1);
+    }
+
+    #[test]
+    fn local_filter_up_down_navigate_without_leaving_filter_mode() {
+        let mut app = make_app_with_pkgs(3);
+        app.mode = AppMode::Installed;
+        app.input_mode = InputMode::LocalFilter;
+        let rt = test_runtime();
+        let _guard = rt.enter();
+
+        // Initial selection is 0; Down should advance it
+        app.selected = 0;
+        let _ = handle_local_filter_input(&mut app, KeyCode::Down);
+        assert_eq!(app.selected, 1, "Down should move selection to index 1");
+        assert_eq!(
+            app.input_mode,
+            InputMode::LocalFilter,
+            "input_mode must stay LocalFilter"
+        );
+
+        // Up should move it back
+        let _ = handle_local_filter_input(&mut app, KeyCode::Up);
+        assert_eq!(app.selected, 0, "Up should move selection back to index 0");
+        assert_eq!(app.input_mode, InputMode::LocalFilter);
+    }
+
+    #[test]
+    fn local_filter_home_end_navigate_to_bounds() {
+        let mut app = make_app_with_pkgs(5);
+        app.mode = AppMode::Installed;
+        app.input_mode = InputMode::LocalFilter;
+        let rt = test_runtime();
+        let _guard = rt.enter();
+
+        app.selected = 2;
+        let _ = handle_local_filter_input(&mut app, KeyCode::Home);
+        assert_eq!(app.selected, 0, "Home should jump to first item");
+        assert_eq!(app.input_mode, InputMode::LocalFilter);
+
+        let _ = handle_local_filter_input(&mut app, KeyCode::End);
+        assert_eq!(app.selected, 4, "End should jump to last item");
+        assert_eq!(app.input_mode, InputMode::LocalFilter);
     }
 
     // ── handle_version_input ─────────────────────────────────────────────────
