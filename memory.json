@@ -1,6 +1,6 @@
 {
   "r": "2026-04-25",
-  "run": "24918931560",
+  "run": "24931614052",
   "mo": "2026-04-",
   "monthly": "#118 (April 2026)",
   "comments_made": {
@@ -8,6 +8,6 @@
     "88": "2026-04-14",
     "126": "2026-04-19"
   },
-  "open_prs": [],
-  "notes": "Many previous Repo Assist PRs closed without merging. Focus on minimal, high-value changes only. 236 tests passing. All human issues closed or integrity-filtered. Latest PR: test coverage for ensure_selection_visible (scroll-up, already-visible) and csv_escape (4 cases). Branch: repo-assist/test-viewport-csv-2026-04-25."
+  "open_prs": ["#152 (test: ensure_selection_visible + csv_escape)", "feat-filter-navigate-2026-04-25 (new PR, pending number)"],
+  "notes": "Many previous Repo Assist PRs closed without merging. Focus on minimal, high-value changes. v0.9.1 released. Latest PR: feat: allow Up/Down/PgUp/PgDn/Home/End navigation while in LocalFilter mode (232 tests pass). Branch: repo-assist/feat-filter-navigate-2026-04-25."
 }
