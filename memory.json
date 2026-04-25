@@ -1,6 +1,6 @@
 {
-  "r": "2026-04-24",
-  "run": "24891201750",
+  "r": "2026-04-25",
+  "run": "24918931560",
   "mo": "2026-04-",
   "monthly": "#118 (April 2026)",
   "comments_made": {
@@ -8,10 +8,6 @@
     "88": "2026-04-14",
     "126": "2026-04-19"
   },
-  "open_prs": [
-    "repo-assist/fix-cursor-restore-viewport-2026-04-24 (#147)",
-    "repo-assist/fix-scrollbar-jump-viewport-2026-04-24 (new)",
-    "repo-assist/docs-pgup-pgdn-description-2026-04-24 (new)"
-  ],
-  "notes": "Many previous Repo Assist PRs were closed without merging by maintainer. Focus on minimal, high-value changes only. 230 tests passing. All human issues closed. PR #147: cursor restore viewport fix. New this run: scrollbar_jump ensure_selection_visible fix (230 tests), docs PgUp/PgDn description fix."
+  "open_prs": [],
+  "notes": "Many previous Repo Assist PRs closed without merging. Focus on minimal, high-value changes only. 236 tests passing. All human issues closed or integrity-filtered. Latest PR: test coverage for ensure_selection_visible (scroll-up, already-visible) and csv_escape (4 cases). Branch: repo-assist/test-viewport-csv-2026-04-25."
 }
