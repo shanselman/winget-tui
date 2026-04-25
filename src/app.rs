@@ -1117,6 +1117,36 @@ mod tests {
         assert_eq!(app.table_state.offset(), 5);
     }
 
+    #[test]
+    fn ensure_selection_visible_scrolls_viewport_up() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.packages = make_packages(20);
+        app.filtered_packages = app.packages.clone();
+        app.layout.package_list.height = 8; // 5 visible rows after header/borders
+        app.selected = 2;
+        *app.table_state.offset_mut() = 5; // selection is above the visible window
+
+        app.ensure_selection_visible();
+
+        assert_eq!(app.table_state.offset(), 2);
+    }
+
+    #[test]
+    fn ensure_selection_visible_already_visible_is_noop() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.packages = make_packages(20);
+        app.filtered_packages = app.packages.clone();
+        app.layout.package_list.height = 8; // 5 visible rows after header/borders
+        app.selected = 3;
+        *app.table_state.offset_mut() = 2; // row 3 is within [2, 6]
+
+        app.ensure_selection_visible();
+
+        assert_eq!(app.table_state.offset(), 2);
+    }
+
     // ── selected_package ──────────────────────────────────────────────────────
 
     #[test]
@@ -1882,5 +1912,27 @@ mod tests {
         assert_eq!(spy.show_calls().len(), calls_before);
         assert_eq!(app.detail.as_ref().unwrap().name, "Google Chrome");
         assert!(!app.detail_loading);
+    }
+
+    // ── csv_escape ────────────────────────────────────────────────────────────
+
+    #[test]
+    fn csv_escape_plain_string_is_unchanged() {
+        assert_eq!(csv_escape("Google.Chrome"), "Google.Chrome");
+    }
+
+    #[test]
+    fn csv_escape_string_with_comma_is_quoted() {
+        assert_eq!(csv_escape("Foo, Bar"), "\"Foo, Bar\"");
+    }
+
+    #[test]
+    fn csv_escape_embedded_quote_is_doubled() {
+        assert_eq!(csv_escape("say \"hi\""), "\"say \"\"hi\"\"\"");
+    }
+
+    #[test]
+    fn csv_escape_newline_triggers_quoting() {
+        assert_eq!(csv_escape("line1\nline2"), "\"line1\nline2\"");
     }
 }
