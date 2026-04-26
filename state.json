@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-04-26T01:15:00Z",
-  "last_run_id": "24945011397",
+  "last_run": "2026-04-26T13:14:00Z",
+  "last_run_id": "24957396560",
   "monthly_summary_issue": 118,
   "comments_made": {
     "80": "2026-04-16",
@@ -11,10 +11,12 @@
   "open_repo_assist_prs": [
     {"number": 152, "branch": "repo-assist/test-viewport-csv-2026-04-25", "title": "test: add coverage for ensure_selection_visible branches and csv_escape"},
     {"number": 153, "branch": "repo-assist/feat-filter-navigate-2026-04-25", "title": "feat: navigate filtered list with arrow keys without leaving filter mode"},
-    {"number": "TBD", "branch": "repo-assist/chore-update-deps-help-fix-2026-04-26", "title": "chore: cargo update + fix missing s keybinding in help overlay"},
-    {"number": "TBD", "branch": "repo-assist/perf-dedupe-hashmap-2026-04-26", "title": "perf: replace O(N^2) linear scan in dedupe_packages with O(N) HashMap"}
+    {"number": 154, "branch": "repo-assist/chore-update-deps-help-fix-2026-04-26", "title": "chore: cargo update + fix missing s keybinding in help overlay"},
+    {"number": 155, "branch": "repo-assist/perf-dedupe-hashmap-2026-04-26", "title": "perf: replace O(N^2) linear scan in dedupe_packages with O(N) HashMap"},
+    {"number": 156, "branch": "repo-assist/test-normal-mode-keybindings-2026-04-26", "title": "test: add coverage for handle_normal_mode key bindings (28 tests, 232->260)"}
   ],
   "improvements_submitted": [
+    "test: handle_normal_mode 28 key binding tests (2026-04-26)",
     "perf: dedupe_packages O(N^2)->O(N) HashMap (2026-04-26)",
     "chore: cargo update patch + fix missing s key in help overlay (2026-04-26)",
     "Up/Down/PgUp/PgDn/Home/End navigation in LocalFilter mode (2026-04-25)",
@@ -28,7 +30,7 @@
     "version sort numeric comparison (2026-04-16)"
   ],
   "backlog_cursor": {
-    "issues": "processed 80, 83, 88, 126; issue 115 blocked by integrity filter; no new open human issues",
-    "next_issue_to_process": "check for new issues after 126"
+    "issues": "processed 80, 83, 88, 126; only open issue is #118 (monthly summary); no human issues",
+    "next_issue_to_process": "check for new issues next run"
   }
 }
