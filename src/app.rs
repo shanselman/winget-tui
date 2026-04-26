@@ -319,9 +319,15 @@ impl App {
         self.ensure_selection_visible();
     }
 
+    /// Number of package rows visible in the rendered package table.
+    pub fn package_list_viewport_rows(&self) -> usize {
+        // Border top + top padding + header row + border bottom.
+        self.layout.package_list.height.saturating_sub(4) as usize
+    }
+
     /// Adjust the table viewport offset so the selected row is visible.
     pub fn ensure_selection_visible(&mut self) {
-        let viewport_rows = self.layout.package_list.height.saturating_sub(3) as usize;
+        let viewport_rows = self.package_list_viewport_rows();
         if viewport_rows == 0 {
             return;
         }
@@ -1108,13 +1114,33 @@ mod tests {
         let mut app = make_app(spy as Arc<dyn WingetBackend>);
         app.packages = make_packages(20);
         app.filtered_packages = app.packages.clone();
-        app.layout.package_list.height = 8; // 5 visible rows after header/borders
+        app.layout.package_list.height = 8; // 4 visible rows after border/padding/header
         app.selected = 9;
         *app.table_state.offset_mut() = 0;
 
         app.ensure_selection_visible();
 
-        assert_eq!(app.table_state.offset(), 5);
+        assert_eq!(app.table_state.offset(), 6);
+    }
+
+    #[test]
+    fn move_selection_scrolls_when_next_row_is_below_rendered_viewport() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.packages = make_packages(20);
+        app.filtered_packages = app.packages.clone();
+        app.layout.package_list.height = 8; // 4 visible rows: indices 0..=3
+        app.selected = 3;
+        *app.table_state.offset_mut() = 0;
+
+        app.move_selection(1);
+
+        assert_eq!(app.selected, 4);
+        assert_eq!(
+            app.table_state.offset(),
+            1,
+            "moving one row below the rendered viewport should scroll down"
+        );
     }
 
     // ── selected_package ──────────────────────────────────────────────────────

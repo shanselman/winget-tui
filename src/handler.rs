@@ -531,7 +531,7 @@ fn switch_view(app: &mut App, new_mode: AppMode) {
 /// Returns the number of visible data rows in the package list, based on the
 /// last-rendered layout.  Falls back to 20 if a render hasn't happened yet.
 fn list_page_size(app: &App) -> usize {
-    let h = app.layout.package_list.height.saturating_sub(3) as usize;
+    let h = app.package_list_viewport_rows();
     if h == 0 {
         20
     } else {

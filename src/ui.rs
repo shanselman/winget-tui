@@ -384,7 +384,7 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
     f.render_stateful_widget(table, area, &mut app.table_state);
 
     // Scrollbar
-    if app.filtered_packages.len() > (area.height as usize).saturating_sub(3) {
+    if app.filtered_packages.len() > app.package_list_viewport_rows() {
         let mut scrollbar_state =
             ScrollbarState::new(app.filtered_packages.len()).position(app.selected);
         let scrollbar = Scrollbar::new(ScrollbarOrientation::VerticalRight)
