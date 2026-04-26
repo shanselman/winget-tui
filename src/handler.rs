@@ -1300,6 +1300,316 @@ mod tests {
         assert_eq!(app.status_message, "Nothing to export: list is empty");
     }
 
+    // ── handle_normal_mode: quit / overlay / focus / sort ────────────────────
+
+    #[test]
+    fn q_key_sets_should_quit() {
+        let mut app = make_app();
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('q'), KeyModifiers::NONE);
+        assert!(app.should_quit);
+    }
+
+    #[test]
+    fn esc_key_sets_should_quit() {
+        let mut app = make_app();
+        let _ = handle_normal_mode(&mut app, KeyCode::Esc, KeyModifiers::NONE);
+        assert!(app.should_quit);
+    }
+
+    #[test]
+    fn question_mark_enables_help_overlay() {
+        let mut app = make_app();
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('?'), KeyModifiers::NONE);
+        assert!(app.show_help, "? should enable the help overlay");
+    }
+
+    #[test]
+    fn question_mark_disables_help_overlay_when_already_shown() {
+        let mut app = make_app();
+        app.show_help = true;
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('?'), KeyModifiers::NONE);
+        assert!(!app.show_help, "? should toggle the help overlay off");
+    }
+
+    #[test]
+    fn tab_moves_focus_to_detail_panel() {
+        let mut app = make_app();
+        assert_eq!(app.focus, FocusZone::PackageList);
+        let _ = handle_normal_mode(&mut app, KeyCode::Tab, KeyModifiers::NONE);
+        assert_eq!(app.focus, FocusZone::DetailPanel);
+    }
+
+    #[test]
+    fn back_tab_moves_focus_back_to_list() {
+        let mut app = make_app();
+        app.focus = FocusZone::DetailPanel;
+        let _ = handle_normal_mode(&mut app, KeyCode::BackTab, KeyModifiers::NONE);
+        assert_eq!(app.focus, FocusZone::PackageList);
+    }
+
+    #[test]
+    fn s_key_cycles_sort_to_name_ascending() {
+        use crate::models::{SortDir, SortField};
+        let mut app = make_app();
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('S'), KeyModifiers::NONE);
+        assert_eq!(app.sort_field, SortField::Name);
+        assert_eq!(app.sort_dir, SortDir::Asc);
+    }
+
+    // ── handle_normal_mode: pin (p / P) ──────────────────────────────────────
+
+    #[test]
+    fn p_in_search_mode_shows_status_not_confirm() {
+        let mut app = make_app();
+        app.mode = AppMode::Search;
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('p'), KeyModifiers::NONE);
+        assert!(
+            app.status_message.contains("search results"),
+            "p in Search mode should show informational status"
+        );
+        assert!(app.confirm.is_none());
+    }
+
+    #[test]
+    fn p_on_truncated_id_shows_status() {
+        let mut app = make_app_with_pkg("TruncatedPkg...", "1.0", "");
+        app.mode = AppMode::Installed;
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('p'), KeyModifiers::NONE);
+        assert!(app.status_message.contains("truncated"));
+        assert!(app.confirm.is_none());
+    }
+
+    #[test]
+    fn p_on_unpinned_pkg_creates_pin_confirm() {
+        let mut app = make_app_with_pkg("Valid.Package", "1.0", "");
+        app.mode = AppMode::Installed;
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('p'), KeyModifiers::NONE);
+        assert!(
+            app.confirm.is_some(),
+            "p on unpinned package should open a pin confirm dialog"
+        );
+        assert!(matches!(
+            app.confirm.unwrap().operation,
+            Operation::Pin { .. }
+        ));
+    }
+
+    #[test]
+    fn p_on_pinned_pkg_creates_unpin_confirm() {
+        let mut app = make_app_with_pkg("Valid.Package", "1.0", "");
+        app.mode = AppMode::Installed;
+        app.packages[0].pin_state = PinState::Pinned;
+        app.filtered_packages[0].pin_state = PinState::Pinned;
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('p'), KeyModifiers::NONE);
+        assert!(
+            app.confirm.is_some(),
+            "p on pinned package should open an unpin confirm dialog"
+        );
+        assert!(matches!(
+            app.confirm.unwrap().operation,
+            Operation::Unpin { .. }
+        ));
+    }
+
+    #[test]
+    fn capital_p_in_search_mode_shows_informational_status() {
+        let mut app = make_app();
+        app.mode = AppMode::Search;
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('P'), KeyModifiers::NONE);
+        assert!(
+            app.status_message.contains("Installed")
+                || app.status_message.contains("Upgrades")
+                || app.status_message.contains("available"),
+            "P in Search mode should explain it only works in Installed/Upgrades"
+        );
+    }
+
+    #[test]
+    fn capital_p_in_installed_mode_cycles_pin_filter() {
+        use crate::models::PinFilter;
+        // Use an app with no packages so load_detail is not triggered.
+        let mut app = make_app();
+        app.mode = AppMode::Installed;
+        assert_eq!(app.pin_filter, PinFilter::All);
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('P'), KeyModifiers::NONE);
+        assert_eq!(app.pin_filter, PinFilter::PinnedOnly);
+    }
+
+    // ── handle_normal_mode: install (i / I) / uninstall (x) / upgrade (u) ───
+
+    #[test]
+    fn i_on_truncated_id_shows_status_not_confirm() {
+        let mut app = make_app_with_pkg("Truncated…", "1.0", "");
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('i'), KeyModifiers::NONE);
+        assert!(app.status_message.contains("truncated"));
+        assert!(app.confirm.is_none());
+    }
+
+    #[test]
+    fn i_on_valid_pkg_creates_install_confirm() {
+        let mut app = make_app_with_pkg("Valid.Package", "1.0", "");
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('i'), KeyModifiers::NONE);
+        assert!(app.confirm.is_some());
+        assert!(matches!(
+            app.confirm.unwrap().operation,
+            Operation::Install { version: None, .. }
+        ));
+    }
+
+    #[test]
+    fn x_on_truncated_id_shows_status_not_confirm() {
+        let mut app = make_app_with_pkg("Truncated...", "1.0", "");
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('x'), KeyModifiers::NONE);
+        assert!(app.status_message.contains("truncated"));
+        assert!(app.confirm.is_none());
+    }
+
+    #[test]
+    fn x_on_valid_pkg_creates_uninstall_confirm() {
+        let mut app = make_app_with_pkg("Valid.Package", "1.0", "");
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('x'), KeyModifiers::NONE);
+        assert!(app.confirm.is_some());
+        assert!(matches!(
+            app.confirm.unwrap().operation,
+            Operation::Uninstall { .. }
+        ));
+    }
+
+    #[test]
+    fn u_on_truncated_id_shows_status_not_confirm() {
+        let mut app = make_app_with_pkg("Truncated...", "1.0", "2.0");
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('u'), KeyModifiers::NONE);
+        assert!(app.status_message.contains("truncated"));
+        assert!(app.confirm.is_none());
+    }
+
+    #[test]
+    fn u_on_valid_pkg_creates_upgrade_confirm() {
+        let mut app = make_app_with_pkg("Valid.Package", "1.0", "2.0");
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('u'), KeyModifiers::NONE);
+        assert!(app.confirm.is_some());
+        assert!(matches!(
+            app.confirm.unwrap().operation,
+            Operation::Upgrade { .. }
+        ));
+    }
+
+    #[test]
+    fn shift_i_on_truncated_id_shows_status() {
+        let mut app = make_app_with_pkg("Truncated...", "1.0", "2.0");
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('I'), KeyModifiers::NONE);
+        assert!(app.status_message.contains("truncated"));
+        assert_eq!(app.input_mode, InputMode::Normal);
+    }
+
+    #[test]
+    fn shift_i_prefills_available_version_when_present() {
+        let mut app = make_app_with_pkg("Valid.Package", "1.0", "2.0");
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('I'), KeyModifiers::NONE);
+        assert_eq!(app.input_mode, InputMode::VersionInput);
+        assert_eq!(app.version_input, "2.0");
+    }
+
+    #[test]
+    fn shift_i_falls_back_to_current_version_when_no_available() {
+        let mut app = make_app_with_pkg("Valid.Package", "3.5", "");
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('I'), KeyModifiers::NONE);
+        assert_eq!(app.input_mode, InputMode::VersionInput);
+        assert_eq!(app.version_input, "3.5");
+    }
+
+    // ── handle_normal_mode: multi-select (Space / a) ─────────────────────────
+
+    #[test]
+    fn a_key_selects_all_packages_in_upgrades_view() {
+        let mut app = make_app_with_pkgs(3);
+        app.mode = AppMode::Upgrades;
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('a'), KeyModifiers::NONE);
+        assert_eq!(
+            app.selected_packages.len(),
+            3,
+            "a should select all 3 packages"
+        );
+    }
+
+    #[test]
+    fn a_key_deselects_all_when_all_already_selected() {
+        let mut app = make_app_with_pkgs(3);
+        app.mode = AppMode::Upgrades;
+        app.selected_packages = (0..3).collect();
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('a'), KeyModifiers::NONE);
+        assert!(
+            app.selected_packages.is_empty(),
+            "a when all selected should deselect all"
+        );
+    }
+
+    // ── handle_normal_mode: keys that spawn async tasks (need runtime) ────────
+
+    #[test]
+    fn f_key_cycles_source_filter_to_winget() {
+        use crate::models::SourceFilter;
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app();
+        assert_eq!(app.source_filter, SourceFilter::All);
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('f'), KeyModifiers::NONE);
+        assert_eq!(app.source_filter, SourceFilter::Winget);
+    }
+
+    #[test]
+    fn r_key_sets_loading_flag_and_status() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app();
+        app.loading = false;
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('r'), KeyModifiers::NONE);
+        assert!(app.loading, "r should set loading = true");
+        assert_eq!(app.status_message, "Refreshing...");
+    }
+
+    #[test]
+    fn right_key_cycles_view_forward() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app();
+        app.mode = AppMode::Search;
+        let _ = handle_normal_mode(&mut app, KeyCode::Right, KeyModifiers::NONE);
+        assert_eq!(app.mode, AppMode::Installed);
+    }
+
+    #[test]
+    fn left_key_cycles_view_backward() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app();
+        app.mode = AppMode::Installed;
+        let _ = handle_normal_mode(&mut app, KeyCode::Left, KeyModifiers::NONE);
+        assert_eq!(app.mode, AppMode::Search);
+    }
+
+    #[test]
+    fn space_key_toggles_package_selection_in_upgrades() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app_with_pkgs(3);
+        app.mode = AppMode::Upgrades;
+        app.selected = 1;
+        // First Space selects index 1
+        let _ = handle_normal_mode(&mut app, KeyCode::Char(' '), KeyModifiers::NONE);
+        assert!(
+            app.selected_packages.contains(&1),
+            "index 1 should be selected after Space"
+        );
+        // Move selection back and press Space again to deselect
+        app.selected = 1;
+        let _ = handle_normal_mode(&mut app, KeyCode::Char(' '), KeyModifiers::NONE);
+        assert!(
+            !app.selected_packages.contains(&1),
+            "index 1 should be deselected after second Space"
+        );
+    }
+
     // ── mouse hit-testing ────────────────────────────────────────────────────
 
     #[tokio::test]
