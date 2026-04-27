@@ -1,13 +1,14 @@
 {
-  "r": "2026-04-26",
-  "run": "24957396560",
+  "r": "2026-04-27",
+  "run": "24997000679",
   "mo": "2026-04-",
   "monthly": "#118 (April 2026)",
   "comments_made": {
     "83": "2026-04-16",
     "88": "2026-04-14",
-    "126": "2026-04-19"
+    "126": "2026-04-19",
+    "154_pr": "2026-04-27"
   },
-  "open_prs": ["#152 (test: ensure_selection_visible + csv_escape)", "#153 (feat: LocalFilter navigation)", "#154 (chore: cargo update + s key help fix)", "#155 (perf: dedupe_packages O(N^2)->O(N))", "#156 (test: handle_normal_mode key bindings, 28 tests, 232->260)"],
-  "notes": "Many previous Repo Assist PRs closed without merging. Pattern: bug fixes and small chores get merged. Features/tests often closed. v0.9.1 released. Task 2 (Issue Investigation): only 1 open issue #118 (monthly summary), no human issues to comment on. Task 9 (Testing): added 28 tests for handle_normal_mode key bindings in handler.rs."
+  "open_prs": ["#152 (test: ensure_selection_visible + csv_escape)", "#153 (feat: LocalFilter navigation)", "#154 (chore: cargo update + s key help fix - has Cargo.lock conflict, replaced)", "#155 (perf: dedupe_packages O(N^2)->O(N))", "#156 (test: handle_normal_mode key bindings, 28 tests)", "#new (chore: cargo update + s key help fix - fresh rebase on main, replaces #154)"],
+  "notes": "Many previous Repo Assist PRs closed without merging. Pattern: bug fixes and small chores get merged. v0.10.0 released 2026-04-26. PR #154 had Cargo.lock conflict with v0.10.0 (version bump commit). Created fresh rebased PR with same changes. 5 open PRs (#152-#156) all pre-v0.10.0 base. New PR created this run: chore/cargo-update-s-key-fix on main. No user bugs to fix."
 }
