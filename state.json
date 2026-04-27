@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-04-26T13:14:00Z",
-  "last_run_id": "24957396560",
+  "last_run": "2026-04-27T01:16:00Z",
+  "last_run_id": "24972000277",
   "monthly_summary_issue": 118,
   "comments_made": {
     "80": "2026-04-16",
@@ -13,9 +13,13 @@
     {"number": 153, "branch": "repo-assist/feat-filter-navigate-2026-04-25", "title": "feat: navigate filtered list with arrow keys without leaving filter mode"},
     {"number": 154, "branch": "repo-assist/chore-update-deps-help-fix-2026-04-26", "title": "chore: cargo update + fix missing s keybinding in help overlay"},
     {"number": 155, "branch": "repo-assist/perf-dedupe-hashmap-2026-04-26", "title": "perf: replace O(N^2) linear scan in dedupe_packages with O(N) HashMap"},
-    {"number": 156, "branch": "repo-assist/test-normal-mode-keybindings-2026-04-26", "title": "test: add coverage for handle_normal_mode key bindings (28 tests, 232->260)"}
+    {"number": 156, "branch": "repo-assist/test-normal-mode-keybindings-2026-04-26", "title": "test: add coverage for handle_normal_mode key bindings (28 tests, 232->260)"},
+    {"number": "pending", "branch": "repo-assist/eng-ci-concurrency-2026-04-27", "title": "ci: add concurrency groups to cancel stale workflow runs"},
+    {"number": "pending", "branch": "repo-assist/improve-config-default-sort-2026-04-27", "title": "feat(config): add default_sort config option"}
   ],
   "improvements_submitted": [
+    "feat(config): default_sort config option (2026-04-27)",
+    "ci: concurrency groups for ci.yml and build.yml (2026-04-27)",
     "test: handle_normal_mode 28 key binding tests (2026-04-26)",
     "perf: dedupe_packages O(N^2)->O(N) HashMap (2026-04-26)",
     "chore: cargo update patch + fix missing s key in help overlay (2026-04-26)",
