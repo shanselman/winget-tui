@@ -57,6 +57,7 @@ Supported keys:
 ```toml
 default_view = "installed"   # installed | search | upgrades
 default_source = "all"       # all | winget | msstore
+default_sort = "none"        # none | name | name_desc | id | id_desc | version | version_desc
 ```
 
 ## Keybindings
