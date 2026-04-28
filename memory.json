@@ -1,6 +1,6 @@
 {
   "r": "2026-04-28",
-  "run": "25028572460",
+  "run": "25055176634",
   "mo": "2026-04-",
   "monthly": "#118 (April 2026)",
   "comments_made": {
@@ -9,6 +9,6 @@
     "126": "2026-04-19",
     "154_pr": "2026-04-27"
   },
-  "open_prs": ["#152 (test: ensure_selection_visible + csv_escape)", "#153 (feat: LocalFilter navigation)", "#154 (chore: superseded by #159 - should be closed)", "#155 (perf: dedupe_packages O(N^2)->O(N))", "#156 (test: handle_normal_mode key bindings, 28 tests)", "#159 (chore: cargo update + s key help fix - fresh rebase on v0.10.0 main)"],
-  "notes": "v0.10.0 released 2026-04-26. 6 open PRs (#152-#156, #159). PR #154 superseded by #159 (should be closed). Issues #157 (default_sort config) and #158 (CI concurrency) created from previous runs - blocked by protected files. No human-filed issues. 2026-04-28 run: Tasks 2+4 selected, nothing new to create - all engineering investments already in flight."
+  "open_prs": ["#152 (test: ensure_selection_visible + csv_escape)", "#153 (feat: LocalFilter navigation)", "#154 (chore: superseded by #159 - should be closed)", "#155 (perf: dedupe_packages O(N^2)->O(N))", "#156 (test: handle_normal_mode key bindings, 28 tests)", "#159 (chore: cargo update + s key help fix - fresh rebase on v0.10.0 main)", "pending (test: ARP/MSIX local stubs + cache invalidation, 7 tests, 231->238)"],
+  "notes": "v0.10.0 released 2026-04-26. 7 open PRs (#152-#156, #159, +pending). PR #154 superseded by #159 (should be closed). Issues #157 (default_sort config) and #158 (CI concurrency) created from previous runs - blocked by protected files. No human-filed issues. 2026-04-28 run #2: Tasks 6+5 selected. Task 6: all PRs show mergeable_state=clean, no CI failures visible, nothing to fix. Task 5: created PR for ARP/MSIX local stub tests + OperationComplete cache invalidation tests. Also 5 new Dependabot PRs #160-#164 for GitHub Actions bumps."
 }
