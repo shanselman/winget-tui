@@ -35,12 +35,12 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Install GitVersion
-        uses: gittools/actions/gitversion/setup@e0d584e657c606912e8fd522aeed29025975705f  # v4
+        uses: gittools/actions/gitversion/setup@bc6623af8fc07d5a8903052dd46da33403eec8e8  # v4
         with:
           versionSpec: '6.4.x'
 
       - name: GitVersion
-        uses: gittools/actions/gitversion/execute@e0d584e657c606912e8fd522aeed29025975705f  # v4
+        uses: gittools/actions/gitversion/execute@bc6623af8fc07d5a8903052dd46da33403eec8e8  # v4
         id: gitversion
 
       - name: Set version
