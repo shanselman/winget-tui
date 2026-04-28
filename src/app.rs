@@ -1891,6 +1891,217 @@ mod tests {
         assert!(app.detail_cache.contains_key("Google.Chrome"));
     }
 
+    // ── load_detail: ARP / MSIX / locally-sourced stubs ──────────────────────
+
+    #[test]
+    fn load_detail_arp_id_creates_local_stub_without_backend_call() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy.clone() as Arc<dyn WingetBackend>);
+        let arp_id = "ARP\\Machine\\X64\\Git_is1";
+        // Pre-populate filtered_packages so load_detail can build the stub
+        app.filtered_packages = vec![Package {
+            id: arp_id.to_string(),
+            name: "Git".to_string(),
+            version: "2.43.0".to_string(),
+            source: String::new(),
+            available_version: String::new(),
+            pin_state: PinState::None,
+        }];
+
+        app.load_detail(arp_id);
+
+        assert!(
+            spy.show_calls().is_empty(),
+            "winget show must not be called for ARP packages"
+        );
+        assert!(
+            !app.detail_loading,
+            "should not be loading for ARP packages"
+        );
+        let detail = app
+            .detail
+            .as_ref()
+            .expect("detail should be set to local stub");
+        assert_eq!(detail.id, arp_id);
+        assert_eq!(detail.name, "Git");
+        assert!(
+            detail.description.contains("Add/Remove Programs"),
+            "ARP stub description should mention the registry source"
+        );
+    }
+
+    #[test]
+    fn load_detail_msix_id_creates_local_stub_without_backend_call() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy.clone() as Arc<dyn WingetBackend>);
+        let msix_id = "MSIX\\bsky.app-C52C8C38_1.0.0.0_neutral__zpdnekdrzrea0";
+        app.filtered_packages = vec![Package {
+            id: msix_id.to_string(),
+            name: "Bluesky".to_string(),
+            version: "1.0.0.0".to_string(),
+            source: String::new(),
+            available_version: String::new(),
+            pin_state: PinState::None,
+        }];
+
+        app.load_detail(msix_id);
+
+        assert!(
+            spy.show_calls().is_empty(),
+            "winget show must not be called for MSIX packages"
+        );
+        assert!(!app.detail_loading);
+        let detail = app
+            .detail
+            .as_ref()
+            .expect("detail should be set to local stub");
+        assert_eq!(detail.id, msix_id);
+        assert!(
+            detail.description.contains("MSIX"),
+            "MSIX stub description should mention MSIX"
+        );
+    }
+
+    #[test]
+    fn load_detail_empty_source_creates_local_stub_without_backend_call() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy.clone() as Arc<dyn WingetBackend>);
+        let id = "LocalApp.Unlisted";
+        // A package with an empty source is treated as locally installed
+        app.filtered_packages = vec![Package {
+            id: id.to_string(),
+            name: "Unlisted App".to_string(),
+            version: "3.0".to_string(),
+            source: String::new(),
+            available_version: String::new(),
+            pin_state: PinState::None,
+        }];
+
+        app.load_detail(id);
+
+        assert!(
+            spy.show_calls().is_empty(),
+            "winget show must not be called for locally-installed (no source) packages"
+        );
+        assert!(!app.detail_loading);
+        let detail = app
+            .detail
+            .as_ref()
+            .expect("detail should be set for local package");
+        assert_eq!(detail.source, "local", "stub should set source to 'local'");
+    }
+
+    #[test]
+    fn load_detail_local_stub_is_cached() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy.clone() as Arc<dyn WingetBackend>);
+        let arp_id = "ARP\\Machine\\X64\\SomeApp";
+        app.filtered_packages = vec![Package {
+            id: arp_id.to_string(),
+            name: "Some App".to_string(),
+            version: "1.0".to_string(),
+            source: String::new(),
+            available_version: String::new(),
+            pin_state: PinState::None,
+        }];
+
+        app.load_detail(arp_id);
+
+        assert!(
+            app.detail_cache.contains_key(arp_id),
+            "local stub should be cached so a second call skips the stub-building logic"
+        );
+    }
+
+    // ── OperationComplete: detail cache invalidation ───────────────────────────
+
+    #[tokio::test]
+    async fn operation_complete_upgrade_invalidates_detail_cache() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.detail_cache.insert(
+            "Google.Chrome".to_string(),
+            PackageDetail {
+                id: "Google.Chrome".to_string(),
+                name: "Google Chrome".to_string(),
+                version: "131.0".to_string(),
+                ..PackageDetail::default()
+            },
+        );
+
+        app.message_tx
+            .send(AppMessage::OperationComplete(OpResult {
+                operation: Operation::Upgrade {
+                    id: "Google.Chrome".to_string(),
+                },
+                success: true,
+                message: "Successfully upgraded".to_string(),
+            }))
+            .unwrap();
+        app.process_messages();
+
+        assert!(
+            !app.detail_cache.contains_key("Google.Chrome"),
+            "detail cache should be invalidated after a successful upgrade"
+        );
+    }
+
+    #[tokio::test]
+    async fn operation_complete_pin_invalidates_detail_cache() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.detail_cache.insert(
+            "Microsoft.VisualStudioCode".to_string(),
+            PackageDetail {
+                id: "Microsoft.VisualStudioCode".to_string(),
+                ..PackageDetail::default()
+            },
+        );
+
+        app.message_tx
+            .send(AppMessage::OperationComplete(OpResult {
+                operation: Operation::Pin {
+                    id: "Microsoft.VisualStudioCode".to_string(),
+                },
+                success: true,
+                message: "Pin added".to_string(),
+            }))
+            .unwrap();
+        app.process_messages();
+
+        assert!(
+            !app.detail_cache.contains_key("Microsoft.VisualStudioCode"),
+            "detail cache should be invalidated after pinning a package"
+        );
+    }
+
+    #[test]
+    fn operation_complete_failed_single_op_sets_status_and_does_not_refresh() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.loading = true;
+
+        app.message_tx
+            .send(AppMessage::OperationComplete(OpResult {
+                operation: Operation::Uninstall {
+                    id: "Pkg.ToRemove".to_string(),
+                },
+                success: false,
+                message: "Access is denied".to_string(),
+            }))
+            .unwrap();
+        app.process_messages();
+
+        assert!(
+            app.status_message.contains("Access is denied"),
+            "failed operation status should include the error message"
+        );
+        assert!(
+            app.post_refresh_status.is_none(),
+            "a failed single-package operation should not queue a post-refresh status"
+        );
+    }
+
     #[test]
     fn load_detail_uses_cache_on_second_call() {
         let spy = SpyBackend::new();
