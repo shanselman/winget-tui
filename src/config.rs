@@ -8,14 +8,17 @@
 /// ```toml
 /// default_view   = "installed"   # "installed" | "search" | "upgrades"
 /// default_source = "all"         # "all" | "winget" | "msstore"
+/// default_sort   = "name"        # name | name_desc | id | id_desc | version | version_desc | none
 /// ```
 use crate::app::AppMode;
-use crate::models::SourceFilter;
+use crate::models::{SortDir, SortField, SourceFilter};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Config {
     pub default_view: AppMode,
     pub default_source: SourceFilter,
+    pub default_sort_field: SortField,
+    pub default_sort_dir: SortDir,
 }
 
 impl Default for Config {
@@ -23,6 +26,8 @@ impl Default for Config {
         Self {
             default_view: AppMode::Installed,
             default_source: SourceFilter::All,
+            default_sort_field: SortField::None,
+            default_sort_dir: SortDir::Asc,
         }
     }
 }
@@ -92,6 +97,19 @@ impl Config {
                         "msstore" => SourceFilter::MsStore,
                         _ => SourceFilter::All,
                     };
+                }
+                "default_sort" => {
+                    let (field, dir) = match value {
+                        "name" => (SortField::Name, SortDir::Asc),
+                        "name_desc" => (SortField::Name, SortDir::Desc),
+                        "id" => (SortField::Id, SortDir::Asc),
+                        "id_desc" => (SortField::Id, SortDir::Desc),
+                        "version" => (SortField::Version, SortDir::Asc),
+                        "version_desc" => (SortField::Version, SortDir::Desc),
+                        _ => (SortField::None, SortDir::Asc),
+                    };
+                    cfg.default_sort_field = field;
+                    cfg.default_sort_dir = dir;
                 }
                 _ => {}
             }
@@ -174,5 +192,78 @@ default_source = \"msstore\"
     fn parse_unknown_key_is_ignored() {
         let cfg = Config::parse("unknown_key = \"foo\"");
         assert_eq!(cfg, Config::default());
+    }
+
+    #[test]
+    fn parse_default_sort_name_asc() {
+        let cfg = Config::parse(r#"default_sort = "name""#);
+        assert_eq!(cfg.default_sort_field, SortField::Name);
+        assert_eq!(cfg.default_sort_dir, SortDir::Asc);
+    }
+
+    #[test]
+    fn parse_default_sort_name_desc() {
+        let cfg = Config::parse(r#"default_sort = "name_desc""#);
+        assert_eq!(cfg.default_sort_field, SortField::Name);
+        assert_eq!(cfg.default_sort_dir, SortDir::Desc);
+    }
+
+    #[test]
+    fn parse_default_sort_id_asc() {
+        let cfg = Config::parse(r#"default_sort = "id""#);
+        assert_eq!(cfg.default_sort_field, SortField::Id);
+        assert_eq!(cfg.default_sort_dir, SortDir::Asc);
+    }
+
+    #[test]
+    fn parse_default_sort_id_desc() {
+        let cfg = Config::parse(r#"default_sort = "id_desc""#);
+        assert_eq!(cfg.default_sort_field, SortField::Id);
+        assert_eq!(cfg.default_sort_dir, SortDir::Desc);
+    }
+
+    #[test]
+    fn parse_default_sort_version_asc() {
+        let cfg = Config::parse(r#"default_sort = "version""#);
+        assert_eq!(cfg.default_sort_field, SortField::Version);
+        assert_eq!(cfg.default_sort_dir, SortDir::Asc);
+    }
+
+    #[test]
+    fn parse_default_sort_version_desc() {
+        let cfg = Config::parse(r#"default_sort = "version_desc""#);
+        assert_eq!(cfg.default_sort_field, SortField::Version);
+        assert_eq!(cfg.default_sort_dir, SortDir::Desc);
+    }
+
+    #[test]
+    fn parse_default_sort_none_explicit() {
+        let cfg = Config::parse(r#"default_sort = "none""#);
+        assert_eq!(cfg.default_sort_field, SortField::None);
+        assert_eq!(cfg.default_sort_dir, SortDir::Asc);
+    }
+
+    #[test]
+    fn parse_default_sort_unknown_falls_back_to_none() {
+        let cfg = Config::parse(r#"default_sort = "unknown""#);
+        assert_eq!(cfg.default_sort_field, SortField::None);
+        assert_eq!(cfg.default_sort_dir, SortDir::Asc);
+    }
+
+    #[test]
+    fn parse_all_three_keys() {
+        let input = "default_view = \"upgrades\"\ndefault_source = \"winget\"\ndefault_sort = \"version_desc\"\n";
+        let cfg = Config::parse(input);
+        assert_eq!(cfg.default_view, AppMode::Upgrades);
+        assert_eq!(cfg.default_source, SourceFilter::Winget);
+        assert_eq!(cfg.default_sort_field, SortField::Version);
+        assert_eq!(cfg.default_sort_dir, SortDir::Desc);
+    }
+
+    #[test]
+    fn default_sort_field_is_none_and_dir_is_asc() {
+        let cfg = Config::default();
+        assert_eq!(cfg.default_sort_field, SortField::None);
+        assert_eq!(cfg.default_sort_dir, SortDir::Asc);
     }
 }
