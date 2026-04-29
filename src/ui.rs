@@ -1290,4 +1290,94 @@ mod tests {
             "bottom edge outside parent"
         );
     }
+
+    // ── word_wrap ─────────────────────────────────────────────────────────────
+
+    #[test]
+    fn word_wrap_empty_string_returns_one_empty_line() {
+        assert_eq!(word_wrap("", 40), vec![""]);
+    }
+
+    #[test]
+    fn word_wrap_single_word_within_limit() {
+        assert_eq!(word_wrap("hello", 10), vec!["hello"]);
+    }
+
+    #[test]
+    fn word_wrap_single_line_fits_exactly() {
+        // "hello world" = 11 chars, fits in max=11
+        assert_eq!(word_wrap("hello world", 11), vec!["hello world"]);
+    }
+
+    #[test]
+    fn word_wrap_wraps_at_word_boundary() {
+        // "hello world" with max=7: "hello" fits (5), " world" would be 5+1+5=11 > 7
+        assert_eq!(word_wrap("hello world", 7), vec!["hello", "world"]);
+    }
+
+    #[test]
+    fn word_wrap_three_words_wrap_correctly() {
+        // "one two three" with max=7: "one two" = 7 fits; "three" on next line
+        assert_eq!(word_wrap("one two three", 7), vec!["one two", "three"]);
+    }
+
+    #[test]
+    fn word_wrap_zero_max_returns_text_as_single_line() {
+        // zero max_width is a special case that returns the whole text unchanged
+        assert_eq!(word_wrap("hello world", 0), vec!["hello world"]);
+    }
+
+    #[test]
+    fn word_wrap_long_word_force_breaks() {
+        // A single word longer than max_width must be split mid-word
+        // "abcde" with max=3: ["abc", "de"]
+        let lines = word_wrap("abcde", 3);
+        assert_eq!(lines, vec!["abc", "de"]);
+    }
+
+    #[test]
+    fn word_wrap_very_long_word_splits_into_multiple_lines() {
+        // "abcdefgh" with max=3: ["abc", "def", "gh"]
+        let lines = word_wrap("abcdefgh", 3);
+        assert_eq!(lines, vec!["abc", "def", "gh"]);
+    }
+
+    #[test]
+    fn word_wrap_preserves_paragraph_breaks() {
+        // Two paragraphs separated by a newline produce separate output lines
+        let input = "first line\nsecond line";
+        let lines = word_wrap(input, 80);
+        assert_eq!(lines, vec!["first line", "second line"]);
+    }
+
+    #[test]
+    fn word_wrap_each_line_is_within_max_width() {
+        let text = "The quick brown fox jumps over the lazy dog";
+        let max = 15;
+        let lines = word_wrap(text, max);
+        for line in &lines {
+            let w = unicode_width::UnicodeWidthStr::width(line.as_str());
+            assert!(
+                w <= max,
+                "line {:?} has display width {} > {}",
+                line,
+                w,
+                max
+            );
+        }
+        // Reassembled text should contain all words
+        let rejoined = lines.join(" ");
+        assert_eq!(
+            rejoined.split_whitespace().collect::<Vec<_>>(),
+            text.split_whitespace().collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn word_wrap_cjk_respects_display_width() {
+        // Each CJK char is 2 display columns; "你好世界" = 8 cols
+        // With max=4: "你好" (4) fits on one line, "世界" on the next
+        let lines = word_wrap("你好世界", 4);
+        assert_eq!(lines, vec!["你好", "世界"]);
+    }
 }
