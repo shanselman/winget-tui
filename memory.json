@@ -1,6 +1,6 @@
 {
-  "r": "2026-04-29",
-  "run": "25110887541",
+  "r": "2026-04-30",
+  "run": "25142413978",
   "mo": "2026-04-",
   "monthly": "#118 (April 2026)",
   "comments_made": {
@@ -9,6 +9,17 @@
     "126": "2026-04-19",
     "154_pr": "2026-04-27"
   },
-  "open_prs": ["#152 (test: ensure_selection_visible + csv_escape)", "#153 (feat: LocalFilter navigation)", "#154 (chore: superseded by #159 - should be closed)", "#155 (perf: dedupe_packages O(N^2)->O(N))", "#156 (test: handle_normal_mode key bindings, 28 tests)", "#159 (chore: cargo update + s key help fix)", "#165 (test: ARP/MSIX local stubs + cache invalidation, 7 tests)", "#166 (test: word_wrap 11 tests, 231->242)", "default-sort PR (feat: default_sort config option, closes #157, 10 tests, 231->241)"],
-  "notes": "v0.10.0 released 2026-04-26. 9 open Repo Assist PRs. PR #154 superseded by #159 (comment made 2026-04-27). Issues #157 (default_sort config - PR created 2026-04-29) and #158 (CI concurrency) open. Dependabot PRs #160-#164 (GitHub Actions bumps) open. 2026-04-29 Tasks 3+6: Task 3: created PR for feat(config) default_sort (branch repo-assist/fix-issue-157-default-sort). Task 6: all PRs mergeable_state=clean, no CI failures."
+  "open_prs": [
+    "#152 (test: ensure_selection_visible + csv_escape)",
+    "#153 (feat: LocalFilter navigation)",
+    "#154 (chore: superseded by #159 - should be closed)",
+    "#155 (perf: dedupe_packages O(N^2)->O(N))",
+    "#156 (test: handle_normal_mode key bindings, 28 tests)",
+    "#159 (chore: cargo update + s key help fix)",
+    "#165 (test: ARP/MSIX local stubs + cache invalidation, 7 tests)",
+    "#166 (test: word_wrap 11 tests, 231->242)",
+    "#167 (feat: default_sort config option, closes issue #157, 10 tests, 231->241)",
+    "perf-viewport-rows PR (perf: build only visible rows, 6 tests, 231->237)"
+  ],
+  "notes": "v0.10.0 released 2026-04-26. 10 open Repo Assist PRs. PR #154 superseded by #159 (comment made 2026-04-27). Issue #158 (CI concurrency) open. Dependabot PRs #160-#164 (GitHub Actions bumps) open. 2026-04-30 Tasks 8+6: Task 8: created PR perf-viewport-rows-2026-04-30 (O(N)->O(viewport) row building in draw_package_list, 6 new tests). Task 6: all PRs mergeable_state=clean, no CI failures."
 }
