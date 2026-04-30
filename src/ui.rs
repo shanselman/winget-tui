@@ -6,7 +6,7 @@ use ratatui::{
     text::{Line, Span},
     widgets::{
         Block, BorderType, Borders, Cell, Clear, Paragraph, Row, Scrollbar, ScrollbarOrientation,
-        ScrollbarState, Table, Wrap,
+        ScrollbarState, Table, TableState, Wrap,
     },
     Frame,
 };
@@ -243,13 +243,19 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
     )
     .height(1);
 
-    let rows: Vec<Row> = app
-        .filtered_packages
+    // Only build rows for the visible viewport window.  For large package
+    // lists this avoids O(N) allocations on every frame: instead we pay only
+    // O(viewport) which is bounded by the terminal height (~30-60 rows).
+    let viewport = (area.height as usize).saturating_sub(4).max(1);
+    let total = app.filtered_packages.len();
+    let (row_start, row_end) = visible_row_range(app.table_state.offset(), viewport, total);
+    let rows: Vec<Row> = app.filtered_packages[row_start..row_end]
         .iter()
         .enumerate()
         .map(|(i, pkg)| {
-            let is_selected = i == app.selected;
-            let is_marked = app.mode == AppMode::Upgrades && app.selected_packages.contains(&i);
+            let idx = row_start + i; // absolute index into filtered_packages
+            let is_selected = idx == app.selected;
+            let is_marked = app.mode == AppMode::Upgrades && app.selected_packages.contains(&idx);
             let style = if is_selected {
                 theme::selected_row()
             } else if is_marked {
@@ -381,7 +387,12 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
 
     let table = Table::new(rows, &widths).header(header).block(block);
 
-    f.render_stateful_widget(table, area, &mut app.table_state);
+    // Render with a fresh offset-0 state: our slice already starts at the
+    // correct scroll position, so we never ask ratatui to skip rows itself.
+    // The real scroll position lives in app.table_state and is maintained by
+    // ensure_selection_visible().
+    let mut render_state = TableState::default();
+    f.render_stateful_widget(table, area, &mut render_state);
 
     // Scrollbar
     if app.filtered_packages.len() > app.package_list_viewport_rows() {
@@ -1181,6 +1192,16 @@ fn word_wrap(text: &str, max_width: usize) -> Vec<String> {
     lines
 }
 
+/// Returns `(start, end)` for the slice of rows that need to be built when
+/// rendering the package table.  We only build the rows that are actually
+/// visible (`viewport` rows plus one extra for a partial bottom row) so that
+/// large package lists do not incur O(N) allocations on every frame.
+fn visible_row_range(offset: usize, viewport: usize, total: usize) -> (usize, usize) {
+    let start = offset.min(total);
+    let end = (start + viewport + 1).min(total);
+    (start, end)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1289,5 +1310,42 @@ mod tests {
             result.y + result.height <= area.y + area.height,
             "bottom edge outside parent"
         );
+    }
+
+    // ── visible_row_range ─────────────────────────────────────────────────────
+
+    #[test]
+    fn visible_row_range_from_start() {
+        // With offset=0, viewport=10, total=100: rows 0..11
+        assert_eq!(visible_row_range(0, 10, 100), (0, 11));
+    }
+
+    #[test]
+    fn visible_row_range_mid_list() {
+        // offset=20, viewport=10, total=100: rows 20..31
+        assert_eq!(visible_row_range(20, 10, 100), (20, 31));
+    }
+
+    #[test]
+    fn visible_row_range_near_end_clamps() {
+        // offset=95, viewport=10, total=100: would be 95..106 but clamped to 95..100
+        assert_eq!(visible_row_range(95, 10, 100), (95, 100));
+    }
+
+    #[test]
+    fn visible_row_range_offset_past_end() {
+        // Degenerate: offset beyond total → empty slice
+        assert_eq!(visible_row_range(200, 10, 100), (100, 100));
+    }
+
+    #[test]
+    fn visible_row_range_empty_list() {
+        assert_eq!(visible_row_range(0, 10, 0), (0, 0));
+    }
+
+    #[test]
+    fn visible_row_range_small_list_fits_in_viewport() {
+        // 5 packages, viewport 10: all rows visible
+        assert_eq!(visible_row_range(0, 10, 5), (0, 5));
     }
 }
