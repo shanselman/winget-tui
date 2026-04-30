@@ -1,6 +1,6 @@
 {
   "r": "2026-04-30",
-  "run": "25142413978",
+  "run": "25167294978",
   "mo": "2026-04-",
   "monthly": "#118 (April 2026)",
   "comments_made": {
@@ -19,7 +19,8 @@
     "#165 (test: ARP/MSIX local stubs + cache invalidation, 7 tests)",
     "#166 (test: word_wrap 11 tests, 231->242)",
     "#167 (feat: default_sort config option, closes issue #157, 10 tests, 231->241)",
-    "perf-viewport-rows PR (perf: build only visible rows, 6 tests, 231->237)"
+    "#168 (perf: build only visible rows, 6 tests, 231->237)",
+    "bundle-dependabot PR (ci: bundle Dependabot GitHub Actions updates #160-#164)"
   ],
-  "notes": "v0.10.0 released 2026-04-26. 10 open Repo Assist PRs. PR #154 superseded by #159 (comment made 2026-04-27). Issue #158 (CI concurrency) open. Dependabot PRs #160-#164 (GitHub Actions bumps) open. 2026-04-30 Tasks 8+6: Task 8: created PR perf-viewport-rows-2026-04-30 (O(N)->O(viewport) row building in draw_package_list, 6 new tests). Task 6: all PRs mergeable_state=clean, no CI failures."
+  "notes": "v0.10.0 released 2026-04-26. 11 open Repo Assist PRs. PR #154 superseded by #159 (comment made 2026-04-27). Issue #158 (CI concurrency) open. Dependabot PRs #160-#164 bundled into new PR (eng-bundle-dependabot-2026-04-30). 2026-04-30 Tasks 6+4: Task 6: all PRs mergeable_state=clean, no CI failures. Task 4: created bundled Dependabot PR (upload-artifact v4->v7, azure/login v2->v3, gittools/actions v4.4.2->v4.5.0, gh-aw-actions SHA, github-script SHA)."
 }
