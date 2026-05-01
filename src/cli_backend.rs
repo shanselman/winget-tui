@@ -557,10 +557,8 @@ impl CliBackend {
                             detail.description = sanitize_text(&desc);
                         }
                         "homepage" => detail.homepage = sanitize_text(&value),
-                        "publisher_url" => {
-                            if detail.homepage.is_empty() {
-                                detail.homepage = sanitize_text(&value);
-                            }
+                        "publisher_url" if detail.homepage.is_empty() => {
+                            detail.homepage = sanitize_text(&value);
                         }
                         "release_notes_url" => detail.release_notes_url = sanitize_text(&value),
                         "license" => detail.license = sanitize_text(&value),
@@ -1073,6 +1071,73 @@ Google Chrome                  Google.Chrome               131.0.6  winget
         assert_eq!(CliBackend::parse_pin_state("", ""), PinState::None);
     }
 
+    // ── prefer_package ───────────────────────────────────────────────────────
+
+    fn make_pkg(version: &str, available_version: &str, source: &str) -> Package {
+        Package {
+            name: "Test".to_string(),
+            id: "Test.Package".to_string(),
+            version: version.to_string(),
+            available_version: available_version.to_string(),
+            source: source.to_string(),
+            pin_state: PinState::None,
+        }
+    }
+
+    #[test]
+    fn prefer_package_newer_version_wins() {
+        let candidate = make_pkg("2.0.0", "", "winget");
+        let existing = make_pkg("1.0.0", "", "winget");
+        assert!(CliBackend::prefer_package(&candidate, &existing));
+    }
+
+    #[test]
+    fn prefer_package_older_version_loses() {
+        let candidate = make_pkg("1.0.0", "", "winget");
+        let existing = make_pkg("2.0.0", "", "winget");
+        assert!(!CliBackend::prefer_package(&candidate, &existing));
+    }
+
+    #[test]
+    fn prefer_package_equal_versions_more_metadata_wins() {
+        // Candidate has both source and available_version; existing has neither
+        let candidate = make_pkg("1.0.0", "1.1.0", "winget");
+        let existing = make_pkg("1.0.0", "", "");
+        assert!(CliBackend::prefer_package(&candidate, &existing));
+    }
+
+    #[test]
+    fn prefer_package_equal_versions_equal_metadata_returns_false() {
+        // Identical metadata: do not replace existing entry
+        let candidate = make_pkg("1.0.0", "1.1.0", "winget");
+        let existing = make_pkg("1.0.0", "1.1.0", "winget");
+        assert!(!CliBackend::prefer_package(&candidate, &existing));
+    }
+
+    #[test]
+    fn prefer_package_unknown_version_loses_to_real() {
+        let candidate = make_pkg("unknown", "", "winget");
+        let existing = make_pkg("1.0.0", "", "winget");
+        assert!(!CliBackend::prefer_package(&candidate, &existing));
+    }
+
+    #[test]
+    fn prefer_package_real_version_beats_unknown() {
+        let candidate = make_pkg("1.0.0", "", "winget");
+        let existing = make_pkg("unknown", "", "winget");
+        assert!(CliBackend::prefer_package(&candidate, &existing));
+    }
+
+    #[test]
+    fn prefer_package_equal_versions_one_source_field_wins() {
+        // Candidate has a source; existing does not — source counts as one metadata point
+        let candidate = make_pkg("3.0.0", "", "winget");
+        let existing = make_pkg("3.0.0", "", "");
+        assert!(CliBackend::prefer_package(&candidate, &existing));
+    }
+
+    // ── dedupe_packages ──────────────────────────────────────────────────────
+
     #[test]
     fn dedupe_packages_prefers_newer_version_for_same_id_and_source() {
         let packages = vec![
@@ -1133,6 +1198,50 @@ Google Chrome                  Google.Chrome               131.0.6  winget
         assert_eq!(deduped[0].id, "C.Pkg");
         assert_eq!(deduped[1].id, "A.Pkg");
         assert_eq!(deduped[2].id, "B.Pkg");
+    }
+
+    #[test]
+    fn dedupe_packages_different_sources_are_kept_separately() {
+        // Same ID but different sources should NOT be merged.
+        let packages = vec![
+            make_pkg("1.0.0", "", "winget"),
+            make_pkg("1.0.0", "", "msstore"),
+        ];
+        let mut packages: Vec<Package> = packages
+            .into_iter()
+            .map(|mut p| {
+                p.id = "Test.Package".to_string();
+                p
+            })
+            .collect();
+        packages[1].source = "msstore".to_string();
+        let deduped = CliBackend::dedupe_packages(packages);
+        assert_eq!(deduped.len(), 2, "different sources should not be deduped");
+    }
+
+    #[test]
+    fn dedupe_packages_keeps_entry_with_most_metadata() {
+        let packages = vec![
+            Package {
+                name: "App".to_string(),
+                id: "Pub.App".to_string(),
+                version: "1.0.0".to_string(),
+                available_version: String::new(),
+                source: "winget".to_string(),
+                pin_state: PinState::None,
+            },
+            Package {
+                name: "App".to_string(),
+                id: "Pub.App".to_string(),
+                version: "1.0.0".to_string(),
+                available_version: "1.1.0".to_string(),
+                source: "winget".to_string(),
+                pin_state: PinState::None,
+            },
+        ];
+        let deduped = CliBackend::dedupe_packages(packages);
+        assert_eq!(deduped.len(), 1);
+        assert_eq!(deduped[0].available_version, "1.1.0");
     }
 
     #[test]

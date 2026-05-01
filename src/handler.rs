@@ -399,70 +399,70 @@ fn handle_normal_mode(
         }
 
         // Batch Upgrade (Shift+U)
-        KeyCode::Char('U') => {
-            if app.mode == AppMode::Upgrades && !app.selected_packages.is_empty() {
-                let selected_count = app.selected_packages.len();
-                let ids: Vec<String> = app
-                    .selected_packages
-                    .iter()
-                    .filter_map(|&idx| {
-                        app.filtered_packages
-                            .get(idx)
-                            .filter(|p| !p.is_truncated())
-                            .map(|p| p.id.clone())
-                    })
-                    .collect();
-                if ids.is_empty() {
-                    app.set_status(
-                        "Cannot upgrade: all selected packages have truncated IDs — use winget directly",
-                    );
+        KeyCode::Char('U')
+            if app.mode == AppMode::Upgrades && !app.selected_packages.is_empty() =>
+        {
+            let selected_count = app.selected_packages.len();
+            let ids: Vec<String> = app
+                .selected_packages
+                .iter()
+                .filter_map(|&idx| {
+                    app.filtered_packages
+                        .get(idx)
+                        .filter(|p| !p.is_truncated())
+                        .map(|p| p.id.clone())
+                })
+                .collect();
+            if ids.is_empty() {
+                app.set_status(
+                    "Cannot upgrade: all selected packages have truncated IDs — use winget directly",
+                );
+            } else {
+                let count = ids.len();
+                let skipped = selected_count.saturating_sub(count);
+                let skipped_note = if skipped > 0 {
+                    format!(
+                        " ({} skipped — truncated ID{})",
+                        skipped,
+                        if skipped == 1 { "" } else { "s" }
+                    )
                 } else {
-                    let count = ids.len();
-                    let skipped = selected_count.saturating_sub(count);
-                    let skipped_note = if skipped > 0 {
-                        format!(
-                            " ({} skipped — truncated ID{})",
-                            skipped,
-                            if skipped == 1 { "" } else { "s" }
-                        )
-                    } else {
-                        String::new()
-                    };
-                    app.confirm = Some(ConfirmDialog {
-                        message: format!(
-                            "Upgrade {} selected package{}{}?",
-                            count,
-                            if count == 1 { "" } else { "s" },
-                            skipped_note
-                        ),
-                        operation: Operation::BatchUpgrade { ids },
-                    });
-                }
+                    String::new()
+                };
+                app.confirm = Some(ConfirmDialog {
+                    message: format!(
+                        "Upgrade {} selected package{}{}?",
+                        count,
+                        if count == 1 { "" } else { "s" },
+                        skipped_note
+                    ),
+                    operation: Operation::BatchUpgrade { ids },
+                });
             }
         }
 
         // Toggle selection (Space)
-        KeyCode::Char(' ') => {
-            if app.mode == AppMode::Upgrades && !app.filtered_packages.is_empty() {
-                let idx = app.selected;
-                if app.selected_packages.contains(&idx) {
-                    app.selected_packages.remove(&idx);
-                } else {
-                    app.selected_packages.insert(idx);
-                }
-                app.move_selection(1);
-                load_detail_for_selected(app);
+        KeyCode::Char(' ')
+            if app.mode == AppMode::Upgrades && !app.filtered_packages.is_empty() =>
+        {
+            let idx = app.selected;
+            if app.selected_packages.contains(&idx) {
+                app.selected_packages.remove(&idx);
+            } else {
+                app.selected_packages.insert(idx);
             }
+            app.move_selection(1);
+            load_detail_for_selected(app);
         }
 
         // Select all / deselect all
-        KeyCode::Char('a') => {
-            if app.mode == AppMode::Upgrades && !app.filtered_packages.is_empty() {
-                if app.selected_packages.len() == app.filtered_packages.len() {
-                    app.selected_packages.clear();
-                } else {
-                    app.selected_packages = (0..app.filtered_packages.len()).collect();
-                }
+        KeyCode::Char('a')
+            if app.mode == AppMode::Upgrades && !app.filtered_packages.is_empty() =>
+        {
+            if app.selected_packages.len() == app.filtered_packages.len() {
+                app.selected_packages.clear();
+            } else {
+                app.selected_packages = (0..app.filtered_packages.len()).collect();
             }
         }
 
@@ -475,7 +475,7 @@ fn handle_normal_mode(
             Some(detail) => {
                 let url = detail.homepage.clone();
                 if open_url(&url) {
-                    app.set_status(format!("Opening {}...", url));
+                    app.set_status(format!("Opening {}…", url));
                 } else {
                     app.set_status("Blocked: URL must start with http:// or https://");
                 }
@@ -636,20 +636,18 @@ fn handle_mouse(app: &mut App, mouse: crossterm::event::MouseEvent) -> anyhow::R
         }
 
         // Right-click on a package
-        MouseEventKind::Down(MouseButton::Right) => {
-            if in_rect(col, row, app.layout.package_list) {
-                select_package_at_row(app, row);
-            }
+        MouseEventKind::Down(MouseButton::Right) if in_rect(col, row, app.layout.package_list) => {
+            select_package_at_row(app, row);
         }
 
         // Drag on scrollbar track
-        MouseEventKind::Drag(MouseButton::Left) => {
-            if in_rect(col, row, app.layout.package_list) && !app.filtered_packages.is_empty() {
-                let list = app.layout.package_list;
-                let scrollbar_col = list.x + list.width - 1;
-                if col == scrollbar_col {
-                    scrollbar_jump(app, row);
-                }
+        MouseEventKind::Drag(MouseButton::Left)
+            if in_rect(col, row, app.layout.package_list) && !app.filtered_packages.is_empty() =>
+        {
+            let list = app.layout.package_list;
+            let scrollbar_col = list.x + list.width - 1;
+            if col == scrollbar_col {
+                scrollbar_jump(app, row);
             }
         }
 
