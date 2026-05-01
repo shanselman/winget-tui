@@ -1,8 +1,8 @@
 {
   "r": "2026-05-01",
-  "run": "25197704349",
+  "run": "25215420578",
   "mo": "2026-05-",
-  "monthly": "new issue created for May 2026",
+  "monthly": "issue #171 updated for May 2026",
   "comments_made": {
     "83": "2026-04-16",
     "88": "2026-04-14",
@@ -19,7 +19,10 @@
     "#165 (test: ARP/MSIX local stubs + cache invalidation, 7 tests)",
     "#166 (test: word_wrap 11 tests)",
     "#167 (feat: default_sort config option, closes issue #157, 10 tests)",
-    "#168 (perf: build only visible rows, 6 tests)"
+    "#168 (perf: build only visible rows, 6 tests)",
+    "#170 (test: prefer_package + dedupe edge cases, 10 tests)",
+    "new: test-sort-desc-pinfilter (6 tests, 231->237)",
+    "new: eng-cargo-metadata (rust-version=1.86, repo/homepage/readme)"
   ],
-  "notes": "v0.10.0 released 2026-04-26. 10 open Repo Assist PRs. PR #154 superseded by #159. Issue #158 (CI concurrency) open. Issue #169 (bundle Dependabot) open - needs manual PR (protected files). Dependabot PRs #160-164 open. April 2026 monthly issue #118 CLOSED. May 2026 monthly issue created this run. 2026-05-01 Tasks 6+5: Task 6: all PRs merge cleanly with main, no CI failures. Task 5: created PR test/prefer_package + dedupe edge cases (231->241) + handler.rs ellipsis fix. New branch: repo-assist/test-prefer-package-2026-05-01."
+  "notes": "v0.10.0 released 2026-04-26. 12+ open Repo Assist PRs. PR #154 superseded by #159. Issue #158 (CI concurrency) open. Issue #169 (bundle Dependabot) open - needs manual PR (protected files). Dependabot PRs #160-164 open. May 2026 monthly issue #171 active."
 }
