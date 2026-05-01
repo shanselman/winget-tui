@@ -1,8 +1,8 @@
 {
-  "r": "2026-04-30",
-  "run": "25167294978",
-  "mo": "2026-04-",
-  "monthly": "#118 (April 2026)",
+  "r": "2026-05-01",
+  "run": "25197704349",
+  "mo": "2026-05-",
+  "monthly": "new issue created for May 2026",
   "comments_made": {
     "83": "2026-04-16",
     "88": "2026-04-14",
@@ -12,15 +12,14 @@
   "open_prs": [
     "#152 (test: ensure_selection_visible + csv_escape)",
     "#153 (feat: LocalFilter navigation)",
-    "#154 (chore: superseded by #159 - should be closed)",
+    "#154 (superseded by #159 - close needed)",
     "#155 (perf: dedupe_packages O(N^2)->O(N))",
     "#156 (test: handle_normal_mode key bindings, 28 tests)",
     "#159 (chore: cargo update + s key help fix)",
     "#165 (test: ARP/MSIX local stubs + cache invalidation, 7 tests)",
-    "#166 (test: word_wrap 11 tests, 231->242)",
-    "#167 (feat: default_sort config option, closes issue #157, 10 tests, 231->241)",
-    "#168 (perf: build only visible rows, 6 tests, 231->237)",
-    "bundle-dependabot PR (ci: bundle Dependabot GitHub Actions updates #160-#164)"
+    "#166 (test: word_wrap 11 tests)",
+    "#167 (feat: default_sort config option, closes issue #157, 10 tests)",
+    "#168 (perf: build only visible rows, 6 tests)"
   ],
-  "notes": "v0.10.0 released 2026-04-26. 11 open Repo Assist PRs. PR #154 superseded by #159 (comment made 2026-04-27). Issue #158 (CI concurrency) open. Dependabot PRs #160-#164 bundled into new PR (eng-bundle-dependabot-2026-04-30). 2026-04-30 Tasks 6+4: Task 6: all PRs mergeable_state=clean, no CI failures. Task 4: created bundled Dependabot PR (upload-artifact v4->v7, azure/login v2->v3, gittools/actions v4.4.2->v4.5.0, gh-aw-actions SHA, github-script SHA)."
+  "notes": "v0.10.0 released 2026-04-26. 10 open Repo Assist PRs. PR #154 superseded by #159. Issue #158 (CI concurrency) open. Issue #169 (bundle Dependabot) open - needs manual PR (protected files). Dependabot PRs #160-164 open. April 2026 monthly issue #118 CLOSED. May 2026 monthly issue created this run. 2026-05-01 Tasks 6+5: Task 6: all PRs merge cleanly with main, no CI failures. Task 5: created PR test/prefer_package + dedupe edge cases (231->241) + handler.rs ellipsis fix. New branch: repo-assist/test-prefer-package-2026-05-01."
 }
