@@ -1321,6 +1321,23 @@ mod tests {
     }
 
     #[test]
+    fn apply_filter_sort_by_id_desc() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.packages = vec![
+            make_package("A App", "A.App", "1.0"),
+            make_package("Z App", "Z.App", "1.0"),
+            make_package("M App", "M.App", "1.0"),
+        ];
+        app.sort_field = crate::models::SortField::Id;
+        app.sort_dir = crate::models::SortDir::Desc;
+        app.apply_filter();
+        assert_eq!(app.filtered_packages[0].id, "Z.App");
+        assert_eq!(app.filtered_packages[1].id, "M.App");
+        assert_eq!(app.filtered_packages[2].id, "A.App");
+    }
+
+    #[test]
     fn apply_filter_sort_by_version_asc() {
         let spy = SpyBackend::new();
         let mut app = make_app(spy as Arc<dyn WingetBackend>);
@@ -1358,6 +1375,26 @@ mod tests {
             .map(|p| p.version.as_str())
             .collect();
         assert_eq!(versions, ["1.9", "2.0", "10.0"]);
+    }
+
+    #[test]
+    fn apply_filter_sort_by_version_desc() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.packages = vec![
+            make_package("A", "A.A", "1.9"),
+            make_package("B", "B.B", "10.0"),
+            make_package("C", "C.C", "2.0"),
+        ];
+        app.sort_field = crate::models::SortField::Version;
+        app.sort_dir = crate::models::SortDir::Desc;
+        app.apply_filter();
+        let versions: Vec<&str> = app
+            .filtered_packages
+            .iter()
+            .map(|p| p.version.as_str())
+            .collect();
+        assert_eq!(versions, ["10.0", "2.0", "1.9"]);
     }
 
     #[test]
@@ -1421,6 +1458,21 @@ mod tests {
         app.apply_filter();
         assert_eq!(app.filtered_packages.len(), 1);
         assert_eq!(app.filtered_packages[0].id, "Pinned.App");
+    }
+
+    #[test]
+    fn apply_filter_unpinned_only_excludes_pinned() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        let mut pinned = make_package("Pinned", "Pinned.App", "1.0");
+        pinned.pin_state = PinState::Blocking;
+        let unpinned = make_package("Regular", "Regular.App", "1.0");
+        app.mode = AppMode::Installed;
+        app.pin_filter = PinFilter::UnpinnedOnly;
+        app.packages = vec![pinned, unpinned];
+        app.apply_filter();
+        assert_eq!(app.filtered_packages.len(), 1);
+        assert_eq!(app.filtered_packages[0].id, "Regular.App");
     }
 
     #[test]
@@ -1499,6 +1551,46 @@ mod tests {
             compare_versions("1.0-beta", "1.0-rc"),
             std::cmp::Ordering::Less
         );
+    }
+
+    #[test]
+    fn compare_versions_prerelease_beats_older_minor() {
+        // "1.0-beta" splits as [1, 0-beta]; "1.0" splits as [1, 0]
+        // "0-beta" has no numeric part so it compares as text; "0" is numeric.
+        // The key point: a prerelease suffix should not break the numeric comparison
+        // between the leading segment, so "2.0-beta" still beats "1.9".
+        assert_eq!(
+            compare_versions("2.0-beta", "1.9"),
+            std::cmp::Ordering::Greater
+        );
+    }
+
+    #[test]
+    fn compare_versions_build_metadata_separator() {
+        // Build metadata delimited by '+' — version_key splits on '+' as well.
+        // "1.0+20240101" => [1, 0, 20240101]; "1.0+20230101" => [1, 0, 20230101]
+        assert_eq!(
+            compare_versions("1.0+20240101", "1.0+20230101"),
+            std::cmp::Ordering::Greater
+        );
+    }
+
+    #[test]
+    fn local_filter_returns_empty_when_no_match() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.mode = AppMode::Installed;
+        app.packages = vec![
+            make_package("Google Chrome", "Google.Chrome", "120.0"),
+            make_package("Mozilla Firefox", "Mozilla.Firefox", "115.0"),
+        ];
+        app.local_filter = "xyzzy".to_string();
+        app.apply_filter();
+        assert!(
+            app.filtered_packages.is_empty(),
+            "filter matching nothing should yield an empty list"
+        );
+        assert_eq!(app.selected, 0, "selection should clamp to 0 on empty list");
     }
 
     // ── process_messages ──────────────────────────────────────────────────────
