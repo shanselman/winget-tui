@@ -1359,4 +1359,180 @@ mod tests {
         assert_eq!(app.selected, 2);
         assert_eq!(app.table_state.offset(), 2); // scrolled up by 3
     }
+
+    // ── switch_view state reset ───────────────────────────────────────────────
+
+    #[test]
+    fn switch_view_clears_local_filter() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app();
+        app.mode = AppMode::Installed;
+        app.local_filter = "chromium".to_string();
+        // Right arrow switches Installed → Upgrades, triggering switch_view
+        let _ = handle_normal_mode(&mut app, KeyCode::Right, KeyModifiers::NONE);
+        assert!(
+            app.local_filter.is_empty(),
+            "switch_view must clear local_filter so the new view starts unfiltered"
+        );
+    }
+
+    #[test]
+    fn switch_view_clears_selected_packages() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app_with_pkgs(3);
+        app.mode = AppMode::Upgrades;
+        app.selected_packages = [0usize, 1, 2].iter().cloned().collect();
+        // Left arrow switches Upgrades → Installed
+        let _ = handle_normal_mode(&mut app, KeyCode::Left, KeyModifiers::NONE);
+        assert!(
+            app.selected_packages.is_empty(),
+            "switch_view must clear the multi-select set; stale indices are invalid in the new view"
+        );
+    }
+
+    #[test]
+    fn switch_view_clears_detail_panel() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app_with_pkg("Some.Package", "1.0", "");
+        app.mode = AppMode::Installed;
+        app.detail = Some(crate::models::PackageDetail {
+            id: "Some.Package".to_string(),
+            name: "Some Package".to_string(),
+            ..crate::models::PackageDetail::default()
+        });
+        let _ = handle_normal_mode(&mut app, KeyCode::Right, KeyModifiers::NONE);
+        assert!(
+            app.detail.is_none(),
+            "switch_view must clear the detail panel so stale detail from the old view is not shown"
+        );
+    }
+
+    #[test]
+    fn switch_view_increments_detail_generation() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app();
+        app.mode = AppMode::Installed;
+        let gen_before = app.detail_generation;
+        let _ = handle_normal_mode(&mut app, KeyCode::Right, KeyModifiers::NONE);
+        assert!(
+            app.detail_generation > gen_before,
+            "switch_view must bump detail_generation to discard any in-flight detail requests from the old view"
+        );
+    }
+
+    #[test]
+    fn switch_view_resets_focus_to_package_list() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app();
+        app.mode = AppMode::Installed;
+        app.focus = crate::app::FocusZone::DetailPanel;
+        let _ = handle_normal_mode(&mut app, KeyCode::Right, KeyModifiers::NONE);
+        assert_eq!(
+            app.focus,
+            crate::app::FocusZone::PackageList,
+            "switch_view must return keyboard focus to the package list"
+        );
+    }
+
+    #[test]
+    fn switch_view_no_op_when_already_on_target_mode() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app_with_pkgs(2);
+        app.mode = AppMode::Installed;
+        app.local_filter = "keepme".to_string();
+        app.selected_packages = [0usize].iter().cloned().collect();
+        let gen_before = app.detail_generation;
+        // Simulate a Left key from Installed, then immediately a Right key to go back.
+        // Pressing Right from Installed → Upgrades, then Left from Upgrades → Installed
+        // resets state.  Here we test the early-return path: switching to the *current* mode.
+        // We set up the mode to match what the Right key would produce.
+        app.mode = AppMode::Upgrades;
+        let _ = handle_normal_mode(&mut app, KeyCode::Right, KeyModifiers::NONE);
+        // Right from Upgrades loops around to Search; that IS a view change, so
+        // state resets.  Instead, directly invoke switch_view with the same mode
+        // by pressing a key that goes to the already-active mode.
+        // Simplest: set mode back and press a no-change cycle.
+        // Actually test the private function directly.
+        app.mode = AppMode::Installed;
+        app.local_filter = "keepme".to_string();
+        app.selected_packages = [0usize].iter().cloned().collect();
+        let gen_at_test = app.detail_generation;
+        // Call switch_view with the same mode (no-op path)
+        switch_view(&mut app, AppMode::Installed);
+        assert_eq!(
+            app.local_filter, "keepme",
+            "switch_view with the same mode must not clear local_filter"
+        );
+        assert_eq!(
+            app.detail_generation, gen_at_test,
+            "switch_view with the same mode must not bump detail_generation"
+        );
+        let _ = gen_before; // suppress unused warning
+    }
+
+    // ── scrollbar_jump ────────────────────────────────────────────────────────
+
+    #[test]
+    fn scrollbar_jump_selects_first_item_when_clicking_track_top() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app_with_pkgs(10);
+        // Rect: x=0 y=5 w=30 h=12 → track_top=6, track_height=10
+        app.layout.package_list = rect(0, 5, 30, 12);
+        app.selected = 5;
+        scrollbar_jump(&mut app, 6); // clicking at track_top → first item
+        assert_eq!(
+            app.selected, 0,
+            "clicking the top of the scrollbar track should jump to item 0"
+        );
+    }
+
+    #[test]
+    fn scrollbar_jump_selects_last_item_when_clicking_track_bottom() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app_with_pkgs(10);
+        // Rect: x=0 y=5 w=30 h=12 → track_top=6, track_height=10, last track row=15
+        app.layout.package_list = rect(0, 5, 30, 12);
+        app.selected = 0;
+        scrollbar_jump(&mut app, 15); // last row of track → last item
+        assert_eq!(
+            app.selected, 9,
+            "clicking the bottom of the scrollbar track should jump to the last item"
+        );
+    }
+
+    #[test]
+    fn scrollbar_jump_no_op_on_empty_list() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app();
+        app.layout.package_list = rect(0, 5, 30, 12);
+        app.selected = 0;
+        // Should not panic or mutate selected
+        scrollbar_jump(&mut app, 6);
+        assert_eq!(app.selected, 0);
+    }
+
+    #[test]
+    fn scrollbar_jump_clamps_row_below_track_top_to_first_item() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app_with_pkgs(5);
+        // Rect: x=0 y=10 w=20 h=8 → track_top=11, track_height=6
+        app.layout.package_list = rect(0, 10, 20, 8);
+        app.selected = 3;
+        // row=5 is above track_top (11); clamped to track_top → first item
+        scrollbar_jump(&mut app, 5);
+        assert_eq!(
+            app.selected, 0,
+            "a row above the track top should be clamped and jump to item 0"
+        );
+    }
 }
