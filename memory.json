@@ -1,6 +1,6 @@
 {
   "r": "2026-05-02",
-  "run": "25240133235",
+  "run": "25252616778",
   "mo": "2026-05-",
   "monthly": "issue #171 updated for May 2026",
   "comments_made": {
@@ -21,9 +21,10 @@
     "#167 (feat: default_sort config option, closes issue #157, 10 tests)",
     "#168 (perf: build only visible rows, 6 tests)",
     "#170 (test: prefer_package + dedupe edge cases, 10 tests)",
-    "#172 (test: sort-desc+UnpinnedOnly+version edge cases, 6 tests, 231->237)",
+    "#172 (test: sort-desc+UnpinnedOnly+version edge cases, 6 tests)",
     "#173 (chore: rust-version=1.86, repo/homepage/readme in Cargo.toml)",
-    "new: test-operation-messages-2026-05-02 (5 tests for OperationComplete+Error, 231->236)"
+    "#174 (test: OperationComplete+Error 5 tests, 231->236)",
+    "new: switch_view state reset + scrollbar_jump (10 tests, 231->241)"
   ],
-  "notes": "v0.10.0 released 2026-04-26. 13+ open Repo Assist PRs. PR #154 superseded by #159. Issue #158 (CI concurrency) open. Issue #169 (bundle Dependabot) open. Dependabot PRs #160-164 open. May 2026 monthly issue #171 active. No human-filed issues open."
+  "notes": "v0.10.0 released 2026-04-26. 15 open Repo Assist PRs. PR #154 superseded by #159. Issue #158 (CI concurrency) open. Issue #169 (bundle Dependabot) open. Dependabot PRs #160-164 open. May 2026 monthly issue #171 active. No human-filed issues open. Many test PRs accumulating - consider pausing new test PRs until maintainer reviews some."
 }
