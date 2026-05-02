@@ -1504,6 +1504,143 @@ mod tests {
     // ── process_messages ──────────────────────────────────────────────────────
 
     #[test]
+    fn process_messages_error_clears_loading_and_post_refresh_status() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.loading = true;
+        app.post_refresh_status = Some("Upgrading Foo — done".to_string());
+        app.message_tx
+            .send(AppMessage::Error("network timeout".to_string()))
+            .unwrap();
+        app.process_messages();
+        assert!(!app.loading, "loading flag should be cleared by an error");
+        assert!(
+            app.post_refresh_status.is_none(),
+            "post_refresh_status should be cleared by an error"
+        );
+    }
+
+    #[tokio::test]
+    async fn process_messages_operation_complete_single_op_invalidates_cache() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        // Pre-populate the detail cache
+        app.detail_cache.insert(
+            "Google.Chrome".to_string(),
+            PackageDetail {
+                id: "Google.Chrome".to_string(),
+                name: "Google Chrome".to_string(),
+                version: "131.0".to_string(),
+                ..PackageDetail::default()
+            },
+        );
+        app.message_tx
+            .send(AppMessage::OperationComplete(OpResult {
+                operation: Operation::Upgrade {
+                    id: "Google.Chrome".to_string(),
+                },
+                success: true,
+                message: String::new(),
+            }))
+            .unwrap();
+        app.process_messages();
+        assert!(
+            !app.detail_cache.contains_key("Google.Chrome"),
+            "detail cache should be invalidated after a successful upgrade"
+        );
+    }
+
+    #[test]
+    fn process_messages_operation_complete_failure_no_refresh() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.message_tx
+            .send(AppMessage::OperationComplete(OpResult {
+                operation: Operation::Install {
+                    id: "7zip.7zip".to_string(),
+                    version: None,
+                },
+                success: false,
+                message: "Access denied".to_string(),
+            }))
+            .unwrap();
+        app.process_messages();
+        assert!(
+            app.status_message.contains("failed"),
+            "failed status should be reported"
+        );
+        assert!(
+            app.status_message.contains("Access denied"),
+            "status should include the failure message"
+        );
+        assert!(
+            !app.loading,
+            "loading should be false after a failed operation"
+        );
+        assert!(
+            app.post_refresh_status.is_none(),
+            "no refresh should be triggered after a failed single-op"
+        );
+    }
+
+    #[tokio::test]
+    async fn process_messages_operation_complete_success_sets_post_refresh_status() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.message_tx
+            .send(AppMessage::OperationComplete(OpResult {
+                operation: Operation::Pin {
+                    id: "7zip.7zip".to_string(),
+                },
+                success: true,
+                message: "Pin added successfully".to_string(),
+            }))
+            .unwrap();
+        app.process_messages();
+        // A successful mutation sets post_refresh_status and triggers a reload
+        assert!(
+            app.post_refresh_status.is_some(),
+            "post_refresh_status should be set after a successful operation"
+        );
+        assert!(
+            app.post_refresh_status
+                .as_ref()
+                .unwrap()
+                .contains("Pin added successfully"),
+            "post_refresh_status should contain the operation message"
+        );
+    }
+
+    #[tokio::test]
+    async fn process_messages_operation_complete_unpin_invalidates_cache() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.detail_cache.insert(
+            "7zip.7zip".to_string(),
+            PackageDetail {
+                id: "7zip.7zip".to_string(),
+                name: "7-Zip".to_string(),
+                version: "24.0".to_string(),
+                ..PackageDetail::default()
+            },
+        );
+        app.message_tx
+            .send(AppMessage::OperationComplete(OpResult {
+                operation: Operation::Unpin {
+                    id: "7zip.7zip".to_string(),
+                },
+                success: true,
+                message: String::new(),
+            }))
+            .unwrap();
+        app.process_messages();
+        assert!(
+            !app.detail_cache.contains_key("7zip.7zip"),
+            "detail cache should be invalidated after unpin"
+        );
+    }
+
+    #[test]
     fn process_messages_error_sets_status() {
         let spy = SpyBackend::new();
         let mut app = make_app(spy as Arc<dyn WingetBackend>);
