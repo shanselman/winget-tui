@@ -1,6 +1,6 @@
 {
-  "r": "2026-05-02",
-  "run": "25252616778",
+  "r": "2026-05-03",
+  "run": "25266531327",
   "mo": "2026-05-",
   "monthly": "issue #171 updated for May 2026",
   "comments_made": {
@@ -24,7 +24,8 @@
     "#172 (test: sort-desc+UnpinnedOnly+version edge cases, 6 tests)",
     "#173 (chore: rust-version=1.86, repo/homepage/readme in Cargo.toml)",
     "#174 (test: OperationComplete+Error 5 tests, 231->236)",
-    "new: switch_view state reset + scrollbar_jump (10 tests, 231->241)"
+    "#175 (test: switch_view state reset + scrollbar_jump, 10 tests, 231->241)",
+    "new: feat(ui): scrollable help overlay (7 tests, 231->238)"
   ],
-  "notes": "v0.10.0 released 2026-04-26. 15 open Repo Assist PRs. PR #154 superseded by #159. Issue #158 (CI concurrency) open. Issue #169 (bundle Dependabot) open. Dependabot PRs #160-164 open. May 2026 monthly issue #171 active. No human-filed issues open. Many test PRs accumulating - consider pausing new test PRs until maintainer reviews some."
+  "notes": "v0.10.0 released 2026-04-26. 16 open Repo Assist PRs. PR #154 superseded by #159. Issue #158 (CI concurrency) open. Issue #169 (bundle Dependabot) open. Dependabot PRs #160-164 open. May 2026 monthly issue #171 active. No human-filed issues open. PAUSING new test-only PRs - too many accumulating without review. New PR: scrollable help overlay (real UX bug fix)."
 }

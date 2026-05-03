@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-05-02T01:18:00Z",
-  "last_run_id": "25240133235",
+  "last_run": "2026-05-03T01:20:42Z",
+  "last_run_id": "25266531327",
   "monthly_summary_issue": "#171 (May 2026)",
   "comments_made": {
     "80": "2026-04-16",
@@ -23,9 +23,13 @@
     {"number": 170, "title": "test: add prefer_package and dedupe_packages edge-case tests (10 tests)"},
     {"number": 172, "title": "test: add 6 unit tests for sort-desc, UnpinnedOnly filter, version edge cases"},
     {"number": 173, "title": "chore: add rust-version=1.86, repository, homepage, readme to Cargo.toml"},
-    {"branch": "repo-assist/test-operation-messages-2026-05-02", "title": "test: add 5 unit tests for OperationComplete and Error message handling (231->236)"}
+    {"number": 174, "title": "test: add 5 unit tests for OperationComplete and Error message handling"},
+    {"number": 175, "title": "test: add 10 unit tests for switch_view state reset and scrollbar_jump"},
+    {"branch": "repo-assist/improve-scrollable-help-2026-05-03", "title": "feat(ui): make help overlay scrollable (7 tests, 231->238)"}
   ],
   "improvements_submitted": [
+    "feat(ui): scrollable help overlay (real UX bug - half of help clipped on 24-row terminals) (2026-05-03)",
+    "test: switch_view state reset + scrollbar_jump (10 tests, 231->241) (2026-05-02)",
     "test: OperationComplete+Error message handling (5 tests, 231->236) (2026-05-02)",
     "chore: Cargo.toml metadata (rust-version=1.86, repo, homepage, readme) (2026-05-01)",
     "test: sort-desc + UnpinnedOnly + version edge cases (6 tests, 231->237) (2026-05-01)",
@@ -43,5 +47,6 @@
   "backlog_cursor": {
     "issues": "no human issues open; only Repo Assist issues 158, 169, 171",
     "next_issue_to_process": "check for new issues next run"
-  }
+  },
+  "pause_test_prs": true
 }
