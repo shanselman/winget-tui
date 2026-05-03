@@ -24,10 +24,7 @@ pub fn handle_events(app: &mut App) -> anyhow::Result<bool> {
 
             // Help overlay
             if app.show_help {
-                match key.code {
-                    KeyCode::Char('?') | KeyCode::Esc => app.show_help = false,
-                    _ => {}
-                }
+                handle_help_input(app, key.code);
                 return Ok(false);
             }
 
@@ -40,6 +37,34 @@ pub fn handle_events(app: &mut App) -> anyhow::Result<bool> {
         }
         Event::Mouse(mouse) => handle_mouse(app, mouse),
         _ => Ok(false),
+    }
+}
+
+fn handle_help_input(app: &mut App, key: KeyCode) {
+    match key {
+        KeyCode::Char('?') | KeyCode::Esc => {
+            app.show_help = false;
+            app.help_scroll = 0;
+        }
+        KeyCode::Up | KeyCode::Char('k') => {
+            app.help_scroll = app.help_scroll.saturating_sub(1);
+        }
+        KeyCode::Down | KeyCode::Char('j') => {
+            app.help_scroll = app.help_scroll.saturating_add(1).min(app.help_max_scroll);
+        }
+        KeyCode::PageUp => {
+            app.help_scroll = app.help_scroll.saturating_sub(10);
+        }
+        KeyCode::PageDown => {
+            app.help_scroll = app.help_scroll.saturating_add(10).min(app.help_max_scroll);
+        }
+        KeyCode::Home => {
+            app.help_scroll = 0;
+        }
+        KeyCode::End => {
+            app.help_scroll = app.help_max_scroll;
+        }
+        _ => {}
     }
 }
 
@@ -152,36 +177,28 @@ fn handle_local_filter_input(app: &mut App, key: KeyCode) -> anyhow::Result<bool
             app.move_selection(1);
             load_detail_for_selected(app);
         }
-        KeyCode::PageUp => {
-            if !app.filtered_packages.is_empty() {
-                let page = list_page_size(app);
-                app.selected = app.selected.saturating_sub(page);
-                app.ensure_selection_visible();
-                load_detail_for_selected(app);
-            }
+        KeyCode::PageUp if !app.filtered_packages.is_empty() => {
+            let page = list_page_size(app);
+            app.selected = app.selected.saturating_sub(page);
+            app.ensure_selection_visible();
+            load_detail_for_selected(app);
         }
-        KeyCode::PageDown => {
-            if !app.filtered_packages.is_empty() {
-                let page = list_page_size(app);
-                let max = app.filtered_packages.len() - 1;
-                app.selected = (app.selected + page).min(max);
-                app.ensure_selection_visible();
-                load_detail_for_selected(app);
-            }
+        KeyCode::PageDown if !app.filtered_packages.is_empty() => {
+            let page = list_page_size(app);
+            let max = app.filtered_packages.len() - 1;
+            app.selected = (app.selected + page).min(max);
+            app.ensure_selection_visible();
+            load_detail_for_selected(app);
         }
-        KeyCode::Home => {
-            if !app.filtered_packages.is_empty() {
-                app.selected = 0;
-                app.ensure_selection_visible();
-                load_detail_for_selected(app);
-            }
+        KeyCode::Home if !app.filtered_packages.is_empty() => {
+            app.selected = 0;
+            app.ensure_selection_visible();
+            load_detail_for_selected(app);
         }
-        KeyCode::End => {
-            if !app.filtered_packages.is_empty() {
-                app.selected = app.filtered_packages.len() - 1;
-                app.ensure_selection_visible();
-                load_detail_for_selected(app);
-            }
+        KeyCode::End if !app.filtered_packages.is_empty() => {
+            app.selected = app.filtered_packages.len() - 1;
+            app.ensure_selection_visible();
+            load_detail_for_selected(app);
         }
         KeyCode::Char(c) => {
             app.local_filter.push(c);
@@ -1924,5 +1941,81 @@ mod tests {
             app.selected, 0,
             "a row above the track top should be clamped and jump to item 0"
         );
+    }
+
+    // ── Help overlay scroll ───────────────────────────────────────────────────
+
+    #[test]
+    fn help_scroll_starts_at_zero() {
+        let app = make_app();
+        assert_eq!(app.help_scroll, 0);
+        assert_eq!(app.help_max_scroll, 0);
+    }
+
+    #[test]
+    fn help_scroll_down_increments_within_max() {
+        let mut app = make_app();
+        app.show_help = true;
+        app.help_max_scroll = 10;
+
+        handle_help_input(&mut app, KeyCode::Down);
+        assert_eq!(app.help_scroll, 1);
+        assert!(app.show_help, "help should still be open");
+    }
+
+    #[test]
+    fn help_scroll_down_clamped_at_max() {
+        let mut app = make_app();
+        app.show_help = true;
+        app.help_scroll = 10;
+        app.help_max_scroll = 10;
+
+        handle_help_input(&mut app, KeyCode::Down);
+        assert_eq!(app.help_scroll, 10, "scroll should not exceed max");
+    }
+
+    #[test]
+    fn help_scroll_up_saturates_at_zero() {
+        let mut app = make_app();
+        app.show_help = true;
+        app.help_scroll = 0;
+        app.help_max_scroll = 10;
+
+        handle_help_input(&mut app, KeyCode::Up);
+        assert_eq!(app.help_scroll, 0, "should not underflow");
+    }
+
+    #[test]
+    fn help_scroll_home_resets_to_zero() {
+        let mut app = make_app();
+        app.show_help = true;
+        app.help_scroll = 8;
+        app.help_max_scroll = 10;
+
+        handle_help_input(&mut app, KeyCode::Home);
+        assert_eq!(app.help_scroll, 0);
+    }
+
+    #[test]
+    fn help_scroll_end_jumps_to_max() {
+        let mut app = make_app();
+        app.show_help = true;
+        app.help_scroll = 0;
+        app.help_max_scroll = 15;
+
+        handle_help_input(&mut app, KeyCode::End);
+        assert_eq!(app.help_scroll, 15);
+    }
+
+    #[test]
+    fn help_close_resets_scroll() {
+        let mut app = make_app();
+        app.show_help = true;
+        app.help_scroll = 8;
+        app.help_max_scroll = 10;
+
+        handle_help_input(&mut app, KeyCode::Esc);
+        assert!(!app.show_help);
+        assert_eq!(app.help_scroll, 0, "scroll should reset when help closes");
     }
 }

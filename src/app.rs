@@ -126,6 +126,10 @@ pub struct App {
     /// Version string being edited in the VersionInput prompt
     pub version_input: String,
     pub show_help: bool,
+    /// Scroll offset for the help overlay (in rendered lines)
+    pub help_scroll: u16,
+    /// Maximum scroll offset for the help overlay; updated each render frame
+    pub help_max_scroll: u16,
     pub should_quit: bool,
     pub layout: LayoutRegions,
     /// Sort field for the package list table.
@@ -228,6 +232,8 @@ impl App {
             confirm: None,
             version_input: String::new(),
             show_help: false,
+            help_scroll: 0,
+            help_max_scroll: 0,
             should_quit: false,
             layout: LayoutRegions::default(),
             sort_field: cfg.default_sort_field,
