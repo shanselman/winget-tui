@@ -1,6 +1,6 @@
 {
-  "r": "2026-05-03",
-  "run": "25280033060",
+  "r": "2026-05-04",
+  "run": "25296428620",
   "mo": "2026-05-",
   "monthly": "issue #171 updated for May 2026",
   "comments_made": {
@@ -15,7 +15,7 @@
     "#154 (superseded by #159 - close needed)",
     "#155 (perf: dedupe_packages O(N^2)->O(N))",
     "#156 (test: handle_normal_mode key bindings, 28 tests)",
-    "#159 (chore: cargo update + s key help fix)",
+    "#159 (chore: cargo update + s key help fix - updated 2026-05-04 with 10 more patches)",
     "#165 (test: ARP/MSIX local stubs + cache invalidation, 7 tests)",
     "#166 (test: word_wrap 11 tests)",
     "#167 (feat: default_sort config option, closes issue #157, 10 tests)",
@@ -27,5 +27,5 @@
     "#175 (test: switch_view state reset + scrollbar_jump, 10 tests, 231->241)",
     "#176 (feat(ui): scrollable help overlay, 7 tests, 231->238)"
   ],
-  "notes": "v0.10.0 released 2026-04-26. 16 open Repo Assist PRs. PR #154 superseded by #159. Issues #158, #169 open (protected workflow files, needs manual PR). Issues #157 open (auto-closes when #167 merges). Dependabot PRs #160-164 open. May 2026 monthly issue #171 active. CI is NOT running on Repo Assist PR branches (GitHub blocks CI for bot-created PRs). All PRs verified clean (no merge conflicts). PAUSING new PRs until maintainer reviews backlog."
+  "notes": "v0.10.0 released 2026-04-26. 16 open Repo Assist PRs. PR #154 superseded by #159. Issues #158, #169 open (protected workflow files, needs manual PR). Issues #157 open (auto-closes when #167 merges). Dependabot PRs #160-164 open. May 2026 monthly issue #171 active. CI is NOT running on Repo Assist PR branches (GitHub blocks CI for bot-created PRs). All PRs verified clean. PR #159 updated 2026-05-04 with 10 more patch bumps (js-sys, siphasher, wasm-bindgen, futures-*, slab). PAUSING new PRs until maintainer reviews backlog."
 }
