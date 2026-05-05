@@ -1,6 +1,6 @@
 {
   "r": "2026-05-05",
-  "run": "25352648028",
+  "run": "25378377566",
   "mo": "2026-05-",
   "monthly": "issue #171 updated for May 2026",
   "comments_made": {
@@ -27,5 +27,6 @@
     "#175 (test: switch_view state reset + scrollbar_jump, 10 tests, 231->241)",
     "#176 (feat(ui): scrollable help overlay, 7 tests, 231->238)"
   ],
-  "notes": "v0.10.0 released 2026-04-26. 16 open Repo Assist PRs. PR #154 superseded by #159. Issues #158, #169 open (protected workflow files, needs manual PR). Issues #157 open (auto-closes when #167 merges). Dependabot PRs #160-164 open. May 2026 monthly issue #171 active. CI is NOT running on Repo Assist PR branches (GitHub blocks CI for bot-created PRs). All PRs verified clean. PAUSING new PRs until maintainer reviews backlog. Main unchanged at v0.10.0 as of 2026-05-05."
+  "dependabot_prs": ["#160", "#161", "#162", "#163", "#164", "#177 (tokio 1.52.1->1.52.2)"],
+  "notes": "v0.10.0 released 2026-04-26. 16 open Repo Assist PRs. PR #154 superseded by #159. Issues #158, #169 open (protected workflow files, needs manual PR). Issues #157 open (auto-closes when #167 merges). Dependabot PRs #160-164+#177 open. May 2026 monthly issue #171 active. CI is NOT running on Repo Assist PR branches (GitHub blocks CI for bot-created PRs). All PRs verified clean. PAUSING new PRs until maintainer reviews backlog. Main unchanged at v0.10.0 as of 2026-05-05."
 }
