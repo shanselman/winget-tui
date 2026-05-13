@@ -1,6 +1,6 @@
 {
-  "r": "2026-05-12",
-  "run": "25737261200",
+  "r": "2026-05-13",
+  "run": "25772299493",
   "mo": "2026-05-",
   "monthly": "issue #171 updated for May 2026",
   "comments_made": {
@@ -15,7 +15,7 @@
     "#154 (superseded by #159 - close needed)",
     "#155 (perf: dedupe_packages O(N^2)->O(N))",
     "#156 (test: handle_normal_mode key bindings, 28 tests)",
-    "#159 (chore: cargo update + s key help fix - updated 2026-05-04 with 10 more patches)",
+    "#159 (chore: cargo update + s key help fix)",
     "#165 (test: ARP/MSIX local stubs + cache invalidation, 7 tests)",
     "#166 (test: word_wrap 11 tests)",
     "#167 (feat: default_sort config option, closes issue #157, 10 tests)",
@@ -28,5 +28,5 @@
     "#176 (feat(ui): scrollable help overlay, 7 tests, 231->238)"
   ],
   "dependabot_prs": ["#160", "#161", "#162", "#163", "#164", "#178 (tokio 1.52.1->1.52.3 bug fixes)"],
-  "notes": "v0.10.0 released 2026-04-26. 16 open Repo Assist PRs. PR #154 superseded by #159. PR #177 (tokio 1.52.2) was closed; replaced by #178 (tokio 1.52.3 with bug fixes). Issues #158, #169 open (protected workflow files, needs manual PR). Issues #157 open (auto-closes when #167 merges). Dependabot PRs #160-164+#178 open. May 2026 monthly issue #171 active. CI is NOT running on Repo Assist PR branches (GitHub blocks CI for bot-created PRs). All PRs verified clean. PAUSING new PRs until maintainer reviews backlog. Main unchanged at v0.10.0 as of 2026-05-12. cli_backend.rs:544 unwrap() is SAFE (guarded by peek().is_some_and). Testing gaps: Space/select-all toggle in Upgrades view and handle_tab_click both untested. Tokio 1.52.3 fixes mpsc channel bugs - worth merging #178."
+  "notes": "v0.10.0 released 2026-04-26. 16 open Repo Assist PRs. PR #154 superseded by #159. Issues #158, #169 open (protected workflow files, needs manual PR). Issue #157 open (auto-closes when #167 merges). Dependabot PRs #160-164+#178 open. May 2026 monthly issue #171 active. CI is NOT running on Repo Assist PR branches (GitHub blocks CI for bot-created PRs). All PRs verified conflict-free (mergeable_state:clean). PAUSING new PRs until maintainer reviews backlog. Main unchanged at v0.10.0 as of 2026-05-13. cli_backend.rs:544 unwrap() is SAFE (guarded by peek().is_some_and). Testing gaps: Space/select-all toggle in Upgrades view and handle_tab_click both untested. Tokio 1.52.3 fixes mpsc channel bugs - worth merging #178."
 }
