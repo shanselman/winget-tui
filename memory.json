@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-05-13T01:24:41Z",
-  "last_run_id": "25772299493",
+  "last_run": "2026-05-13T13:31:14Z",
+  "last_run_id": "25802264771",
   "monthly_summary_issue": "#171 (May 2026)",
   "comments_made": {
     "80": "2026-04-16",
@@ -15,7 +15,7 @@
     {"number": 154, "title": "chore: cargo update + fix missing s keybinding (SUPERSEDED by #159)"},
     {"number": 155, "title": "perf: replace O(N^2) linear scan in dedupe_packages with O(N) HashMap"},
     {"number": 156, "title": "test: add coverage for handle_normal_mode key bindings (28 tests)"},
-    {"number": 159, "title": "chore: cargo update + fix missing s keybinding (rebased replacement for #154)"},
+    {"number": 159, "title": "chore: cargo update (now includes hashbrown 0.17.1, js-sys 0.3.98, tokio 1.52.3, wasm-bindgen 0.2.121) + fix missing s keybinding"},
     {"number": 165, "title": "test: ARP/MSIX local stubs and detail-cache invalidation (7 tests)"},
     {"number": 166, "title": "test: add 11 unit tests for word_wrap in ui.rs"},
     {"number": 167, "title": "feat(config): add default_sort config option (closes #157, 10 tests)"},
