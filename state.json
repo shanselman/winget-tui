@@ -1,6 +1,6 @@
 {
-  "r": "2026-05-13",
-  "run": "25802264771",
+  "r": "2026-05-14",
+  "run": "25836098722",
   "mo": "2026-05-",
   "monthly": "issue #171 updated for May 2026",
   "comments_made": {
@@ -25,8 +25,9 @@
     "#173 (chore: rust-version=1.86, repo/homepage/readme in Cargo.toml)",
     "#174 (test: OperationComplete+Error 5 tests, 231->236)",
     "#175 (test: switch_view state reset + scrollbar_jump, 10 tests, 231->241)",
-    "#176 (feat(ui): scrollable help overlay, 7 tests, 231->238)"
+    "#176 (feat(ui): scrollable help overlay, 7 tests, 231->238)",
+    "#pending (docs: CHANGELOG.md for v0.1.0-v0.10.0, branch: repo-assist/docs-changelog-2026-05-14)"
   ],
   "dependabot_prs": ["#160", "#161", "#162", "#163", "#164", "#178 (tokio 1.52.1->1.52.3 bug fixes)"],
-  "notes": "v0.10.0 released 2026-04-26. 16 open Repo Assist PRs. PR #154 superseded by #159. Issues #158, #169 open (protected workflow files, needs manual PR). Issue #157 open (auto-closes when #167 merges). Dependabot PRs #160-164+#178 open. May 2026 monthly issue #171 active. CI is NOT running on Repo Assist PR branches (GitHub blocks CI for bot-created PRs). All PRs verified conflict-free (mergeable_state:clean). PAUSING new PRs until maintainer reviews backlog. Main unchanged at v0.10.0 as of 2026-05-13. cli_backend.rs:544 unwrap() is SAFE (guarded by peek().is_some_and). Testing gaps: Space/select-all toggle in Upgrades view and handle_tab_click both untested. Tokio 1.52.3 fixes mpsc channel bugs - worth merging #178. PR #159 updated 2026-05-13 with hashbrown 0.17.1, js-sys 0.3.98, tokio 1.52.3, wasm-bindgen 0.2.121."
+  "notes": "v0.10.0 released 2026-04-26. 17 open Repo Assist PRs (16 + 1 pending CHANGELOG PR). PR #154 superseded by #159. Issues #158, #169 open (protected workflow files, needs manual PR). Issue #157 open (auto-closes when #167 merges). Dependabot PRs #160-164+#178 open. May 2026 monthly issue #171 active. CI is NOT running on Repo Assist PR branches (GitHub blocks CI for bot-created PRs). Main unchanged at v0.10.0 as of 2026-05-14. PRs #176 (238 tests) and #167 (241 tests) re-verified 2026-05-14. CHANGELOG.md added - covers v0.1.0 through v0.10.0 (18 releases). Tokio 1.52.3 fixes mpsc channel bugs - worth merging #178. Next run: confirm CHANGELOG PR number and update monthly summary."
 }
