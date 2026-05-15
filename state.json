@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-05-15T01:23:05Z",
-  "last_run_id": "25895039568",
+  "last_run": "2026-05-15T13:19:10Z",
+  "last_run_id": "25919891302",
   "monthly_summary_issue": "#171 (May 2026)",
   "comments_made": {
     "80": "2026-04-16",
@@ -27,10 +27,10 @@
     {"number": 175, "title": "test: add 10 unit tests for switch_view state reset and scrollbar_jump"},
     {"number": 176, "title": "feat(ui): make help overlay scrollable (7 tests, 231->238)"},
     {"number": 179, "title": "docs: add CHANGELOG.md covering v0.1.0 through v0.10.0"},
-    {"number": 180, "title": "perf: skip idle renders when no event, message, or load is in flight (3 tests, 231->234)"}
+    {"number": 181, "title": "perf: skip idle renders when no event, message, or load is in flight (3 tests, 231->234)"}
   ],
   "improvements_submitted": [
-    "perf: skip idle renders - process_messages returns bool, handle_events returns bool, conditional draw (2026-05-15) PR #180",
+    "perf: skip idle renders - process_messages returns bool, handle_events returns bool, conditional draw (2026-05-15) PR #181",
     "docs: add CHANGELOG.md for all 18 releases v0.1.0-v0.10.0 (2026-05-14) PR #179",
     "feat(ui): scrollable help overlay (real UX bug - half of help clipped on 24-row terminals) (2026-05-03)",
     "test: switch_view state reset + scrollbar_jump (10 tests, 231->241) (2026-05-02)",
@@ -63,5 +63,5 @@
     "cargo": ["#178 (tokio 1.52.1->1.52.3 bug fixes)"],
     "github_actions": ["#160", "#161", "#162", "#163", "#164"]
   },
-  "notes": "v0.10.0 released 2026-04-26. 18 open Repo Assist PRs. PR #154 superseded by #159. Issues #158, #169 open (protected workflow files, needs manual PR). Issue #157 open (auto-closes when #167 merges). Dependabot PRs #160-164+#178 open. May 2026 monthly issue #171 active. CI is NOT running on Repo Assist PR branches (GitHub blocks CI for bot-created PRs). Main unchanged at v0.10.0 as of 2026-05-15. PR #180 is idle-render optimization (process_messages returns bool, handle_events returns true on event read, conditional draw in main loop)."
+  "notes": "v0.10.0 released 2026-04-26. 18 open Repo Assist PRs. PR #154 superseded by #159. Issues #158, #169 open (protected workflow files, needs manual PR). Issue #157 open (auto-closes when #167 merges). Dependabot PRs #160-164+#178 open. May 2026 monthly issue #171 active. CI is NOT running on Repo Assist PR branches (GitHub blocks CI for bot-created PRs). Main unchanged at v0.10.0 as of 2026-05-15. PR #181 is idle-render optimization (process_messages returns bool, handle_events returns true on event read, conditional draw in main loop). Previous run created PR #181 (NOT #180 - state.json had wrong number; corrected in this run)."
 }
