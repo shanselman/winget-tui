@@ -69,15 +69,21 @@ async fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> Resul
     app.refresh_view();
 
     loop {
-        // Process any pending messages from background tasks
-        app.process_messages();
+        // Process any pending messages from background tasks.
+        // Returns true when at least one message was processed.
+        let had_message = app.process_messages();
         app.tick = app.tick.wrapping_add(1);
 
-        // Draw
-        terminal.draw(|f| ui::draw(f, &mut app))?;
+        // Handle input (blocks up to 50 ms waiting for an event).
+        // Returns true when a crossterm event was read.
+        let had_event = handler::handle_events(&mut app)?;
 
-        // Handle input
-        handler::handle_events(&mut app)?;
+        // Skip the render when nothing changed and no animation is in flight.
+        // During active loads the spinner advances every tick, so we always
+        // redraw then to keep the animation smooth.
+        if had_message || had_event || app.loading || app.detail_loading {
+            terminal.draw(|f| ui::draw(f, &mut app))?;
+        }
 
         if app.should_quit {
             break;
