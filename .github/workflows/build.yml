@@ -89,7 +89,7 @@ jobs:
           Copy-Item "target/aarch64-pc-windows-msvc/release/winget-tui.exe" -Destination "artifacts/winget-tui-arm64.exe"
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: winget-tui-${{ env.VERSION }}
           path: artifacts/*.exe
