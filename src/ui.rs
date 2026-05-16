@@ -70,7 +70,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     }
 
     if app.show_help {
-        draw_help_overlay(f);
+        draw_help_overlay(f, app);
     }
 }
 
@@ -918,7 +918,7 @@ fn draw_version_input_dialog(f: &mut Frame, app: &App) {
     f.set_cursor_position((cursor_x, cursor_y));
 }
 
-fn draw_help_overlay(f: &mut Frame) {
+fn draw_help_overlay(f: &mut Frame, app: &mut App) {
     let area = centered_rect(60, 70, f.area());
     f.render_widget(Clear, area);
 
@@ -926,7 +926,7 @@ fn draw_help_overlay(f: &mut Frame) {
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
         .border_style(theme::border_focused())
-        .title(" Help -- Keybindings ")
+        .title(" Help -- Keybindings  ↑↓ to scroll ")
         .title_style(
             Style::default()
                 .fg(theme::ACCENT)
@@ -1054,10 +1054,29 @@ fn draw_help_overlay(f: &mut Frame) {
         Line::raw(""),
     ];
 
+    let total_lines = help_text.len() as u16;
+    // Inner height = overlay height minus top/bottom borders
+    let inner_height = area.height.saturating_sub(2);
+    // Update max_scroll so the keyboard handler can clamp correctly
+    app.help_max_scroll = total_lines.saturating_sub(inner_height);
+    // Clamp current scroll in case the terminal was resized
+    app.help_scroll = app.help_scroll.min(app.help_max_scroll);
+
     let p = Paragraph::new(help_text)
         .block(block)
-        .wrap(Wrap { trim: false });
+        .wrap(Wrap { trim: false })
+        .scroll((app.help_scroll, 0));
     f.render_widget(p, area);
+
+    // Vertical scrollbar on the right edge of the overlay
+    if app.help_max_scroll > 0 {
+        let mut scrollbar_state =
+            ScrollbarState::new(app.help_max_scroll as usize).position(app.help_scroll as usize);
+        let scrollbar = Scrollbar::new(ScrollbarOrientation::VerticalRight)
+            .begin_symbol(None)
+            .end_symbol(None);
+        f.render_stateful_widget(scrollbar, area, &mut scrollbar_state);
+    }
 }
 
 fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
