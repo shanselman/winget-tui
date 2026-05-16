@@ -5,6 +5,11 @@ use crossterm::event::{
 use crate::app::{App, AppMode, ConfirmDialog, FocusZone, InputMode};
 use crate::models::Operation;
 
+/// Handle the next crossterm event, waiting up to 50 ms for one to arrive.
+///
+/// Returns `true` when an event was read (meaning app state may have changed
+/// and the UI should be redrawn), `false` when the poll timed out with no
+/// event (no redraw needed).
 pub fn handle_events(app: &mut App) -> anyhow::Result<bool> {
     if !event::poll(std::time::Duration::from_millis(50))? {
         return Ok(false);
@@ -14,30 +19,35 @@ pub fn handle_events(app: &mut App) -> anyhow::Result<bool> {
         Event::Key(key) if key.kind == KeyEventKind::Press => {
             // Confirm dialog takes priority
             if app.confirm.is_some() {
-                return handle_confirm(app, key.code);
+                handle_confirm(app, key.code)?;
+                return Ok(true);
             }
 
             // Version input prompt takes priority after confirm
             if app.input_mode == InputMode::VersionInput {
-                return handle_version_input(app, key.code);
+                handle_version_input(app, key.code)?;
+                return Ok(true);
             }
 
             // Help overlay
             if app.show_help {
                 handle_help_input(app, key.code);
-                return Ok(false);
+                return Ok(true);
             }
 
             match app.input_mode {
-                InputMode::Search => handle_search_input(app, key.code),
-                InputMode::LocalFilter => handle_local_filter_input(app, key.code),
-                InputMode::Normal => handle_normal_mode(app, key.code, key.modifiers),
+                InputMode::Search => handle_search_input(app, key.code)?,
+                InputMode::LocalFilter => handle_local_filter_input(app, key.code)?,
+                InputMode::Normal => handle_normal_mode(app, key.code, key.modifiers)?,
                 InputMode::VersionInput => unreachable!("handled above"),
-            }
+            };
         }
-        Event::Mouse(mouse) => handle_mouse(app, mouse),
-        _ => Ok(false),
+        Event::Mouse(mouse) => {
+            handle_mouse(app, mouse)?;
+        }
+        _ => {}
     }
+    Ok(true)
 }
 
 fn handle_help_input(app: &mut App, key: KeyCode) {

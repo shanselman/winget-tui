@@ -668,8 +668,14 @@ impl App {
         Ok(())
     }
 
-    pub fn process_messages(&mut self) {
+    /// Process all pending background-task messages.
+    ///
+    /// Returns `true` if at least one message was processed (i.e. app state
+    /// changed and the UI should be redrawn).
+    pub fn process_messages(&mut self) -> bool {
+        let mut changed = false;
         while let Ok(msg) = self.message_rx.try_recv() {
+            changed = true;
             match msg {
                 AppMessage::PackagesLoaded {
                     generation,
@@ -788,6 +794,7 @@ impl App {
                 }
             }
         }
+        changed
     }
 }
 
@@ -2438,5 +2445,51 @@ mod tests {
     #[test]
     fn csv_escape_newline_triggers_quoting() {
         assert_eq!(csv_escape("line1\nline2"), "\"line1\nline2\"");
+    }
+
+    // ── process_messages return value ─────────────────────────────────────────
+
+    #[test]
+    fn process_messages_returns_false_when_channel_empty() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        assert!(
+            !app.process_messages(),
+            "should return false when no messages are pending"
+        );
+    }
+
+    #[test]
+    fn process_messages_returns_true_when_message_present() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.message_tx
+            .send(AppMessage::StatusUpdate("hello".to_string()))
+            .unwrap();
+        assert!(
+            app.process_messages(),
+            "should return true when a message was processed"
+        );
+    }
+
+    #[test]
+    fn process_messages_returns_true_for_multiple_messages() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.message_tx
+            .send(AppMessage::StatusUpdate("a".to_string()))
+            .unwrap();
+        app.message_tx
+            .send(AppMessage::StatusUpdate("b".to_string()))
+            .unwrap();
+        assert!(
+            app.process_messages(),
+            "should return true when multiple messages were drained"
+        );
+        // All messages consumed — subsequent call returns false
+        assert!(
+            !app.process_messages(),
+            "should return false on second call when channel is now empty"
+        );
     }
 }
