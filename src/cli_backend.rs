@@ -781,13 +781,19 @@ impl WingetBackend for CliBackend {
             .await
     }
 
+    // Try the usual ID flow first, then fallback to an exact name match
+    // for entries whose ID was truncated in winget's tabular output.
     async fn upgrade(&self, query: &str) -> Result<String> {
         let by_id = Self::upgrade_args_by_id(query);
         match self.run_winget_strict(&by_id).await {
             Ok(output) => Ok(output),
             Err(id_err) => {
                 let by_name = Self::upgrade_args_by_name(query);
-                self.run_winget_strict(&by_name).await.map_err(|_| id_err)
+                self.run_winget_strict(&by_name).await.map_err(|name_err| {
+                    anyhow::anyhow!(
+                        "upgrade by id failed: {id_err}; fallback by name failed: {name_err}"
+                    )
+                })
             }
         }
     }
