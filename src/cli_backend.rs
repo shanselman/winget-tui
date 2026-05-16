@@ -1,4 +1,5 @@
 use std::cmp::Ordering;
+use std::collections::HashMap;
 
 use anyhow::{bail, Context, Result};
 use async_trait::async_trait;
@@ -164,16 +165,22 @@ impl CliBackend {
     }
 
     fn dedupe_packages(packages: Vec<Package>) -> Vec<Package> {
+        // HashMap maps (id, source_lowercase) → index in `deduped` for O(1) lookup,
+        // replacing the previous O(N) linear scan and making the whole function O(N).
+        let mut index: HashMap<(String, String), usize> = HashMap::new();
         let mut deduped: Vec<Package> = Vec::new();
         for pkg in packages {
-            if let Some(existing) = deduped.iter_mut().find(|current| {
-                current.id == pkg.id && current.source.eq_ignore_ascii_case(&pkg.source)
-            }) {
-                if Self::prefer_package(&pkg, existing) {
-                    *existing = pkg;
+            let key = (pkg.id.clone(), pkg.source.to_ascii_lowercase());
+            match index.get(&key) {
+                Some(&i) => {
+                    if Self::prefer_package(&pkg, &deduped[i]) {
+                        deduped[i] = pkg;
+                    }
                 }
-            } else {
-                deduped.push(pkg);
+                None => {
+                    index.insert(key, deduped.len());
+                    deduped.push(pkg);
+                }
             }
         }
         deduped
@@ -1090,6 +1097,42 @@ Google Chrome                  Google.Chrome               131.0.6  winget
         let deduped = CliBackend::dedupe_packages(packages);
         assert_eq!(deduped.len(), 1);
         assert_eq!(deduped[0].version, "2.43.1");
+    }
+
+    #[test]
+    fn dedupe_packages_source_comparison_is_case_insensitive() {
+        // "Winget" and "winget" should be treated as the same source.
+        let make = |version: &str, source: &str| Package {
+            name: "Pkg".to_string(),
+            id: "A.Pkg".to_string(),
+            version: version.to_string(),
+            source: source.to_string(),
+            available_version: String::new(),
+            pin_state: PinState::None,
+        };
+        let packages = vec![make("1.0", "winget"), make("1.1", "Winget")];
+        let deduped = CliBackend::dedupe_packages(packages);
+        assert_eq!(deduped.len(), 1, "case-different sources should be deduped");
+        assert_eq!(deduped[0].version, "1.1", "newer version should win");
+    }
+
+    #[test]
+    fn dedupe_packages_preserves_insertion_order_of_unique_packages() {
+        let make = |id: &str| Package {
+            name: id.to_string(),
+            id: id.to_string(),
+            version: "1.0".to_string(),
+            source: "winget".to_string(),
+            available_version: String::new(),
+            pin_state: PinState::None,
+        };
+        let packages = vec![make("C.Pkg"), make("A.Pkg"), make("B.Pkg")];
+        let deduped = CliBackend::dedupe_packages(packages);
+        assert_eq!(deduped.len(), 3, "all unique packages should be kept");
+        // Order should be preserved (insertion order).
+        assert_eq!(deduped[0].id, "C.Pkg");
+        assert_eq!(deduped[1].id, "A.Pkg");
+        assert_eq!(deduped[2].id, "B.Pkg");
     }
 
     #[test]
