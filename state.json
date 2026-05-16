@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-05-16T01:25:40Z",
-  "last_run_id": "25949035043",
+  "last_run": "2026-05-16T13:10:24Z",
+  "last_run_id": "25962750812",
   "monthly_summary_issue": "#171 (May 2026)",
   "comments_made": {
     "80": "2026-04-16",
@@ -29,6 +29,9 @@
     {"number": 179, "title": "docs: add CHANGELOG.md covering v0.1.0 through v0.10.0"},
     {"number": 181, "title": "perf: skip idle renders when no event, message, or load is in flight (3 tests, 231->234)"},
     {"number": 182, "title": "fix: sync table viewport after apply_filter when list shrinks (1 test, 231->232)"}
+  ],
+  "other_notable_prs": [
+    {"number": 183, "title": "Enable upgrade fallback for winget-truncated package IDs (Copilot PR)", "labels": ["bug", "enhancement"]}
   ],
   "improvements_submitted": [
     "fix: sync table viewport after apply_filter (stale offset bug when list shrinks) (2026-05-16) PR #182",
@@ -65,5 +68,5 @@
     "cargo": ["#178 (tokio 1.52.1->1.52.3 bug fixes)"],
     "github_actions": ["#160", "#161", "#162", "#163", "#164"]
   },
-  "notes": "v0.10.0 released 2026-04-26. 19 open Repo Assist PRs. PR #154 superseded by #159. Issues #158, #169 open (protected workflow files, needs manual PR). Issue #157 open (auto-closes when #167 merges). Dependabot PRs #160-164+#178 open. May 2026 monthly issue #171 active. CI is NOT running on Repo Assist PR branches (GitHub blocks CI for bot-created PRs). Main unchanged at v0.10.0 as of 2026-05-16. PR #182 fixes a real bug: apply_filter stale viewport offset when list shrinks (selected clamped but offset not reset). Pre-existing clippy errors on main (6x collapsible match-if in handler.rs) - not introduced by any Repo Assist PR."
+  "notes": "v0.10.0 released 2026-04-26. 19 open Repo Assist PRs. PR #154 superseded by #159. Issues #158, #169 open (protected workflow files, needs manual PR). Issue #157 open (auto-closes when #167 merges). Dependabot PRs #160-164+#178 open. May 2026 monthly issue #171 active. CI is NOT running on Repo Assist PR branches (GitHub blocks CI for bot-created PRs). Main unchanged at v0.10.0 as of 2026-05-16. PR #183 (Copilot) fixes truncated package ID upgrades. cargo clippy -- -D warnings passes cleanly on current main (no pre-existing warnings on Linux). Copilot PR #183 labelled bug+enhancement this run."
 }
