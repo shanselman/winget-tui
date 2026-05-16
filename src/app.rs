@@ -303,6 +303,10 @@ impl App {
         }
         // Clear multi-select since indices are now stale
         self.selected_packages.clear();
+        // Sync the table viewport so the selected row is always visible.
+        // This matters when the list shrinks (e.g. filter change, source switch)
+        // and the old viewport offset would be past the end of the new list.
+        self.ensure_selection_visible();
     }
 
     pub fn selected_package(&self) -> Option<&Package> {
@@ -1216,6 +1220,34 @@ mod tests {
         assert!(
             app.selected < 2,
             "selection should be within new list bounds"
+        );
+    }
+
+    #[test]
+    fn apply_filter_resets_stale_viewport_offset_when_list_shrinks() {
+        // Regression: if the user was scrolled deep in a long list and a filter
+        // reduced the list to fewer items, the old table_state offset would be
+        // past the end of the new list, causing the selection to appear off-screen.
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        // Simulate a layout where 4 rows are visible (height=8: border*2+padding+header=4).
+        app.layout.package_list.height = 8;
+        // Start with 100 packages, user scrolled to the bottom (selected=95, offset=92).
+        app.packages = make_packages(100);
+        app.filtered_packages = app.packages.clone();
+        app.selected = 95;
+        *app.table_state.offset_mut() = 92;
+        // Apply a local filter that reduces to only 10 packages.
+        app.packages = make_packages(10);
+        app.apply_filter();
+        // selected should be clamped to last index = 9.
+        assert_eq!(app.selected, 9, "selection should be clamped to last index");
+        // The viewport offset must be ≤ selected so the selected row is visible.
+        assert!(
+            app.table_state.offset() <= app.selected,
+            "stale viewport offset ({}) must be synced down to show selected row ({})",
+            app.table_state.offset(),
+            app.selected
         );
     }
 
