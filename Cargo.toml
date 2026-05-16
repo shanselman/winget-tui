@@ -2,8 +2,12 @@
 name = "winget-tui"
 version = "0.10.0"
 edition = "2021"
+rust-version = "1.86"
 description = "A terminal user interface for Windows Package Manager (winget)"
+homepage = "https://github.com/shanselman/winget-tui"
+repository = "https://github.com/shanselman/winget-tui"
 license = "MIT"
+readme = "README.md"
 
 [dependencies]
 ratatui = "0.30"
