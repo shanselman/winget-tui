@@ -961,7 +961,7 @@ fn draw_help_overlay(f: &mut Frame) {
             Span::raw("Toggle focus: package list ↔ detail panel"),
         ]),
         Line::from(vec![
-            Span::styled("  /           ", key),
+            Span::styled("  / or s      ", key),
             Span::raw("Search or local filter"),
         ]),
         Line::from(vec![
