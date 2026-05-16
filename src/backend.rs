@@ -23,7 +23,7 @@ pub trait WingetBackend: Send + Sync {
     /// Uninstall a package by id
     async fn uninstall(&self, id: &str) -> Result<String>;
 
-    /// Upgrade a package by id
+    /// Upgrade a package (prefers id matching; backends may fallback to name)
     async fn upgrade(&self, id: &str) -> Result<String>;
 
     /// List all configured package pins

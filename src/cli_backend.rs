@@ -91,6 +91,27 @@ impl CliBackend {
         args
     }
 
+    fn upgrade_args_by_id(query: &str) -> Vec<&str> {
+        vec![
+            "upgrade",
+            "--id",
+            query,
+            "--accept-source-agreements",
+            "--accept-package-agreements",
+        ]
+    }
+
+    fn upgrade_args_by_name(query: &str) -> Vec<&str> {
+        vec![
+            "upgrade",
+            "--name",
+            query,
+            "--exact",
+            "--accept-source-agreements",
+            "--accept-package-agreements",
+        ]
+    }
+
     fn pin_add_args(id: &str) -> Vec<&str> {
         vec![
             "pin",
@@ -760,15 +781,15 @@ impl WingetBackend for CliBackend {
             .await
     }
 
-    async fn upgrade(&self, id: &str) -> Result<String> {
-        self.run_winget_strict(&[
-            "upgrade",
-            "--id",
-            id,
-            "--accept-source-agreements",
-            "--accept-package-agreements",
-        ])
-        .await
+    async fn upgrade(&self, query: &str) -> Result<String> {
+        let by_id = Self::upgrade_args_by_id(query);
+        match self.run_winget_strict(&by_id).await {
+            Ok(output) => Ok(output),
+            Err(id_err) => {
+                let by_name = Self::upgrade_args_by_name(query);
+                self.run_winget_strict(&by_name).await.map_err(|_| id_err)
+            }
+        }
     }
 
     async fn list_pins(&self) -> Result<Vec<PackagePin>> {
@@ -968,6 +989,24 @@ Google Chrome                  Google.Chrome               131.0.6  winget
         assert_eq!(args[0], "upgrade");
         assert!(args.contains(&"--include-pinned"));
         assert!(args.ends_with(&["--source", "winget"]));
+    }
+
+    #[test]
+    fn upgrade_args_by_id_use_id_flag() {
+        let args = CliBackend::upgrade_args_by_id("Microsoft.Azure.FunctionsCoreTools");
+        assert_eq!(args[0], "upgrade");
+        assert!(args.contains(&"--id"));
+        assert!(!args.contains(&"--name"));
+        assert!(!args.contains(&"--exact"));
+    }
+
+    #[test]
+    fn upgrade_args_by_name_use_exact_name_flag() {
+        let args = CliBackend::upgrade_args_by_name("Azure Functions Core Tools");
+        assert_eq!(args[0], "upgrade");
+        assert!(args.contains(&"--name"));
+        assert!(args.contains(&"--exact"));
+        assert!(!args.contains(&"--id"));
     }
 
     #[test]

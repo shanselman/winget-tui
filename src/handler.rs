@@ -385,9 +385,11 @@ fn handle_normal_mode(
         KeyCode::Char('u') => {
             if let Some(pkg) = app.selected_package() {
                 if pkg.is_truncated() {
-                    app.set_status(
-                        "Cannot upgrade: package ID was truncated by winget — use winget directly",
-                    );
+                    let name = pkg.name.clone();
+                    app.confirm = Some(ConfirmDialog {
+                        message: format!("Upgrade {}? (ID truncated in winget output)", name),
+                        operation: Operation::Upgrade { id: name },
+                    });
                 } else {
                     let id = pkg.id.clone();
                     app.confirm = Some(ConfirmDialog {
@@ -1186,6 +1188,24 @@ mod tests {
         match confirm.operation {
             Operation::BatchUpgrade { ids } => assert_eq!(ids.len(), 2),
             _ => panic!("expected BatchUpgrade operation"),
+        }
+    }
+
+    #[test]
+    fn single_upgrade_with_truncated_id_uses_name_query() {
+        let mut app = make_app_with_pkg("Microsoft.Azure.Function...", "4.0", "4.1");
+        app.mode = AppMode::Upgrades;
+
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('u'), KeyModifiers::NONE);
+
+        let confirm = app.confirm.expect("confirm dialog should be set");
+        assert!(
+            confirm.message.contains("ID truncated"),
+            "confirm text should explain name-based fallback"
+        );
+        match confirm.operation {
+            Operation::Upgrade { id } => assert_eq!(id, "Test Package"),
+            _ => panic!("expected Upgrade operation"),
         }
     }
 
