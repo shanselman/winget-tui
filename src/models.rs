@@ -193,6 +193,25 @@ pub struct PackageDetail {
     pub pin_state: PinState,
 }
 
+impl From<&Package> for PackageDetail {
+    /// Build a lightweight stub from the package-list entry.
+    ///
+    /// Used to show instant feedback in the detail pane while `winget show`
+    /// runs in the background.  Only the fields available in the list are
+    /// populated; rich metadata fields (publisher, description, homepage,
+    /// license) default to empty strings.
+    fn from(pkg: &Package) -> Self {
+        PackageDetail {
+            id: pkg.id.clone(),
+            name: pkg.name.clone(),
+            version: pkg.version.clone(),
+            source: pkg.source.clone(),
+            pin_state: pkg.pin_state.clone(),
+            ..PackageDetail::default()
+        }
+    }
+}
+
 impl PackageDetail {
     /// Merge `self` (freshly loaded) with `base` (pre-populated stub), returning a combined
     /// detail where non-empty fields from `self` take precedence over `base`.
@@ -559,5 +578,43 @@ mod tests {
     fn sort_dir_indicator() {
         assert_eq!(SortDir::Asc.indicator(), " ↑");
         assert_eq!(SortDir::Desc.indicator(), " ↓");
+    }
+
+    // ── From<&Package> for PackageDetail ─────────────────────────────────────
+
+    #[test]
+    fn package_detail_from_package_copies_basic_fields() {
+        let p = Package {
+            id: "Google.Chrome".to_string(),
+            name: "Google Chrome".to_string(),
+            version: "132.0".to_string(),
+            source: "winget".to_string(),
+            available_version: String::new(),
+            pin_state: PinState::Pinned,
+        };
+        let d = PackageDetail::from(&p);
+        assert_eq!(d.id, "Google.Chrome");
+        assert_eq!(d.name, "Google Chrome");
+        assert_eq!(d.version, "132.0");
+        assert_eq!(d.source, "winget");
+        assert_eq!(d.pin_state, PinState::Pinned);
+    }
+
+    #[test]
+    fn package_detail_from_package_leaves_rich_fields_empty() {
+        let p = Package {
+            id: "Foo.Bar".to_string(),
+            name: "Foo Bar".to_string(),
+            version: "1.0".to_string(),
+            source: "winget".to_string(),
+            available_version: String::new(),
+            pin_state: PinState::None,
+        };
+        let d = PackageDetail::from(&p);
+        assert!(d.publisher.is_empty());
+        assert!(d.description.is_empty());
+        assert!(d.homepage.is_empty());
+        assert!(d.license.is_empty());
+        assert!(d.release_notes_url.is_empty());
     }
 }

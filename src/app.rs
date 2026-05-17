@@ -497,15 +497,11 @@ impl App {
                     "Installed locally (not from a winget source)"
                 };
                 let detail = PackageDetail {
-                    id: pkg.id.clone(),
-                    name: pkg.name.clone(),
-                    version: pkg.version.clone(),
                     source: if pkg.source.is_empty() {
                         "local".to_string()
                     } else {
                         pkg.source.clone()
                     },
-                    pin_state: pkg.pin_state.clone(),
                     description: format!(
                         "{}\n\n\
                          This package has no manifest in any configured winget source. \
@@ -514,7 +510,7 @@ impl App {
                          the Windows Settings > Apps panel.",
                         kind
                     ),
-                    ..PackageDetail::default()
+                    ..PackageDetail::from(pkg)
                 };
                 self.detail_cache.insert(id.to_string(), detail.clone());
                 self.detail = Some(detail);
@@ -525,14 +521,7 @@ impl App {
 
         // Pre-populate from Package list data for instant feedback
         if let Some(pkg) = self.filtered_packages.iter().find(|p| p.id == id) {
-            self.detail = Some(PackageDetail {
-                id: pkg.id.clone(),
-                name: pkg.name.clone(),
-                version: pkg.version.clone(),
-                source: pkg.source.clone(),
-                pin_state: pkg.pin_state.clone(),
-                ..PackageDetail::default()
-            });
+            self.detail = Some(PackageDetail::from(pkg));
         }
 
         self.detail_loading = true;
