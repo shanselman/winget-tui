@@ -429,10 +429,10 @@ fn draw_detail_panel(f: &mut Frame, app: &mut App, area: Rect) {
     if let Some(detail) = &app.detail {
         let label_style = theme::detail_label();
 
-        let available_version = app
+        let available_version: String = app
             .selected_package()
-            .map(|p| p.available_version.as_str())
-            .unwrap_or("");
+            .map(|p| p.available_version.clone())
+            .unwrap_or_default();
 
         let mut lines = vec![
             Line::from(vec![
@@ -453,7 +453,7 @@ fn draw_detail_panel(f: &mut Frame, app: &mut App, area: Rect) {
             lines.push(Line::from(vec![
                 Span::styled("  Available ", label_style),
                 Span::styled(
-                    available_version.to_string(),
+                    available_version.clone(),
                     Style::default()
                         .fg(theme::SUCCESS)
                         .add_modifier(Modifier::BOLD),
@@ -523,10 +523,22 @@ fn draw_detail_panel(f: &mut Frame, app: &mut App, area: Rect) {
             let indent = "  ";
             // Available width: area minus borders (2) minus block padding (0 horiz) minus indent (2)
             let max_width = (area.width as usize).saturating_sub(4);
-            for wrapped_line in word_wrap(&detail.description, max_width) {
+            // Reuse cached wrap output when the package and panel width are unchanged.
+            // word_wrap() allocates a Vec<String> on every call; skipping it on
+            // unchanged frames keeps the render path allocation-free.
+            let cache_hit = app
+                .detail_desc_cache
+                .as_ref()
+                .is_some_and(|(id, w, _)| id == &detail.id && *w == max_width);
+            if !cache_hit {
+                let wrapped = word_wrap(&detail.description, max_width);
+                app.detail_desc_cache = Some((detail.id.clone(), max_width, wrapped));
+            }
+            // SAFETY: the cache was just populated above if it wasn't already valid.
+            for wrapped_line in &app.detail_desc_cache.as_ref().unwrap().2 {
                 lines.push(Line::from(vec![
                     Span::raw(indent),
-                    Span::styled(wrapped_line, desc_style),
+                    Span::styled(wrapped_line.as_str(), desc_style),
                 ]));
             }
         }

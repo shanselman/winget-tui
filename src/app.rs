@@ -150,6 +150,11 @@ pub struct App {
     pub detail_generation: u64,
     /// Cache of package details to avoid repeated winget show calls
     pub detail_cache: HashMap<String, PackageDetail>,
+    /// Cached word-wrap output for the detail panel description.
+    /// Stores `(detail_id, panel_width, wrapped_lines)`.  Reused every render
+    /// frame as long as the selected package and panel width are unchanged,
+    /// avoiding repeated heap allocation from `word_wrap`.
+    pub detail_desc_cache: Option<(String, usize, Vec<String>)>,
     /// Indices into filtered_packages that are selected for batch operations
     pub selected_packages: HashSet<usize>,
     /// A high-signal status message to restore after the next list refresh completes.
@@ -245,6 +250,7 @@ impl App {
             view_generation: 0,
             detail_generation: 0,
             detail_cache: HashMap::new(),
+            detail_desc_cache: None,
             selected_packages: HashSet::new(),
             post_refresh_status: None,
             backend,
@@ -1668,7 +1674,79 @@ mod tests {
         assert_eq!(app.selected, 0, "selection should clamp to 0 on empty list");
     }
 
-    // ── process_messages ──────────────────────────────────────────────────────
+    // ── detail_desc_cache ─────────────────────────────────────────────────────
+
+    #[test]
+    fn detail_desc_cache_starts_none() {
+        let spy = SpyBackend::new();
+        let app = make_app(spy as Arc<dyn WingetBackend>);
+        assert!(
+            app.detail_desc_cache.is_none(),
+            "detail_desc_cache must be None in a freshly created App"
+        );
+    }
+
+    #[test]
+    fn detail_desc_cache_hit_for_same_id_and_width() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        let id = "com.example.App".to_string();
+        let width = 80usize;
+        let lines = vec!["hello world".to_string()];
+
+        app.detail_desc_cache = Some((id.clone(), width, lines));
+
+        let hit = app
+            .detail_desc_cache
+            .as_ref()
+            .is_some_and(|(cid, cw, _)| cid == &id && *cw == width);
+        assert!(hit, "cache should report a hit for matching id and width");
+    }
+
+    #[test]
+    fn detail_desc_cache_miss_when_width_differs() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        let id = "com.example.App".to_string();
+        app.detail_desc_cache = Some((id.clone(), 80, vec!["text".to_string()]));
+
+        let hit = app
+            .detail_desc_cache
+            .as_ref()
+            .is_some_and(|(cid, cw, _)| cid == &id && *cw == 60);
+        assert!(!hit, "cache should miss when panel width differs");
+    }
+
+    #[test]
+    fn detail_desc_cache_miss_when_id_differs() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.detail_desc_cache = Some(("original.App".to_string(), 80, vec![]));
+
+        let hit = app
+            .detail_desc_cache
+            .as_ref()
+            .is_some_and(|(cid, cw, _)| cid == "other.App" && *cw == 80);
+        assert!(!hit, "cache should miss when package id differs");
+    }
+
+    #[test]
+    fn detail_desc_cache_stores_wrapped_lines() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        let expected = vec!["first line".to_string(), "second line".to_string()];
+        app.detail_desc_cache = Some(("pkg.Id".to_string(), 40, expected.clone()));
+
+        let stored_lines = app
+            .detail_desc_cache
+            .as_ref()
+            .map(|(_, _, lines)| lines.clone())
+            .unwrap();
+        assert_eq!(
+            stored_lines, expected,
+            "cache must preserve the wrapped lines exactly"
+        );
+    }
 
     #[test]
     fn process_messages_error_clears_loading_and_post_refresh_status() {
