@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-05-17T01:24:30Z",
-  "last_run_id": "25977907570",
+  "last_run": "2026-05-17T13:10:04Z",
+  "last_run_id": "25991757822",
   "monthly_summary_issue": "#171 (May 2026)",
   "comments_made": {
     "80": "2026-04-16",
@@ -10,10 +10,12 @@
     "154_pr": "2026-04-27"
   },
   "open_repo_assist_prs": [
-    {"number": 168, "title": "perf: build only visible rows in package list table (rebased 2026-05-17)"},
-    {"number": 184, "title": "refactor: add From<&Package> for PackageDetail (2 tests, 2026-05-17)"}
+    {"number": 168, "title": "perf: build only visible rows in package list table"},
+    {"number": 184, "title": "refactor: add From<&Package> for PackageDetail (2 tests)"},
+    {"number": "pending", "title": "perf: cache word_wrap output in detail panel (5 tests, 341->344, branch: repo-assist/perf-cache-desc-wordwrap-2026-05-17)"}
   ],
   "improvements_submitted": [
+    "perf: cache word_wrap output in detail panel (avoid re-wrapping on every render frame, 5 tests, 341->344) (2026-05-17) PR pending",
     "refactor: add From<&Package> for PackageDetail to remove construction duplication (2026-05-17) PR #184",
     "fix: sync table viewport after apply_filter (stale offset bug when list shrinks) (2026-05-16) PR #182 (merged)",
     "perf: skip idle renders - process_messages returns bool, handle_events returns bool, conditional draw (2026-05-15) PR #181 (merged)",
@@ -35,11 +37,11 @@
     "test: ensure_selection_visible scroll-up + already-visible + csv_escape (2026-04-25) PR #152 (merged)"
   ],
   "backlog_cursor": {
-    "issues": "no human issues open; only Repo Assist issues 158, 169, 171",
+    "issues": "no human issues open; only Repo Assist issues 158, 169, 171, 185",
     "next_issue_to_process": "check for new human issues next run"
   },
   "pause_test_prs": false,
-  "pause_reason": "Only 2 open Repo Assist PRs as of 2026-05-17 (PRs #168 and #184). Resume improvement work.",
+  "pause_reason": "Only 2-3 open Repo Assist PRs as of 2026-05-17. Resume improvement work.",
   "future_test_work": [
     "Space key toggle-selection in Upgrades view (handler.rs:444-456) - not yet tested",
     "'a' key select-all/deselect-all in Upgrades view (handler.rs:459-467) - not yet tested",
@@ -48,5 +50,5 @@
   "dependabot_prs": {
     "github_actions": ["#160 (upload-artifact 4->7)", "#161 (azure/login 2.3.0->3.0.0)"]
   },
-  "notes": "v0.10.0 released 2026-04-26. As of 2026-05-17, main has many merged PRs. Only 2 open Repo Assist PRs: #168 (perf: viewport rows, rebased this run) and #184 (refactor: From<&Package> for PackageDetail, new this run). PR #183 (Copilot) fixes truncated package ID upgrades - still open. Issues #158 and #169 still open (protected workflow files). Main has ~341 tests passing (without #168 viewport tests). CI is NOT running on Repo Assist PR branches (GitHub blocks CI for bot-created PRs). cargo clippy -- -D warnings passes cleanly. Pause_test_prs lifted - only 2 open PRs now, resume improvements."
+  "notes": "v0.10.0 released 2026-04-26. As of 2026-05-17, main is at ff1eb92 (docs: clarify install). 344 tests passing. Open Repo Assist PRs: #168 (perf: viewport rows), #184 (refactor: From<&Package>), pending new PR (perf: word_wrap cache, 5 tests, branch: repo-assist/perf-cache-desc-wordwrap-2026-05-17). Issue #185 is a workflow failure from previous run (protected workflow files). CI is NOT running on Repo Assist PR branches. cargo clippy -- -D warnings passes cleanly. Dependabot PRs #160 and #161 still open (protected workflow files, bundled in issue #169). Monthly summary #171 updated this run."
 }
