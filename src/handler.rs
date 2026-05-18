@@ -2052,4 +2052,100 @@ mod tests {
         assert!(!app.show_help);
         assert_eq!(app.help_scroll, 0, "scroll should reset when help closes");
     }
+
+    // ── handle_tab_click ─────────────────────────────────────────────────────
+
+    #[test]
+    fn tab_click_switches_to_installed_view() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app();
+        app.mode = AppMode::Search;
+        // Register three tab regions: Search=0..10, Installed=10..20, Upgrades=20..30
+        app.layout.tab_regions = vec![
+            (0, 10, AppMode::Search),
+            (10, 20, AppMode::Installed),
+            (20, 30, AppMode::Upgrades),
+        ];
+        handle_tab_click(&mut app, 10); // exactly at Installed start_x
+        assert_eq!(app.mode, AppMode::Installed, "clicking Installed tab should switch to Installed");
+    }
+
+    #[test]
+    fn tab_click_switches_to_upgrades_view() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app();
+        app.mode = AppMode::Search;
+        app.layout.tab_regions = vec![
+            (0, 10, AppMode::Search),
+            (10, 20, AppMode::Installed),
+            (20, 30, AppMode::Upgrades),
+        ];
+        handle_tab_click(&mut app, 25); // mid-Upgrades region
+        assert_eq!(app.mode, AppMode::Upgrades, "clicking Upgrades tab should switch to Upgrades");
+    }
+
+    #[test]
+    fn tab_click_end_x_is_exclusive() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app();
+        app.mode = AppMode::Search;
+        app.layout.tab_regions = vec![
+            (0, 10, AppMode::Search),
+            (10, 20, AppMode::Installed),
+        ];
+        // col == 20 is exactly at end_x of Installed, which is exclusive — no region matches
+        handle_tab_click(&mut app, 20);
+        assert_eq!(app.mode, AppMode::Search, "col == end_x should not activate the tab (end_x is exclusive)");
+    }
+
+    #[test]
+    fn tab_click_outside_all_regions_is_noop() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app();
+        app.mode = AppMode::Installed;
+        app.local_filter = "keepme".to_string();
+        app.layout.tab_regions = vec![
+            (0, 10, AppMode::Search),
+            (10, 20, AppMode::Installed),
+            (20, 30, AppMode::Upgrades),
+        ];
+        handle_tab_click(&mut app, 99); // outside all regions
+        assert_eq!(app.mode, AppMode::Installed, "click outside tab regions should leave mode unchanged");
+        assert_eq!(app.local_filter, "keepme", "click outside tab regions should leave filter unchanged");
+    }
+
+    #[test]
+    fn tab_click_on_current_mode_tab_is_noop() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app();
+        app.mode = AppMode::Installed;
+        app.local_filter = "filter".to_string();
+        app.layout.tab_regions = vec![
+            (0, 10, AppMode::Search),
+            (10, 20, AppMode::Installed),
+            (20, 30, AppMode::Upgrades),
+        ];
+        // Clicking the already-active tab calls switch_view with the same mode,
+        // which is a no-op — state should be preserved.
+        handle_tab_click(&mut app, 15);
+        assert_eq!(app.mode, AppMode::Installed, "clicking the current-mode tab should stay in that mode");
+        assert_eq!(app.local_filter, "filter", "clicking the current-mode tab must not clear local_filter");
+    }
+
+    #[test]
+    fn tab_click_with_empty_regions_is_noop() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app();
+        app.mode = AppMode::Search;
+        // No tab regions registered (e.g., layout not yet computed)
+        app.layout.tab_regions = vec![];
+        handle_tab_click(&mut app, 5);
+        assert_eq!(app.mode, AppMode::Search, "no tab regions: mode must be unchanged");
+    }
 }
