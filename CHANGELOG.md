@@ -7,6 +7,32 @@ Versions match the `v<major>.<minor>.<patch>` tags in git.
 
 ---
 
+## [0.11.0] – 2026-05-17
+
+### Added
+- `default_sort` configuration for choosing the startup sort order.
+- Help overlay scrolling with Up/Down, PgUp/PgDn, Home, and End.
+- Keyboard navigation while editing the Installed/Upgrades local filter.
+
+### Fixed
+- Upgrading a package whose ID is truncated by winget now falls back to an
+  exact package-name upgrade instead of blocking the operation.
+- Package-list viewport state is resynchronized when filtering shrinks the
+  list, keeping the selected row visible.
+- Help text now includes the missing `s` keybinding.
+
+### Performance
+- Replaced package deduplication's linear scan with a HashMap.
+- Skipped idle renders when no event, message, or load is in flight.
+
+### Other
+- Added changelog and Cargo package metadata.
+- Expanded unit-test coverage for sorting, selection, filtering, scrollbars,
+  operation messages, word wrapping, keybindings, and parser edge cases.
+- Updated CI, release, and agentic workflow dependencies.
+
+---
+
 ## [0.10.0] – 2026-04-26
 
 ### Fixed
