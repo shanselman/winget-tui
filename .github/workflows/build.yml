@@ -84,15 +84,26 @@ jobs:
       - name: Prepare artifacts
         shell: pwsh
         run: |
+          $version = $env:VERSION
           New-Item -ItemType Directory -Path artifacts -Force
           Copy-Item "target/x86_64-pc-windows-msvc/release/winget-tui.exe" -Destination "artifacts/winget-tui-x64.exe"
           Copy-Item "target/aarch64-pc-windows-msvc/release/winget-tui.exe" -Destination "artifacts/winget-tui-arm64.exe"
+
+          New-Item -ItemType Directory -Path "artifacts/winget-tui-$version-x64" -Force
+          Copy-Item "target/x86_64-pc-windows-msvc/release/winget-tui.exe" -Destination "artifacts/winget-tui-$version-x64/winget-tui.exe"
+          Compress-Archive -Path "artifacts/winget-tui-$version-x64" -DestinationPath "artifacts/winget-tui-$version-x64.zip" -Force
+
+          New-Item -ItemType Directory -Path "artifacts/winget-tui-$version-arm64" -Force
+          Copy-Item "target/aarch64-pc-windows-msvc/release/winget-tui.exe" -Destination "artifacts/winget-tui-$version-arm64/winget-tui.exe"
+          Compress-Archive -Path "artifacts/winget-tui-$version-arm64" -DestinationPath "artifacts/winget-tui-$version-arm64.zip" -Force
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
         with:
           name: winget-tui-${{ env.VERSION }}
-          path: artifacts/*.exe
+          path: |
+            artifacts/*.exe
+            artifacts/*.zip
 
   release:
     runs-on: ubuntu-latest
@@ -112,7 +123,9 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v3
         with:
-          files: artifacts/*.exe
+          files: |
+            artifacts/*.exe
+            artifacts/*.zip
           generate_release_notes: true
           body: |
             ## winget-tui ${{ github.ref_name }}
@@ -125,6 +138,8 @@ jobs:
             |------|----------|
             | `winget-tui-x64.exe` | Windows x64 |
             | `winget-tui-arm64.exe` | Windows ARM64 |
+            | `winget-tui-<version>-x64.zip` | Windows x64 portable ZIP for winget |
+            | `winget-tui-<version>-arm64.zip` | Windows ARM64 portable ZIP for winget |
 
             ### Usage
 
