@@ -1,7 +1,7 @@
 {
-  "last_run": "2026-05-17T13:10:04Z",
-  "last_run_id": "25991757822",
-  "monthly_summary_issue": "#171 (May 2026)",
+  "last_run": "2026-05-18T01:26:47Z",
+  "last_run_id": "26008611795",
+  "monthly_summary_issue": "new issue created this run (May 2026)",
   "comments_made": {
     "80": "2026-04-16",
     "83": "2026-04-16",
@@ -10,22 +10,17 @@
     "154_pr": "2026-04-27"
   },
   "open_repo_assist_prs": [
-    {"number": 168, "title": "perf: build only visible rows in package list table"},
-    {"number": 184, "title": "refactor: add From<&Package> for PackageDetail"},
-    {"number": "pending", "title": "perf: cache word_wrap output in detail panel (5 tests, 341->344)"}
+    {"number": 187, "title": "test: add coverage for handle_tab_click"},
+    {"number": 188, "title": "ci: add --locked flag to cargo commands for reproducible builds"}
   ],
   "backlog_cursor": {
-    "issues": "no human issues open; only Repo Assist issues 158, 169, 171, 185",
+    "issues": "no human issues open",
     "next_issue_to_process": "check for new human issues next run"
   },
-  "pause_test_prs": false,
   "future_test_work": [
-    "Space key toggle-selection in Upgrades view (handler.rs:444-456) - not yet tested",
-    "'a' key select-all/deselect-all in Upgrades view (handler.rs:459-467) - not yet tested",
-    "handle_tab_click function (handler.rs:709-717) - not yet tested"
+    "Space key toggle-selection in Upgrades view - already tested (lines 1729+)",
+    "'a' key select-all/deselect-all in Upgrades view - already tested (lines 1658+)",
+    "handle_tab_click - DONE (PR #187, 6 tests added this run)"
   ],
-  "dependabot_prs": {
-    "github_actions": ["#160 (upload-artifact 4->7)", "#161 (azure/login 2.3.0->3.0.0)"]
-  },
-  "notes": "2026-05-17 run: created perf PR for word_wrap caching (5 tests, 341->344). Main at ff1eb92, 344 tests. PRs #168 and #184 open. #185 is workflow failure (protected files). CI does not run on bot PRs. Monthly summary #171 updated."
+  "notes": "2026-05-18 run: Tasks 4+9. Created PR #187 (handle_tab_click tests, 342->348 tests) and PR #188 (CI --locked flag). Issue #171 was closed by shanselman; created new monthly summary. All previous Repo Assist PRs (168, 184, 186 etc) are closed. Main at 22130e3, 342 tests."
 }
