@@ -75,17 +75,17 @@ jobs:
           $arm64Url = "$baseUrl/$env:COMMAND_ALIAS-$env:VERSION-arm64.zip"
 
           @"
-          # yaml-language-server: `$schema=https://aka.ms/winget-manifest.version.1.12.0.schema.json
+          # yaml-language-server: `$schema=https://aka.ms/winget-manifest.version.1.10.0.schema.json
 
           PackageIdentifier: $env:PACKAGE_ID
           PackageVersion: $env:VERSION
           DefaultLocale: en-US
           ManifestType: version
-          ManifestVersion: 1.12.0
+          ManifestVersion: 1.10.0
           "@ -replace "^[ \t]{10}", "" | Set-Content -Path (Join-Path $manifestRoot "$env:PACKAGE_ID.yaml") -Encoding utf8NoBOM
 
           @"
-          # yaml-language-server: `$schema=https://aka.ms/winget-manifest.defaultLocale.1.12.0.schema.json
+          # yaml-language-server: `$schema=https://aka.ms/winget-manifest.defaultLocale.1.10.0.schema.json
 
           PackageIdentifier: $env:PACKAGE_ID
           PackageVersion: $env:VERSION
@@ -108,11 +108,11 @@ jobs:
           - windows
           ReleaseNotesUrl: $env:RELEASE_URL
           ManifestType: defaultLocale
-          ManifestVersion: 1.12.0
+          ManifestVersion: 1.10.0
           "@ -replace "^[ \t]{10}", "" | Set-Content -Path (Join-Path $manifestRoot "$env:PACKAGE_ID.locale.en-US.yaml") -Encoding utf8NoBOM
 
           @"
-          # yaml-language-server: `$schema=https://aka.ms/winget-manifest.installer.1.12.0.schema.json
+          # yaml-language-server: `$schema=https://aka.ms/winget-manifest.installer.1.10.0.schema.json
 
           PackageIdentifier: $env:PACKAGE_ID
           PackageVersion: $env:VERSION
@@ -135,7 +135,7 @@ jobs:
             InstallerUrl: $arm64Url
             InstallerSha256: $env:ARM64_SHA256
           ManifestType: installer
-          ManifestVersion: 1.12.0
+          ManifestVersion: 1.10.0
           ReleaseDate: $releaseDate
           "@ -replace "^[ \t]{10}", "" | Set-Content -Path (Join-Path $manifestRoot "$env:PACKAGE_ID.installer.yaml") -Encoding utf8NoBOM
 
