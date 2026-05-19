@@ -536,36 +536,20 @@ fn handle_normal_mode(
         }
 
         // Open homepage
-        KeyCode::Char('o') => match &app.detail {
-            None => app.set_status("No package selected"),
-            Some(detail) if detail.homepage.is_empty() => {
-                app.set_status("No homepage URL available for this package")
-            }
-            Some(detail) => {
-                let url = detail.homepage.clone();
-                if open_url(&url) {
-                    app.set_status(format!("Opening {}…", url));
-                } else {
-                    app.set_status("Blocked: URL must start with http:// or https://");
-                }
-            }
-        },
+        KeyCode::Char('o') => open_detail_url(
+            app,
+            |d| &d.homepage,
+            "No homepage URL available for this package",
+            "Opening ",
+        ),
 
         // Open release notes / changelog in default browser
-        KeyCode::Char('c') => match &app.detail {
-            None => app.set_status("No package selected"),
-            Some(detail) if detail.release_notes_url.is_empty() => {
-                app.set_status("No changelog URL available for this package")
-            }
-            Some(detail) => {
-                let url = detail.release_notes_url.clone();
-                if open_url(&url) {
-                    app.set_status(format!("Opening changelog {}…", url));
-                } else {
-                    app.set_status("Blocked: URL must start with http:// or https://");
-                }
-            }
-        },
+        KeyCode::Char('c') => open_detail_url(
+            app,
+            |d| &d.release_notes_url,
+            "No changelog URL available for this package",
+            "Opening changelog ",
+        ),
 
         // Sort: cycle through Name↑ → Name↓ → ID↑ → ID↓ → Version↑ → Version↓ → None
         KeyCode::Char('S') => {
@@ -746,6 +730,40 @@ fn scrollbar_jump(app: &mut App, row: u16) {
 
 fn in_rect(col: u16, row: u16, rect: ratatui::layout::Rect) -> bool {
     col >= rect.x && col < rect.x + rect.width && row >= rect.y && row < rect.y + rect.height
+}
+
+/// Open a URL from the current package detail pane, updating the status bar.
+///
+/// `get_url`       – extracts the URL field from a `PackageDetail`  
+/// `not_available` – status message shown when the URL field is empty  
+/// `opening_prefix`– prefix prepended to the URL in the "Opening …" message
+fn open_detail_url(
+    app: &mut App,
+    get_url: impl Fn(&crate::models::PackageDetail) -> &str,
+    not_available: &'static str,
+    opening_prefix: &'static str,
+) {
+    // Extract URL (or emit an early-exit status) while the detail is borrowed,
+    // then release the borrow before calling set_status (which needs &mut App).
+    let url = match &app.detail {
+        None => {
+            app.set_status("No package selected");
+            return;
+        }
+        Some(detail) => {
+            let u = get_url(detail);
+            if u.is_empty() {
+                app.set_status(not_available);
+                return;
+            }
+            u.to_string()
+        }
+    };
+    if open_url(&url) {
+        app.set_status(format!("{opening_prefix}{}…", url));
+    } else {
+        app.set_status("Blocked: URL must start with http:// or https://");
+    }
 }
 
 fn open_url(url: &str) -> bool {
