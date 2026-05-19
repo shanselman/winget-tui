@@ -247,3 +247,103 @@ pub fn logo_lines() -> Vec<Line<'static>> {
 
     lines
 }
+
+// ── Tests ────────────────────────────────────────────────────────────────────
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ratatui::style::{Color, Modifier};
+
+    // ── Color constants ──────────────────────────────────────────────────────
+
+    #[test]
+    fn accent_is_warm_gold() {
+        assert_eq!(ACCENT, Color::Rgb(238, 201, 141));
+    }
+
+    #[test]
+    fn danger_is_red() {
+        assert_eq!(DANGER, Color::Rgb(231, 72, 86));
+    }
+
+    #[test]
+    fn success_is_green() {
+        assert_eq!(SUCCESS, Color::Rgb(86, 185, 127));
+    }
+
+    #[test]
+    fn info_is_blue() {
+        assert_eq!(INFO, Color::Rgb(97, 175, 239));
+    }
+
+    // ── Style helpers ────────────────────────────────────────────────────────
+
+    #[test]
+    fn border_focused_uses_accent_fg() {
+        let s = border_focused();
+        assert_eq!(s.fg, Some(ACCENT));
+    }
+
+    #[test]
+    fn border_unfocused_uses_accent_dim_fg() {
+        let s = border_unfocused();
+        assert_eq!(s.fg, Some(ACCENT_DIM));
+    }
+
+    #[test]
+    fn selected_row_has_accent_bg_and_bold() {
+        let s = selected_row();
+        assert_eq!(s.bg, Some(ACCENT));
+        assert!(s.add_modifier.contains(Modifier::BOLD));
+    }
+
+    #[test]
+    fn status_error_has_danger_fg() {
+        let s = status_error();
+        assert_eq!(s.fg, Some(DANGER));
+    }
+
+    #[test]
+    fn status_loading_has_accent_fg() {
+        let s = status_loading();
+        assert_eq!(s.fg, Some(ACCENT));
+    }
+
+    #[test]
+    fn navbar_active_has_accent_bg() {
+        let s = navbar_active();
+        assert_eq!(s.bg, Some(ACCENT));
+    }
+
+    #[test]
+    fn navbar_inactive_has_secondary_fg() {
+        let s = navbar_inactive();
+        assert_eq!(s.fg, Some(TEXT_SECONDARY));
+    }
+
+    // ── Logo ─────────────────────────────────────────────────────────────────
+
+    #[test]
+    fn logo_lines_count_matches_logo_height() {
+        let lines = logo_lines();
+        assert_eq!(lines.len(), LOGO_HEIGHT as usize);
+    }
+
+    #[test]
+    fn logo_lines_each_row_has_31_spans() {
+        for (i, line) in logo_lines().iter().enumerate() {
+            assert_eq!(line.spans.len(), 31, "row {i} should have 31 spans");
+        }
+    }
+
+    #[test]
+    fn logo_lines_each_span_is_single_char() {
+        for line in logo_lines() {
+            for span in &line.spans {
+                let chars: Vec<char> = span.content.chars().collect();
+                assert_eq!(chars.len(), 1, "each span should be one character wide");
+            }
+        }
+    }
+}
