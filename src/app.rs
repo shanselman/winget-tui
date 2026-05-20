@@ -2267,6 +2267,47 @@ mod tests {
     }
 
     #[test]
+    fn load_detail_truncated_id_creates_local_stub_without_backend_call() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy.clone() as Arc<dyn WingetBackend>);
+        // Plain winget truncation (not ARP/MSIX) — e.g. a long community package ID
+        let truncated_id = "Microsoft.Sysinternals.R...";
+        app.filtered_packages = vec![Package {
+            id: truncated_id.to_string(),
+            name: "Sysinternals Suite".to_string(),
+            version: "2024.01.01".to_string(),
+            source: "winget".to_string(),
+            available_version: String::new(),
+            pin_state: PinState::None,
+        }];
+
+        app.load_detail(truncated_id);
+
+        assert!(
+            spy.show_calls().is_empty(),
+            "winget show must not be called for packages with truncated IDs"
+        );
+        assert!(
+            !app.detail_loading,
+            "detail_loading should be false for truncated-ID stub"
+        );
+        let detail = app
+            .detail
+            .as_ref()
+            .expect("detail should be populated with a local stub");
+        assert_eq!(detail.id, truncated_id);
+        assert_eq!(detail.name, "Sysinternals Suite");
+        assert!(
+            detail.description.contains("truncated"),
+            "stub description should mention that the ID was truncated"
+        );
+        assert!(
+            app.detail_cache.contains_key(truncated_id),
+            "stub should be cached to avoid rebuilding on subsequent calls"
+        );
+    }
+
+    #[test]
     fn load_detail_empty_source_creates_local_stub_without_backend_call() {
         let spy = SpyBackend::new();
         let mut app = make_app(spy.clone() as Arc<dyn WingetBackend>);
