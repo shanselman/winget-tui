@@ -1982,4 +1982,77 @@ Google Chrome  Google.Chrome  131.0
     fn normalize_show_key_package_version_alias() {
         assert_eq!(CliBackend::normalize_show_key("PackageVersion"), "version");
     }
+
+    // ── parse_pins_from_table ─────────────────────────────────────────────────
+
+    fn make_backend() -> CliBackend {
+        CliBackend::new()
+    }
+
+    #[test]
+    fn parse_pins_from_table_english_blocking_pin() {
+        let backend = make_backend();
+        let output = "\
+Name                       Id                         Pinned Version  Type
+-------------------------- -------------------------- --------------- --------
+Git                        Git.Git                                    Blocking
+";
+        let pins = backend.parse_pins_from_table(output);
+        assert_eq!(pins.len(), 1);
+        assert_eq!(pins[0].id, "Git.Git");
+        assert_eq!(pins[0].pin_state, PinState::Blocking);
+    }
+
+    #[test]
+    fn parse_pins_from_table_gating_pin_with_version() {
+        let backend = make_backend();
+        let output = "\
+Name                       Id                         Pinned Version  Type
+-------------------------- -------------------------- --------------- --------
+Git                        Git.Git                    2.45.*          Gating
+";
+        let pins = backend.parse_pins_from_table(output);
+        assert_eq!(pins.len(), 1);
+        assert_eq!(pins[0].id, "Git.Git");
+        assert_eq!(pins[0].pin_state, PinState::Gating("2.45.*".to_string()));
+    }
+
+    #[test]
+    fn parse_pins_from_table_no_pins_configured_message() {
+        let backend = make_backend();
+        let pins = backend.parse_pins_from_table("No pins configured.");
+        assert!(pins.is_empty());
+    }
+
+    #[test]
+    fn parse_pins_from_table_empty_output_returns_empty() {
+        let backend = make_backend();
+        let pins = backend.parse_pins_from_table("");
+        assert!(pins.is_empty());
+    }
+
+    #[test]
+    fn parse_pins_from_table_no_separator_returns_empty() {
+        let backend = make_backend();
+        let output = "Name  Id  Type\n";
+        let pins = backend.parse_pins_from_table(output);
+        assert!(pins.is_empty());
+    }
+
+    #[test]
+    fn parse_pins_from_table_multiple_pins() {
+        let backend = make_backend();
+        let output = "\
+Name                       Id                         Pinned Version  Type
+-------------------------- -------------------------- --------------- --------
+Git                        Git.Git                                    Blocking
+Node.js                    OpenJS.NodeJS              20.*            Gating
+";
+        let pins = backend.parse_pins_from_table(output);
+        assert_eq!(pins.len(), 2);
+        assert_eq!(pins[0].id, "Git.Git");
+        assert_eq!(pins[0].pin_state, PinState::Blocking);
+        assert_eq!(pins[1].id, "OpenJS.NodeJS");
+        assert_eq!(pins[1].pin_state, PinState::Gating("20.*".to_string()));
+    }
 }
