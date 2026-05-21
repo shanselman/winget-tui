@@ -537,6 +537,52 @@ mod tests {
 
     // ── SortField / SortDir ───────────────────────────────────────────────────
 
+    // ── merge_over: pin_state ─────────────────────────────────────────────────
+
+    #[test]
+    fn merge_over_pin_state_fresh_unpinned_preserves_base_pin() {
+        // When fresh.pin_state is None (not pinned), the base pin_state should
+        // be carried over — this is the cache-update path where winget show
+        // does not return pin information but the list already had it.
+        let fresh = PackageDetail {
+            id: "Foo.Bar".to_string(),
+            ..PackageDetail::default()
+        };
+        let base = PackageDetail {
+            pin_state: PinState::Blocking,
+            ..PackageDetail::default()
+        };
+        let merged = fresh.merge_over(&base);
+        assert_eq!(merged.pin_state, PinState::Blocking);
+    }
+
+    #[test]
+    fn merge_over_pin_state_fresh_pinned_overrides_base() {
+        // When fresh.pin_state is pinned, it should win over the base.
+        let fresh = PackageDetail {
+            pin_state: PinState::Pinned,
+            ..PackageDetail::default()
+        };
+        let base = PackageDetail {
+            pin_state: PinState::Blocking,
+            ..PackageDetail::default()
+        };
+        let merged = fresh.merge_over(&base);
+        assert_eq!(merged.pin_state, PinState::Pinned);
+    }
+
+    #[test]
+    fn merge_over_pin_state_gating_version_preserved_from_base() {
+        // Gating(version) on the base should survive when fresh is unpinned.
+        let fresh = PackageDetail::default();
+        let base = PackageDetail {
+            pin_state: PinState::Gating("1.2.3".to_string()),
+            ..PackageDetail::default()
+        };
+        let merged = fresh.merge_over(&base);
+        assert_eq!(merged.pin_state, PinState::Gating("1.2.3".to_string()));
+    }
+
     #[test]
     fn sort_field_default_is_none() {
         assert_eq!(SortField::default(), SortField::None);

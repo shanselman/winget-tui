@@ -9,10 +9,6 @@ pub const ACCENT: Color = Color::Rgb(238, 201, 141); // #EEC98D
 /// Dimmed accent — for focused borders
 pub const ACCENT_DIM: Color = Color::Rgb(137, 130, 112); // #898270
 
-/// Dark warm brown — for unfocused borders and subtle accents
-#[allow(dead_code)]
-pub const ACCENT_DARK: Color = Color::Rgb(137, 130, 112); // #898270
-
 /// Primary text color
 pub const TEXT_PRIMARY: Color = Color::Rgb(232, 220, 183); // #E8DCB7
 
