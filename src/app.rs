@@ -387,7 +387,7 @@ impl App {
         self.selected = 0;
         self.apply_filter();
         self.ensure_selection_visible();
-        self.set_status(format!("{}", self.pin_filter));
+        self.set_status(self.pin_filter.to_string());
     }
 
     pub fn spinner(&self) -> char {
@@ -637,33 +637,26 @@ impl App {
         writer: &mut dyn std::io::Write,
         include_available: bool,
     ) -> std::io::Result<()> {
-        if include_available {
-            writeln!(writer, "Name,Id,Version,Source,AvailableVersion")?;
+        let header = if include_available {
+            "Name,Id,Version,Source,AvailableVersion"
         } else {
-            writeln!(writer, "Name,Id,Version,Source")?;
-        }
+            "Name,Id,Version,Source"
+        };
+        writeln!(writer, "{header}")?;
 
         for pkg in &self.filtered_packages {
+            write!(
+                writer,
+                "{},{},{},{}",
+                csv_escape(&pkg.name),
+                csv_escape(&pkg.id),
+                csv_escape(&pkg.version),
+                csv_escape(&pkg.source),
+            )?;
             if include_available {
-                writeln!(
-                    writer,
-                    "{},{},{},{},{}",
-                    csv_escape(&pkg.name),
-                    csv_escape(&pkg.id),
-                    csv_escape(&pkg.version),
-                    csv_escape(&pkg.source),
-                    csv_escape(&pkg.available_version)
-                )?;
-            } else {
-                writeln!(
-                    writer,
-                    "{},{},{},{}",
-                    csv_escape(&pkg.name),
-                    csv_escape(&pkg.id),
-                    csv_escape(&pkg.version),
-                    csv_escape(&pkg.source)
-                )?;
+                write!(writer, ",{}", csv_escape(&pkg.available_version))?;
             }
+            writeln!(writer)?;
         }
         Ok(())
     }
@@ -720,12 +713,11 @@ impl App {
                         continue;
                     }
                     // Merge: if winget show returned empty fields, keep pre-populated data
-                    let merged = if let Some(existing) = &self.detail {
+                    let mut merged = if let Some(existing) = &self.detail {
                         detail.merge_over(existing)
                     } else {
                         detail
                     };
-                    let mut merged = merged;
                     // `winget show` returns the latest manifest version, not the
                     // installed version.  Restore the installed version from the
                     // package list so the detail pane shows the correct value.
