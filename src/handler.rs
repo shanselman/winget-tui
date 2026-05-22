@@ -161,21 +161,18 @@ fn handle_local_filter_input(app: &mut App, key: KeyCode) -> anyhow::Result<bool
         KeyCode::Esc => {
             app.input_mode = InputMode::Normal;
             app.local_filter.clear();
-            app.apply_filter();
-            app.ensure_selection_visible();
+            app.apply_filter(); // also calls ensure_selection_visible internally
             load_detail_for_selected(app);
             app.set_status("Filter cleared");
         }
         KeyCode::Enter => {
             app.input_mode = InputMode::Normal;
-            app.apply_filter();
-            app.ensure_selection_visible();
+            app.apply_filter(); // also calls ensure_selection_visible internally
             load_detail_for_selected(app);
         }
         KeyCode::Backspace => {
             app.local_filter.pop();
-            app.apply_filter();
-            app.ensure_selection_visible();
+            app.apply_filter(); // also calls ensure_selection_visible internally
             load_detail_for_selected(app);
         }
         // Allow navigating the filtered list without leaving filter mode
@@ -212,8 +209,7 @@ fn handle_local_filter_input(app: &mut App, key: KeyCode) -> anyhow::Result<bool
         }
         KeyCode::Char(c) => {
             app.local_filter.push(c);
-            app.apply_filter();
-            app.ensure_selection_visible();
+            app.apply_filter(); // also calls ensure_selection_visible internally
             load_detail_for_selected(app);
         }
         _ => {}
