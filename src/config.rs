@@ -6,12 +6,13 @@
 ///
 /// Supported keys (all optional):
 /// ```toml
-/// default_view   = "installed"   # "installed" | "search" | "upgrades"
-/// default_source = "all"         # "all" | "winget" | "msstore"
-/// default_sort   = "name"        # name | name_desc | id | id_desc | version | version_desc | none
+/// default_view       = "installed"   # "installed" | "search" | "upgrades"
+/// default_source     = "all"         # "all" | "winget" | "msstore"
+/// default_sort       = "name"        # name | name_desc | id | id_desc | version | version_desc | none
+/// default_pin_filter = "all"         # "all" | "pinned" | "hide_pinned"
 /// ```
 use crate::app::AppMode;
-use crate::models::{SortDir, SortField, SourceFilter};
+use crate::models::{PinFilter, SortDir, SortField, SourceFilter};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Config {
@@ -19,6 +20,7 @@ pub struct Config {
     pub default_source: SourceFilter,
     pub default_sort_field: SortField,
     pub default_sort_dir: SortDir,
+    pub default_pin_filter: PinFilter,
 }
 
 impl Default for Config {
@@ -28,6 +30,7 @@ impl Default for Config {
             default_source: SourceFilter::All,
             default_sort_field: SortField::None,
             default_sort_dir: SortDir::Asc,
+            default_pin_filter: PinFilter::All,
         }
     }
 }
@@ -110,6 +113,13 @@ impl Config {
                     };
                     cfg.default_sort_field = field;
                     cfg.default_sort_dir = dir;
+                }
+                "default_pin_filter" => {
+                    cfg.default_pin_filter = match value {
+                        "pinned" => PinFilter::PinnedOnly,
+                        "hide_pinned" => PinFilter::UnpinnedOnly,
+                        _ => PinFilter::All,
+                    };
                 }
                 _ => {}
             }
@@ -258,6 +268,46 @@ default_source = \"msstore\"
         assert_eq!(cfg.default_source, SourceFilter::Winget);
         assert_eq!(cfg.default_sort_field, SortField::Version);
         assert_eq!(cfg.default_sort_dir, SortDir::Desc);
+    }
+
+    #[test]
+    fn default_pin_filter_is_all() {
+        assert_eq!(Config::default().default_pin_filter, PinFilter::All);
+    }
+
+    #[test]
+    fn parse_default_pin_filter_all() {
+        let cfg = Config::parse(r#"default_pin_filter = "all""#);
+        assert_eq!(cfg.default_pin_filter, PinFilter::All);
+    }
+
+    #[test]
+    fn parse_default_pin_filter_pinned() {
+        let cfg = Config::parse(r#"default_pin_filter = "pinned""#);
+        assert_eq!(cfg.default_pin_filter, PinFilter::PinnedOnly);
+    }
+
+    #[test]
+    fn parse_default_pin_filter_hide_pinned() {
+        let cfg = Config::parse(r#"default_pin_filter = "hide_pinned""#);
+        assert_eq!(cfg.default_pin_filter, PinFilter::UnpinnedOnly);
+    }
+
+    #[test]
+    fn parse_default_pin_filter_unknown_falls_back_to_all() {
+        let cfg = Config::parse(r#"default_pin_filter = "invalid""#);
+        assert_eq!(cfg.default_pin_filter, PinFilter::All);
+    }
+
+    #[test]
+    fn parse_all_four_keys() {
+        let input = "default_view = \"upgrades\"\ndefault_source = \"winget\"\ndefault_sort = \"version_desc\"\ndefault_pin_filter = \"pinned\"\n";
+        let cfg = Config::parse(input);
+        assert_eq!(cfg.default_view, AppMode::Upgrades);
+        assert_eq!(cfg.default_source, SourceFilter::Winget);
+        assert_eq!(cfg.default_sort_field, SortField::Version);
+        assert_eq!(cfg.default_sort_dir, SortDir::Desc);
+        assert_eq!(cfg.default_pin_filter, PinFilter::PinnedOnly);
     }
 
     #[test]
