@@ -219,7 +219,7 @@ impl App {
             input_mode: InputMode::Normal,
             focus: FocusZone::PackageList,
             source_filter: cfg.default_source,
-            pin_filter: PinFilter::All,
+            pin_filter: cfg.default_pin_filter,
             search_query: String::new(),
             local_filter: String::new(),
             packages: Vec::new(),
