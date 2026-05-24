@@ -2193,4 +2193,162 @@ mod tests {
             "no tab regions: mode must be unchanged"
         );
     }
+
+    // ── handle_normal_mode: Home / End / PageUp / PageDown (list) ────────────
+
+    #[test]
+    fn home_key_moves_selection_to_first_item() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app_with_pkgs(5);
+        app.selected = 4;
+        let _ = handle_normal_mode(&mut app, KeyCode::Home, KeyModifiers::NONE);
+        assert_eq!(app.selected, 0, "Home should move selection to index 0");
+    }
+
+    #[test]
+    fn end_key_moves_selection_to_last_item() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app_with_pkgs(5);
+        app.selected = 0;
+        let _ = handle_normal_mode(&mut app, KeyCode::End, KeyModifiers::NONE);
+        assert_eq!(app.selected, 4, "End should move selection to last index");
+    }
+
+    #[test]
+    fn page_down_moves_selection_forward_by_page() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app_with_pkgs(20);
+        // package_list_viewport_rows = height.saturating_sub(4); with height=10 → 6
+        // list_page_size returns 6 (non-zero)
+        app.layout.package_list.height = 10;
+        app.selected = 0;
+        let _ = handle_normal_mode(&mut app, KeyCode::PageDown, KeyModifiers::NONE);
+        // page = 6; min(0+6, 19) = 6
+        assert_eq!(
+            app.selected, 6,
+            "PageDown should advance selection by page size"
+        );
+    }
+
+    #[test]
+    fn page_down_clamps_at_last_item() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app_with_pkgs(5);
+        app.layout.package_list.height = 10;
+        app.selected = 3;
+        let _ = handle_normal_mode(&mut app, KeyCode::PageDown, KeyModifiers::NONE);
+        // page = 6; min(3+6, 4) = 4 (last index)
+        assert_eq!(app.selected, 4, "PageDown must not exceed last item index");
+    }
+
+    #[test]
+    fn page_up_moves_selection_backward_by_page() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app_with_pkgs(20);
+        app.layout.package_list.height = 10;
+        app.selected = 15;
+        let _ = handle_normal_mode(&mut app, KeyCode::PageUp, KeyModifiers::NONE);
+        // page = 6; 15 - 6 = 9
+        assert_eq!(
+            app.selected, 9,
+            "PageUp should retreat selection by page size"
+        );
+    }
+
+    #[test]
+    fn page_up_clamps_at_first_item() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app_with_pkgs(20);
+        app.layout.package_list.height = 10;
+        app.selected = 2;
+        let _ = handle_normal_mode(&mut app, KeyCode::PageUp, KeyModifiers::NONE);
+        // page = 7; saturating_sub gives 0
+        assert_eq!(app.selected, 0, "PageUp must not go below index 0");
+    }
+
+    // ── handle_normal_mode: Ctrl+C ────────────────────────────────────────────
+
+    #[test]
+    fn ctrl_c_sets_should_quit() {
+        let mut app = make_app();
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('c'), KeyModifiers::CONTROL);
+        assert!(app.should_quit, "Ctrl+C should set should_quit = true");
+    }
+
+    // ── handle_normal_mode: Up/Down with detail panel focused ─────────────────
+
+    #[test]
+    fn down_key_with_detail_focus_scrolls_detail_not_selection() {
+        let mut app = make_app_with_pkgs(5);
+        app.focus = FocusZone::DetailPanel;
+        app.detail_content_lines = 20;
+        app.layout.detail_panel.height = 8;
+        app.detail_scroll = 0;
+        app.selected = 2;
+        let _ = handle_normal_mode(&mut app, KeyCode::Down, KeyModifiers::NONE);
+        assert_eq!(
+            app.detail_scroll, 1,
+            "Down in detail focus should scroll detail by 1"
+        );
+        assert_eq!(
+            app.selected, 2,
+            "selection must not change when detail is focused"
+        );
+    }
+
+    #[test]
+    fn up_key_with_detail_focus_scrolls_detail_not_selection() {
+        let mut app = make_app_with_pkgs(5);
+        app.focus = FocusZone::DetailPanel;
+        app.detail_content_lines = 20;
+        app.layout.detail_panel.height = 8;
+        app.detail_scroll = 5;
+        app.selected = 2;
+        let _ = handle_normal_mode(&mut app, KeyCode::Up, KeyModifiers::NONE);
+        assert_eq!(
+            app.detail_scroll, 4,
+            "Up in detail focus should scroll detail back by 1"
+        );
+        assert_eq!(
+            app.selected, 2,
+            "selection must not change when detail is focused"
+        );
+    }
+
+    // ── handle_normal_mode: Home/End with detail panel focused ────────────────
+
+    #[test]
+    fn home_key_with_detail_focus_resets_detail_scroll_to_zero() {
+        let mut app = make_app_with_pkgs(5);
+        app.focus = FocusZone::DetailPanel;
+        app.detail_content_lines = 20;
+        app.detail_scroll = 10;
+        let _ = handle_normal_mode(&mut app, KeyCode::Home, KeyModifiers::NONE);
+        assert_eq!(
+            app.detail_scroll, 0,
+            "Home in detail focus should reset detail_scroll to 0"
+        );
+    }
+
+    #[test]
+    fn end_key_with_detail_focus_jumps_detail_scroll_to_max() {
+        let mut app = make_app_with_pkgs(5);
+        app.focus = FocusZone::DetailPanel;
+        // 20 lines of content, viewport height = 8  →  max scroll = 20 - (8 - 3) = 15
+        app.detail_content_lines = 20;
+        app.layout.detail_panel.height = 8;
+        app.detail_scroll = 0;
+        let _ = handle_normal_mode(&mut app, KeyCode::End, KeyModifiers::NONE);
+        // saturating_sub(viewport) = 20 - 5 = 15
+        assert_eq!(
+            app.detail_scroll, 15,
+            "End in detail focus should jump detail_scroll to max"
+        );
+    }
 }
