@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-05-24T01:27:15Z",
-  "last_run_id": "26348515368",
+  "last_run": "2026-05-24T13:10:13Z",
+  "last_run_id": "26362135995",
   "monthly_summary_issue": 189,
   "comments_made": {
     "80": "2026-04-16",
@@ -9,16 +9,16 @@
     "126": "2026-04-19",
     "154_pr": "2026-04-27"
   },
-  "open_repo_assist_prs": [200, 201, 202],
-  "pending_pr_this_run": "feat: add default_pin_filter config option (branch: repo-assist/improve-default-pin-filter-config-20260524, closes #203)",
+  "open_repo_assist_prs": [200, 201, 202, 204],
+  "pending_pr_this_run": "test: add coverage for normal-mode navigation keys (branch: repo-assist/test-normal-mode-nav-20260524)",
   "open_repo_assist_issues": [
     {"number": 188, "title": "ci: add --locked flag (bundle, push failed)"},
     {"number": 192, "title": "test: add unit tests for theme.rs (duplicate, safe to close)"},
-    {"number": 203, "title": "feat: add default_pin_filter config option (failed push - re-implemented this run)"}
+    {"number": 203, "title": "feat: add default_pin_filter config option (superseded by PR #204)"}
   ],
   "backlog_cursor": {
     "issues": "no human issues open",
     "next_issue_to_process": "check for new human issues next run"
   },
-  "notes": "2026-05-24 01:27 run: Tasks 3+5. Task 3: No human bugs found; skipped. Task 5: Implemented default_pin_filter config key (config.rs + app.rs, 6 new tests, 364 total). PR created for branch repo-assist/improve-default-pin-filter-config-20260524, closes #203. PRs #200, #201, #202 still pending review."
+  "notes": "2026-05-24 13:10 run: Tasks 9+3. Task 3: No human bugs found; skipped. Task 9: Added 11 new tests for handle_normal_mode navigation keys (Home/End/PageUp/PageDown/Ctrl+C/detail-focus scroll). 358->369 tests. PR created branch repo-assist/test-normal-mode-nav-20260524. PRs #200, #201, #202, #204 still pending review."
 }
