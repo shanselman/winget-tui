@@ -1075,6 +1075,31 @@ mod tests {
     }
 
     #[test]
+    fn search_input_backspace_on_empty_query_stays_empty() {
+        let mut app = make_app();
+        app.input_mode = InputMode::Search;
+        app.search_query = String::new();
+        let _ = handle_search_input(&mut app, KeyCode::Backspace);
+        assert_eq!(app.search_query, "");
+        assert_eq!(app.input_mode, InputMode::Search, "mode must not change");
+    }
+
+    #[test]
+    fn search_input_enter_with_nonempty_query_sets_loading() {
+        let mut app = make_app();
+        app.input_mode = InputMode::Search;
+        app.search_query = "firefox".into();
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let _ = handle_search_input(&mut app, KeyCode::Enter);
+        assert_eq!(app.input_mode, InputMode::Normal);
+        assert!(
+            app.loading,
+            "loading should be set when a search is triggered"
+        );
+    }
+
+    #[test]
     fn slash_key_in_installed_view_enters_local_filter_mode() {
         let mut app = make_app();
         app.mode = AppMode::Installed;
@@ -1203,6 +1228,103 @@ mod tests {
         let _ = handle_local_filter_input(&mut app, KeyCode::End);
         assert_eq!(app.selected, 4, "End should jump to last item");
         assert_eq!(app.input_mode, InputMode::LocalFilter);
+    }
+
+    #[test]
+    fn local_filter_backspace_removes_last_char_and_refilters() {
+        let mut app = make_app_with_pkgs(3);
+        app.mode = AppMode::Installed;
+        app.local_filter = "pkg0".to_string();
+        app.apply_filter();
+        assert_eq!(
+            app.filtered_packages.len(),
+            1,
+            "setup: filter should match 1"
+        );
+        app.input_mode = InputMode::LocalFilter;
+        let rt = test_runtime();
+        let _guard = rt.enter();
+
+        let _ = handle_local_filter_input(&mut app, KeyCode::Backspace);
+
+        // "pkg0" → "pkg" after backspace; all 3 packages match "pkg"
+        assert_eq!(app.local_filter, "pkg");
+        assert_eq!(
+            app.filtered_packages.len(),
+            3,
+            "all packages should match after backspace"
+        );
+        assert_eq!(app.input_mode, InputMode::LocalFilter, "mode must stay");
+    }
+
+    #[test]
+    fn local_filter_pageup_moves_selection_up_without_leaving_filter_mode() {
+        // list_page_size() returns 20 when viewport height is 0 (no terminal in tests)
+        let mut app = make_app_with_pkgs(30);
+        app.mode = AppMode::Installed;
+        app.input_mode = InputMode::LocalFilter;
+        app.selected = 25;
+        let rt = test_runtime();
+        let _guard = rt.enter();
+
+        let _ = handle_local_filter_input(&mut app, KeyCode::PageUp);
+
+        assert_eq!(app.selected, 5, "PageUp should move back by page size (20)");
+        assert_eq!(app.input_mode, InputMode::LocalFilter);
+    }
+
+    #[test]
+    fn local_filter_pagedown_moves_selection_down_without_leaving_filter_mode() {
+        // list_page_size() returns 20 when viewport height is 0 (no terminal in tests)
+        let mut app = make_app_with_pkgs(30);
+        app.mode = AppMode::Installed;
+        app.input_mode = InputMode::LocalFilter;
+        app.selected = 5;
+        let rt = test_runtime();
+        let _guard = rt.enter();
+
+        let _ = handle_local_filter_input(&mut app, KeyCode::PageDown);
+
+        assert_eq!(
+            app.selected, 25,
+            "PageDown should advance by page size (20)"
+        );
+        assert_eq!(app.input_mode, InputMode::LocalFilter);
+    }
+
+    #[test]
+    fn local_filter_pageup_clamps_at_zero() {
+        let mut app = make_app_with_pkgs(10);
+        app.mode = AppMode::Installed;
+        app.input_mode = InputMode::LocalFilter;
+        app.selected = 5;
+        let rt = test_runtime();
+        let _guard = rt.enter();
+
+        let _ = handle_local_filter_input(&mut app, KeyCode::PageUp);
+
+        assert_eq!(
+            app.selected, 0,
+            "PageUp from near start should saturate at 0"
+        );
+    }
+
+    #[test]
+    fn local_filter_pagedown_clamps_at_last_item() {
+        // 25 packages, selected=20, page=20 → (20+20).min(24) = 24
+        let mut app = make_app_with_pkgs(25);
+        app.mode = AppMode::Installed;
+        app.input_mode = InputMode::LocalFilter;
+        app.selected = 20;
+        let rt = test_runtime();
+        let _guard = rt.enter();
+
+        let _ = handle_local_filter_input(&mut app, KeyCode::PageDown);
+
+        assert_eq!(
+            app.selected, 24,
+            "PageDown from near end should clamp at last index"
+        );
     }
 
     // ── handle_version_input ─────────────────────────────────────────────────
