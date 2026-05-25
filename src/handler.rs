@@ -2071,6 +2071,92 @@ mod tests {
         assert_eq!(app.help_scroll, 0, "scroll should reset when help closes");
     }
 
+    #[test]
+    fn help_close_via_question_mark_resets_scroll() {
+        let mut app = make_app();
+        app.show_help = true;
+        app.help_scroll = 5;
+        app.help_max_scroll = 10;
+
+        handle_help_input(&mut app, KeyCode::Char('?'));
+        assert!(!app.show_help, "'?' should close the help overlay");
+        assert_eq!(
+            app.help_scroll, 0,
+            "scroll should reset when help closes via '?'"
+        );
+    }
+
+    #[test]
+    fn help_scroll_pagedown_increments_by_ten() {
+        let mut app = make_app();
+        app.show_help = true;
+        app.help_scroll = 0;
+        app.help_max_scroll = 30;
+
+        handle_help_input(&mut app, KeyCode::PageDown);
+        assert_eq!(app.help_scroll, 10, "PageDown should advance scroll by 10");
+    }
+
+    #[test]
+    fn help_scroll_pagedown_clamps_at_max() {
+        let mut app = make_app();
+        app.show_help = true;
+        app.help_scroll = 25;
+        app.help_max_scroll = 30;
+
+        handle_help_input(&mut app, KeyCode::PageDown);
+        assert_eq!(app.help_scroll, 30, "PageDown should clamp at max_scroll");
+    }
+
+    #[test]
+    fn help_scroll_pageup_decrements_by_ten() {
+        let mut app = make_app();
+        app.show_help = true;
+        app.help_scroll = 20;
+        app.help_max_scroll = 30;
+
+        handle_help_input(&mut app, KeyCode::PageUp);
+        assert_eq!(app.help_scroll, 10, "PageUp should retreat scroll by 10");
+    }
+
+    #[test]
+    fn help_scroll_pageup_saturates_at_zero() {
+        let mut app = make_app();
+        app.show_help = true;
+        app.help_scroll = 3;
+        app.help_max_scroll = 30;
+
+        handle_help_input(&mut app, KeyCode::PageUp);
+        assert_eq!(
+            app.help_scroll, 0,
+            "PageUp should saturate at 0, not underflow"
+        );
+    }
+
+    #[test]
+    fn help_scroll_j_key_increments_like_down() {
+        let mut app = make_app();
+        app.show_help = true;
+        app.help_scroll = 4;
+        app.help_max_scroll = 10;
+
+        handle_help_input(&mut app, KeyCode::Char('j'));
+        assert_eq!(app.help_scroll, 5, "'j' should behave like Down");
+        assert!(app.show_help, "help should remain open");
+    }
+
+    #[test]
+    fn help_scroll_k_key_decrements_like_up() {
+        let mut app = make_app();
+        app.show_help = true;
+        app.help_scroll = 6;
+        app.help_max_scroll = 10;
+
+        handle_help_input(&mut app, KeyCode::Char('k'));
+        assert_eq!(app.help_scroll, 5, "'k' should behave like Up");
+        assert!(app.show_help, "help should remain open");
+    }
+
     // ── handle_tab_click ─────────────────────────────────────────────────────
 
     #[test]
