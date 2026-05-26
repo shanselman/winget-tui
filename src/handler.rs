@@ -1693,7 +1693,41 @@ mod tests {
         );
     }
 
-    // ── handle_normal_mode: keys that spawn async tasks (need runtime) ────────
+    #[test]
+    fn a_key_in_search_mode_does_not_select_packages() {
+        let mut app = make_app_with_pkgs(3);
+        app.mode = AppMode::Search;
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('a'), KeyModifiers::NONE);
+        assert!(
+            app.selected_packages.is_empty(),
+            "a in Search mode must not toggle multi-select"
+        );
+    }
+
+    #[test]
+    fn a_key_in_installed_mode_does_not_select_packages() {
+        let mut app = make_app_with_pkgs(3);
+        app.mode = AppMode::Installed;
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('a'), KeyModifiers::NONE);
+        assert!(
+            app.selected_packages.is_empty(),
+            "a in Installed mode must not toggle multi-select"
+        );
+    }
+
+    #[test]
+    fn space_key_in_search_mode_does_not_toggle_selection() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app_with_pkgs(3);
+        app.mode = AppMode::Search;
+        app.selected = 0;
+        let _ = handle_normal_mode(&mut app, KeyCode::Char(' '), KeyModifiers::NONE);
+        assert!(
+            app.selected_packages.is_empty(),
+            "Space in Search mode must not add to multi-select"
+        );
+    }
 
     #[test]
     fn f_key_cycles_source_filter_to_winget() {

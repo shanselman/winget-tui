@@ -1277,6 +1277,14 @@ mod tests {
         );
     }
 
+    #[test]
+    fn sort_header_appends_up_arrow_when_active_and_ascending() {
+        assert_eq!(
+            sort_header("Name", SortField::Name, SortField::Name, SortDir::Asc),
+            "Name ↑"
+        );
+    }
+
     // ── centered_rect ─────────────────────────────────────────────────────────
 
     #[test]
