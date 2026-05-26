@@ -347,6 +347,16 @@ mod tests {
     }
 
     #[test]
+    fn pin_state_none_label_is_not_pinned() {
+        assert_eq!(PinState::None.label(), "Not pinned");
+    }
+
+    #[test]
+    fn pin_state_pinned_label_describes_upgrade_all_exclusion() {
+        assert_eq!(PinState::Pinned.label(), "Pinned for upgrade-all");
+    }
+
+    #[test]
     fn pin_state_short_marker_none_is_empty() {
         assert_eq!(PinState::None.short_marker(), "");
     }
