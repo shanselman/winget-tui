@@ -3,7 +3,7 @@ use crossterm::event::{
 };
 
 use crate::app::{App, AppMode, ConfirmDialog, FocusZone, InputMode};
-use crate::models::Operation;
+use crate::models::{Operation, SortDir, SortField};
 
 /// Handle the next crossterm event, waiting up to 50 ms for one to arrive.
 ///
@@ -601,6 +601,78 @@ fn load_detail_for_selected(app: &mut App) {
     }
 }
 
+/// Handle a click on the package-list header row.
+///
+/// Column widths are defined as percentages in `ui.rs`.  We approximate the
+/// boundary by splitting the usable content area (total width minus two border
+/// columns and one scrollbar column) into the same proportions.
+///
+/// Clicking a sortable column:
+/// - If it is already the active sort field, toggles Asc ↔ Desc.
+/// - Otherwise, activates that field in Asc order.
+///
+/// Clicking an unsortable column (Source, Available) is a no-op.
+fn click_sort_header(app: &mut App, col: u16) {
+    let list = app.layout.package_list;
+    // Usable content width: strip left border (1), right border/scrollbar (2)
+    let content_width = list.width.saturating_sub(3) as u32;
+    if content_width == 0 {
+        return;
+    }
+    let x0 = (list.x + 1) as u32; // first content column
+    let col = col as u32;
+    if col < x0 || col >= x0 + content_width {
+        return;
+    }
+    let offset = col - x0;
+
+    // Determine the sort field based on column percentages defined in ui.rs.
+    // Non-Upgrades: Name 25%, ID 35%, Version 20%, Source 20% (unsortable)
+    // Upgrades:     Name 25%, ID 30%, Version 15%, Available 15% (unsortable), Source 15% (unsortable)
+    let field = if app.mode == AppMode::Upgrades {
+        let boundary_name = content_width * 25 / 100;
+        let boundary_id = boundary_name + content_width * 30 / 100;
+        let boundary_version = boundary_id + content_width * 15 / 100;
+        if offset < boundary_name {
+            SortField::Name
+        } else if offset < boundary_id {
+            SortField::Id
+        } else if offset < boundary_version {
+            SortField::Version
+        } else {
+            return; // Available or Source — not sortable
+        }
+    } else {
+        let boundary_name = content_width * 25 / 100;
+        let boundary_id = boundary_name + content_width * 35 / 100;
+        let boundary_version = boundary_id + content_width * 20 / 100;
+        if offset < boundary_name {
+            SortField::Name
+        } else if offset < boundary_id {
+            SortField::Id
+        } else if offset < boundary_version {
+            SortField::Version
+        } else {
+            return; // Source — not sortable
+        }
+    };
+
+    if app.sort_field == field {
+        // Same column: toggle direction
+        app.sort_dir = if app.sort_dir == SortDir::Asc {
+            SortDir::Desc
+        } else {
+            SortDir::Asc
+        };
+    } else {
+        app.sort_field = field;
+        app.sort_dir = SortDir::Asc;
+    }
+    app.apply_filter();
+    let label = format!("Sort: {}{}", app.sort_field, app.sort_dir.indicator());
+    app.set_status(&label);
+}
+
 /// Select the package row at the given terminal row coordinate and load its detail.
 fn select_package_at_row(app: &mut App, row: u16) {
     let list = app.layout.package_list;
@@ -655,6 +727,13 @@ fn handle_mouse(app: &mut App, mouse: crossterm::event::MouseEvent) -> anyhow::R
                 let scrollbar_col = list.x + list.width - 1;
                 if col == scrollbar_col && !app.filtered_packages.is_empty() {
                     scrollbar_jump(app, row);
+                    return Ok(false);
+                }
+
+                // Click on header row → sort by that column
+                let header_row = app.layout.list_content_y.saturating_sub(1);
+                if row == header_row && app.layout.list_content_y > 0 {
+                    click_sort_header(app, col);
                     return Ok(false);
                 }
 
@@ -2192,5 +2271,87 @@ mod tests {
             AppMode::Search,
             "no tab regions: mode must be unchanged"
         );
+    }
+
+    // ── click_sort_header ─────────────────────────────────────────────────────
+
+    fn make_app_with_list_layout() -> App {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app_with_pkgs(3);
+        // package_list starts at x=0, width=100; content_y=3 (border+pad+header)
+        app.layout.package_list = rect(0, 0, 100, 10);
+        app.layout.list_content_y = 3; // header row is at y=2
+        app
+    }
+
+    #[test]
+    fn click_sort_header_name_column_sets_name_sort() {
+        let mut app = make_app_with_list_layout();
+        // Content width = 100 - 3 = 97; Name occupies 0..24 (25%)
+        // Click at col=5 (within Name column), row=2 (header row)
+        click_sort_header(&mut app, 5);
+        assert_eq!(app.sort_field, SortField::Name);
+        assert_eq!(app.sort_dir, SortDir::Asc);
+    }
+
+    #[test]
+    fn click_sort_header_id_column_sets_id_sort() {
+        let mut app = make_app_with_list_layout();
+        // Content width=97; ID starts at 24 (25%), width 34 (35%); click at col=30
+        click_sort_header(&mut app, 30);
+        assert_eq!(app.sort_field, SortField::Id);
+        assert_eq!(app.sort_dir, SortDir::Asc);
+    }
+
+    #[test]
+    fn click_sort_header_version_column_sets_version_sort() {
+        let mut app = make_app_with_list_layout();
+        // Version starts at ~58 (25+34=59 rounded); click at col=65
+        click_sort_header(&mut app, 65);
+        assert_eq!(app.sort_field, SortField::Version);
+        assert_eq!(app.sort_dir, SortDir::Asc);
+    }
+
+    #[test]
+    fn click_sort_header_same_column_toggles_direction() {
+        let mut app = make_app_with_list_layout();
+        click_sort_header(&mut app, 5); // Name Asc
+        assert_eq!(app.sort_dir, SortDir::Asc);
+        click_sort_header(&mut app, 5); // Name Desc
+        assert_eq!(app.sort_dir, SortDir::Desc);
+        click_sort_header(&mut app, 5); // Name Asc again
+        assert_eq!(app.sort_dir, SortDir::Asc);
+    }
+
+    #[test]
+    fn click_sort_header_different_column_resets_to_asc() {
+        let mut app = make_app_with_list_layout();
+        click_sort_header(&mut app, 5); // Name Asc
+        click_sort_header(&mut app, 5); // Name Desc
+        assert_eq!(app.sort_dir, SortDir::Desc);
+        click_sort_header(&mut app, 30); // ID → resets to Asc
+        assert_eq!(app.sort_field, SortField::Id);
+        assert_eq!(app.sort_dir, SortDir::Asc);
+    }
+
+    #[test]
+    fn click_sort_header_source_column_is_noop() {
+        let mut app = make_app_with_list_layout();
+        // Source starts at ~80 (25+35+20=80%); click at col=90
+        click_sort_header(&mut app, 90);
+        assert_eq!(
+            app.sort_field,
+            SortField::None,
+            "Source column must not set sort"
+        );
+    }
+
+    #[test]
+    fn click_sort_header_zero_width_is_noop() {
+        let mut app = make_app_with_list_layout();
+        app.layout.package_list = rect(0, 0, 2, 10); // content_width = 2-3 = underflows to 0
+        click_sort_header(&mut app, 0);
+        assert_eq!(app.sort_field, SortField::None);
     }
 }
