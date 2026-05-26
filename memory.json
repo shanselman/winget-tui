@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-05-26T01:25:42Z",
-  "last_run_id": "26426979256",
+  "last_run": "2026-05-26T13:44:10Z",
+  "last_run_id": "26451783374",
   "monthly_summary_issue": 189,
   "comments_made": {
     "80": "2026-04-16",
@@ -19,5 +19,5 @@
     "issues": "no human issues open",
     "next_issue_to_process": "check for new human issues next run"
   },
-  "notes": "2026-05-26 01:25 run: Tasks 2+3. Task 2: No human issues open. Task 3/9 substitute: 6 new tests for missing label/sort-header/mode-guard paths (PinState None+Pinned labels, sort_header Asc, a/Space mode guards). 358->364 tests. PR #208 created. PRs #200,#201,#202,#204,#205,#206,#207,#208 pending review."
+  "notes": "2026-05-26 13:44 run: Tasks 10+2. Task 2: No human issues open. Task 10: feat click-to-sort column headers (patch artifact created from run 26451783374; handler.rs+ui.rs; 7 new tests; 358→365 tests). Patch available at /tmp/gh-aw/aw-repo-assist-feat-click-sort-headers-20260526.patch. PRs #200,#201,#202,#204,#205,#206,#207,#208 pending review."
 }
