@@ -1053,6 +1053,10 @@ fn draw_help_overlay(f: &mut Frame, app: &mut App) {
             Span::raw("Select nav items, rows, filter"),
         ]),
         Line::from(vec![
+            Span::styled("  Header click", key),
+            Span::raw("Sort by Name / ID / Version (click again to reverse)"),
+        ]),
+        Line::from(vec![
             Span::styled("  Scroll      ", key),
             Span::raw("Navigate list"),
         ]),
