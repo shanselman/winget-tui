@@ -349,7 +349,15 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
         .border_style(border_style)
-        .title(format!(" {} ({}) ", title, app.filtered_packages.len()))
+        .title({
+            let filtered = app.filtered_packages.len();
+            let total = app.packages.len();
+            if app.mode != AppMode::Search && !app.local_filter.is_empty() && filtered != total {
+                format!(" {} ({}/{}) ", title, filtered, total)
+            } else {
+                format!(" {} ({}) ", title, filtered)
+            }
+        })
         .title_style(theme::title())
         .padding(ratatui::widgets::Padding::top(1));
 

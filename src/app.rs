@@ -284,24 +284,18 @@ impl App {
             SortField::Name => {
                 self.filtered_packages
                     .sort_by_cached_key(|p| p.name.to_lowercase());
-                if self.sort_dir == SortDir::Desc {
-                    self.filtered_packages.reverse();
-                }
             }
             SortField::Id => {
                 self.filtered_packages
                     .sort_by_cached_key(|p| p.id.to_lowercase());
-                if self.sort_dir == SortDir::Desc {
-                    self.filtered_packages.reverse();
-                }
             }
             SortField::Version => {
                 self.filtered_packages
                     .sort_by_cached_key(|pkg| version_key(&pkg.version));
-                if self.sort_dir == SortDir::Desc {
-                    self.filtered_packages.reverse();
-                }
             }
+        }
+        if self.sort_field != SortField::None && self.sort_dir == SortDir::Desc {
+            self.filtered_packages.reverse();
         }
         // Keep selection in bounds
         if self.selected >= self.filtered_packages.len() {
