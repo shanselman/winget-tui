@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::sync::Arc;
 
 use ratatui::layout::Rect;
@@ -148,8 +148,11 @@ pub struct App {
     pub view_generation: u64,
     /// Incremented on each detail load; stale results are discarded
     pub detail_generation: u64,
-    /// Cache of package details to avoid repeated winget show calls
+    /// Cache of package details to avoid repeated winget show calls.
+    /// Bounded to `DETAIL_CACHE_MAX` entries; oldest entries are evicted when full.
     pub detail_cache: HashMap<String, PackageDetail>,
+    /// Insertion-order tracker for FIFO eviction of `detail_cache`.
+    detail_cache_order: VecDeque<String>,
     /// Indices into filtered_packages that are selected for batch operations
     pub selected_packages: HashSet<usize>,
     /// A high-signal status message to restore after the next list refresh completes.
@@ -245,6 +248,7 @@ impl App {
             view_generation: 0,
             detail_generation: 0,
             detail_cache: HashMap::new(),
+            detail_cache_order: VecDeque::new(),
             selected_packages: HashSet::new(),
             post_refresh_status: None,
             backend,
@@ -317,6 +321,31 @@ impl App {
 
     pub fn selected_package(&self) -> Option<&Package> {
         self.filtered_packages.get(self.selected)
+    }
+
+    /// Maximum number of entries in `detail_cache` before the oldest is evicted.
+    const DETAIL_CACHE_MAX: usize = 64;
+
+    /// Insert `detail` into the cache, evicting the oldest entry if the cache
+    /// is at capacity. Existing entries for the same `id` are updated in place
+    /// without changing their eviction order.
+    fn cache_detail(&mut self, id: String, detail: PackageDetail) {
+        if !self.detail_cache.contains_key(&id) {
+            while self.detail_cache_order.len() >= Self::DETAIL_CACHE_MAX {
+                if let Some(evicted) = self.detail_cache_order.pop_front() {
+                    self.detail_cache.remove(&evicted);
+                }
+            }
+            self.detail_cache_order.push_back(id.clone());
+        }
+        self.detail_cache.insert(id, detail);
+    }
+
+    /// Remove an entry from the cache and its eviction-order record.
+    fn evict_cached_detail(&mut self, id: &str) {
+        if self.detail_cache.remove(id).is_some() {
+            self.detail_cache_order.retain(|k| k != id);
+        }
     }
 
     pub fn move_selection(&mut self, delta: isize) {
@@ -516,7 +545,7 @@ impl App {
                     ),
                     ..PackageDetail::default()
                 };
-                self.detail_cache.insert(id.to_string(), detail.clone());
+                self.cache_detail(id.to_string(), detail.clone());
                 self.detail = Some(detail);
             }
             self.detail_loading = false;
@@ -729,7 +758,7 @@ impl App {
                     Self::ensure_detail_hint(&mut merged);
                     // Cache for instant retrieval on revisit
                     if !merged.id.is_empty() {
-                        self.detail_cache.insert(merged.id.clone(), merged.clone());
+                        self.cache_detail(merged.id.clone(), merged.clone());
                     }
                     self.detail = Some(merged);
                     self.detail_loading = false;
@@ -742,11 +771,11 @@ impl App {
                         | Operation::Upgrade { id }
                         | Operation::Pin { id }
                         | Operation::Unpin { id } => {
-                            self.detail_cache.remove(id);
+                            self.evict_cached_detail(id);
                         }
                         Operation::BatchUpgrade { ids } => {
                             for id in ids {
-                                self.detail_cache.remove(id);
+                                self.evict_cached_detail(id);
                             }
                             self.selected_packages.clear();
                         }
@@ -2458,7 +2487,72 @@ mod tests {
         assert!(!app.detail_loading);
     }
 
-    // ── csv_escape ────────────────────────────────────────────────────────────
+    #[test]
+    fn cache_detail_evicts_oldest_when_full() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+
+        // Fill the cache to exactly DETAIL_CACHE_MAX entries.
+        for i in 0..App::DETAIL_CACHE_MAX {
+            let id = format!("Pkg.{i}");
+            app.cache_detail(
+                id.clone(),
+                PackageDetail {
+                    id,
+                    ..PackageDetail::default()
+                },
+            );
+        }
+        assert_eq!(app.detail_cache.len(), App::DETAIL_CACHE_MAX);
+
+        // Inserting one more entry must evict "Pkg.0" (the oldest).
+        app.cache_detail(
+            "Pkg.New".to_string(),
+            PackageDetail {
+                id: "Pkg.New".to_string(),
+                ..PackageDetail::default()
+            },
+        );
+        assert_eq!(app.detail_cache.len(), App::DETAIL_CACHE_MAX);
+        assert!(
+            !app.detail_cache.contains_key("Pkg.0"),
+            "oldest entry should be evicted"
+        );
+        assert!(
+            app.detail_cache.contains_key("Pkg.New"),
+            "new entry should be present"
+        );
+    }
+
+    #[test]
+    fn evict_cached_detail_removes_from_order_tracking() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+
+        app.cache_detail(
+            "Pkg.A".to_string(),
+            PackageDetail {
+                id: "Pkg.A".to_string(),
+                ..PackageDetail::default()
+            },
+        );
+        app.evict_cached_detail("Pkg.A");
+        assert!(!app.detail_cache.contains_key("Pkg.A"));
+
+        // After eviction the slot should be reclaimed: filling to DETAIL_CACHE_MAX
+        // should not evict unrelated entries.
+        for i in 0..App::DETAIL_CACHE_MAX {
+            let id = format!("Pkg.{i}");
+            app.cache_detail(
+                id.clone(),
+                PackageDetail {
+                    id,
+                    ..PackageDetail::default()
+                },
+            );
+        }
+        assert_eq!(app.detail_cache.len(), App::DETAIL_CACHE_MAX);
+    }
 
     #[test]
     fn csv_escape_plain_string_is_unchanged() {
