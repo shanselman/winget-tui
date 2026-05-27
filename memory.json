@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-05-26T13:44:10Z",
-  "last_run_id": "26451783374",
+  "last_run": "2026-05-27T01:29:32Z",
+  "last_run_id": "26485195259",
   "monthly_summary_issue": 189,
   "comments_made": {
     "80": "2026-04-16",
@@ -9,7 +9,7 @@
     "126": "2026-04-19",
     "154_pr": "2026-04-27"
   },
-  "open_repo_assist_prs": [200, 201, 202, 204, 205, 206, 207, 208],
+  "open_repo_assist_prs": [200, 201, 202, 204, 205, 206, 207, 208, 211, 212],
   "open_repo_assist_issues": [
     {"number": 188, "title": "ci: add --locked flag (bundle, push failed)"},
     {"number": 192, "title": "test: add unit tests for theme.rs (duplicate, safe to close)"},
@@ -19,5 +19,5 @@
     "issues": "no human issues open",
     "next_issue_to_process": "check for new human issues next run"
   },
-  "notes": "2026-05-26 13:44 run: Tasks 10+2. Task 2: No human issues open. Task 10: feat click-to-sort column headers (patch artifact created from run 26451783374; handler.rs+ui.rs; 7 new tests; 358→365 tests). Patch available at /tmp/gh-aw/aw-repo-assist-feat-click-sort-headers-20260526.patch. PRs #200,#201,#202,#204,#205,#206,#207,#208 pending review."
+  "notes": "2026-05-27 01:29 run: Tasks 8+6. Task 8: bounded detail_cache to 64 entries with FIFO eviction; VecDeque order tracking; 2 new tests; 358->360 tests; PR #212 created. Task 6: checked all open PRs - no CI check runs present (environment), no merge conflicts. PR #211 (click-to-sort) was created last run from patch. PRs #200,#201,#202,#204,#205,#206,#207,#208,#211,#212 pending review."
 }
