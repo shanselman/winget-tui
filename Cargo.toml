@@ -19,6 +19,13 @@ anyhow = "1"
 async-trait = "0.1"
 unicode-width = "0.2"
 
+[profile.dev.package."*"]
+# Compile dependencies at opt-level 1 in debug builds.
+# This keeps incremental rebuilds of the main crate fast (unoptimised),
+# while reducing the compilation time and binary size overhead from
+# unoptimised transitive dependencies (ratatui, crossterm, tokio, etc.).
+opt-level = 1
+
 [profile.release]
 # Full LTO produces the smallest and fastest binary at the cost of slower link time.
 lto = true
