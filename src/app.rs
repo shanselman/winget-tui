@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+use std::fmt;
 use std::sync::Arc;
 
 use ratatui::layout::Rect;
@@ -79,13 +80,14 @@ impl AppMode {
             Self::Upgrades => Self::Installed,
         }
     }
+}
 
-    #[allow(dead_code)]
-    pub fn label(&self) -> &'static str {
+impl fmt::Display for AppMode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Search => "Search",
-            Self::Installed => "Installed",
-            Self::Upgrades => "Upgrades",
+            Self::Search => write!(f, "Search"),
+            Self::Installed => write!(f, "Installed"),
+            Self::Upgrades => write!(f, "Upgrades"),
         }
     }
 }
@@ -1029,10 +1031,10 @@ mod tests {
     }
 
     #[test]
-    fn app_mode_label() {
-        assert_eq!(AppMode::Search.label(), "Search");
-        assert_eq!(AppMode::Installed.label(), "Installed");
-        assert_eq!(AppMode::Upgrades.label(), "Upgrades");
+    fn app_mode_display() {
+        assert_eq!(AppMode::Search.to_string(), "Search");
+        assert_eq!(AppMode::Installed.to_string(), "Installed");
+        assert_eq!(AppMode::Upgrades.to_string(), "Upgrades");
     }
 
     // ── move_selection ────────────────────────────────────────────────────────
