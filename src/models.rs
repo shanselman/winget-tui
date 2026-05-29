@@ -13,10 +13,6 @@ pub enum SortField {
     Version,
 }
 
-impl SortField {
-    // No cycle helper needed; App::cycle_sort implements the full state machine.
-}
-
 impl fmt::Display for SortField {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
