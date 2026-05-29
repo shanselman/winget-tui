@@ -1035,6 +1035,60 @@ mod tests {
         );
     }
 
+    #[test]
+    fn handle_confirm_uppercase_n_cancels_dialog() {
+        let mut app = make_app();
+        app.confirm = Some(ConfirmDialog {
+            message: "Install Foo?".into(),
+            operation: Operation::Install {
+                id: "Foo".into(),
+                version: None,
+            },
+        });
+        let _ = handle_confirm(&mut app, KeyCode::Char('N'));
+        assert!(app.confirm.is_none(), "confirm should be cleared on 'N'");
+        assert_eq!(app.status_message, "Cancelled");
+    }
+
+    #[tokio::test]
+    async fn handle_confirm_y_accepts_dialog_sets_loading_and_clears_confirm() {
+        let mut app = make_app();
+        app.confirm = Some(ConfirmDialog {
+            message: "Upgrade Foo?".into(),
+            operation: Operation::Upgrade { id: "Foo".into() },
+        });
+        let _ = handle_confirm(&mut app, KeyCode::Char('y'));
+        assert!(app.confirm.is_none(), "confirm should be cleared after 'y'");
+        assert!(app.loading, "loading should be set to true after accepting");
+        assert!(
+            !app.status_message.is_empty(),
+            "status message should be set after accepting"
+        );
+    }
+
+    #[tokio::test]
+    async fn handle_confirm_uppercase_y_accepts_dialog() {
+        let mut app = make_app();
+        app.confirm = Some(ConfirmDialog {
+            message: "Install Bar?".into(),
+            operation: Operation::Install {
+                id: "Bar".into(),
+                version: None,
+            },
+        });
+        let _ = handle_confirm(&mut app, KeyCode::Char('Y'));
+        assert!(app.confirm.is_none(), "confirm should be cleared after 'Y'");
+        assert!(app.loading, "'Y' should set loading just like 'y'");
+    }
+
+    #[tokio::test]
+    async fn handle_confirm_y_when_no_dialog_is_noop() {
+        let mut app = make_app();
+        app.confirm = None;
+        let _ = handle_confirm(&mut app, KeyCode::Char('y'));
+        assert!(!app.loading, "no confirm dialog: loading should stay false");
+    }
+
     // ── handle_search_input ──────────────────────────────────────────────────
 
     #[test]
