@@ -530,8 +530,14 @@ fn handle_normal_mode(
         {
             if app.selected_packages.len() == app.filtered_packages.len() {
                 app.selected_packages.clear();
+                app.set_status("Selection cleared");
             } else {
-                app.selected_packages = (0..app.filtered_packages.len()).collect();
+                let count = app.filtered_packages.len();
+                app.selected_packages = (0..count).collect();
+                app.set_status(format!(
+                    "{count} package{} selected — press U to upgrade all",
+                    if count == 1 { "" } else { "s" }
+                ));
             }
         }
 
@@ -1391,6 +1397,55 @@ mod tests {
         assert!(app
             .status_message
             .contains("all selected packages have truncated IDs"));
+    }
+
+    // ── select-all / deselect-all feedback ───────────────────────────────────
+
+    #[test]
+    fn select_all_sets_status_with_count() {
+        let mut app = make_app_with_pkgs(3);
+        app.mode = AppMode::Upgrades;
+
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('a'), KeyModifiers::NONE);
+
+        assert_eq!(app.selected_packages.len(), 3);
+        assert!(
+            app.status_message.contains("3 packages selected"),
+            "status should mention count: {}",
+            app.status_message
+        );
+        assert!(
+            app.status_message.contains('U'),
+            "status should hint at U key: {}",
+            app.status_message
+        );
+    }
+
+    #[test]
+    fn select_all_single_package_uses_singular_form() {
+        let mut app = make_app_with_pkgs(1);
+        app.mode = AppMode::Upgrades;
+
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('a'), KeyModifiers::NONE);
+
+        assert_eq!(app.selected_packages.len(), 1);
+        assert!(
+            app.status_message.contains("1 package selected"),
+            "status should use singular: {}",
+            app.status_message
+        );
+    }
+
+    #[test]
+    fn deselect_all_clears_status() {
+        let mut app = make_app_with_pkgs(3);
+        app.mode = AppMode::Upgrades;
+        app.selected_packages = [0, 1, 2].into_iter().collect();
+
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('a'), KeyModifiers::NONE);
+
+        assert!(app.selected_packages.is_empty());
+        assert_eq!(app.status_message, "Selection cleared");
     }
 
     // ── open homepage / changelog feedback ───────────────────────────────────
