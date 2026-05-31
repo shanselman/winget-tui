@@ -22,8 +22,46 @@ use app::App;
 use cli_backend::CliBackend;
 use config::Config;
 
+const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
+
 #[tokio::main]
 async fn main() -> Result<()> {
+    // Handle --version / -V and --help / -h before touching the terminal.
+    let args: Vec<String> = std::env::args().skip(1).collect();
+    for arg in &args {
+        match arg.as_str() {
+            "--version" | "-V" => {
+                println!("winget-tui v{APP_VERSION}");
+                return Ok(());
+            }
+            "--help" | "-h" => {
+                println!(
+                    "winget-tui v{APP_VERSION}\n\
+                     A terminal UI for the Windows Package Manager (winget).\n\
+                     \n\
+                     USAGE:\n\
+                     \twin\x67et-tui [OPTIONS]\n\
+                     \n\
+                     OPTIONS:\n\
+                     \t-h, --help       Print this help message and exit\n\
+                     \t-V, --version    Print version and exit\n\
+                     \n\
+                     KEYBOARD SHORTCUTS (inside the TUI):\n\
+                     \t?                Show full keybinding help\n\
+                     \tq / Esc / Ctrl+C Quit\n\
+                     \n\
+                     CONFIGURATION:\n\
+                     \t%APPDATA%\\winget-tui\\config.toml  (Windows)\n\
+                     \t~/.config/winget-tui/config.toml    (other platforms)\n\
+                     \n\
+                     For more information visit: https://github.com/shanselman/winget-tui"
+                );
+                return Ok(());
+            }
+            _ => {}
+        }
+    }
+
     // Verify winget is on PATH before touching the terminal.
     if let Err(e) = CliBackend::check_winget_available() {
         eprintln!("Error: {e}");
