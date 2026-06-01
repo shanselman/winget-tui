@@ -2193,4 +2193,358 @@ mod tests {
             "no tab regions: mode must be unchanged"
         );
     }
+
+    // ── handle_mouse: help / confirm dismiss ─────────────────────────────────
+
+    #[test]
+    fn mouse_left_click_dismisses_help_overlay() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app();
+        app.show_help = true;
+        let _ = handle_mouse(
+            &mut app,
+            MouseEvent {
+                kind: MouseEventKind::Down(MouseButton::Left),
+                column: 10,
+                row: 10,
+                modifiers: KeyModifiers::NONE,
+            },
+        );
+        assert!(!app.show_help, "left click must dismiss the help overlay");
+    }
+
+    #[test]
+    fn mouse_left_click_cancels_confirm_dialog() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app();
+        app.confirm = Some(ConfirmDialog {
+            message: "Uninstall foo?".into(),
+            operation: crate::models::Operation::Uninstall { id: "foo".into() },
+        });
+        let _ = handle_mouse(
+            &mut app,
+            MouseEvent {
+                kind: MouseEventKind::Down(MouseButton::Left),
+                column: 10,
+                row: 10,
+                modifiers: KeyModifiers::NONE,
+            },
+        );
+        assert!(
+            app.confirm.is_none(),
+            "left click must cancel the confirm dialog"
+        );
+        assert!(
+            app.status_message.contains("Cancelled"),
+            "status should say Cancelled after dialog dismiss"
+        );
+    }
+
+    // ── handle_mouse: search / filter bar click ───────────────────────────────
+
+    #[test]
+    fn mouse_left_click_on_search_bar_in_search_mode_enters_search_input() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app();
+        app.mode = AppMode::Search;
+        app.layout.search_bar = rect(0, 2, 40, 1);
+        let _ = handle_mouse(
+            &mut app,
+            MouseEvent {
+                kind: MouseEventKind::Down(MouseButton::Left),
+                column: 5,
+                row: 2,
+                modifiers: KeyModifiers::NONE,
+            },
+        );
+        assert_eq!(
+            app.input_mode,
+            InputMode::Search,
+            "clicking search bar in Search view must enter Search input mode"
+        );
+    }
+
+    #[test]
+    fn mouse_left_click_on_search_bar_in_installed_mode_enters_local_filter() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app();
+        app.mode = AppMode::Installed;
+        app.layout.search_bar = rect(0, 2, 40, 1);
+        let _ = handle_mouse(
+            &mut app,
+            MouseEvent {
+                kind: MouseEventKind::Down(MouseButton::Left),
+                column: 5,
+                row: 2,
+                modifiers: KeyModifiers::NONE,
+            },
+        );
+        assert_eq!(
+            app.input_mode,
+            InputMode::LocalFilter,
+            "clicking search bar in Installed view must enter LocalFilter input mode"
+        );
+    }
+
+    // ── handle_mouse: detail panel click ─────────────────────────────────────
+
+    #[test]
+    fn mouse_left_click_on_detail_panel_changes_focus() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app();
+        app.focus = crate::app::FocusZone::PackageList;
+        app.layout.detail_panel = rect(50, 0, 30, 20);
+        let _ = handle_mouse(
+            &mut app,
+            MouseEvent {
+                kind: MouseEventKind::Down(MouseButton::Left),
+                column: 55,
+                row: 5,
+                modifiers: KeyModifiers::NONE,
+            },
+        );
+        assert_eq!(
+            app.focus,
+            crate::app::FocusZone::DetailPanel,
+            "left click on detail panel must shift focus to DetailPanel"
+        );
+    }
+
+    // ── handle_mouse: scroll wheel ────────────────────────────────────────────
+
+    #[test]
+    fn mouse_scroll_down_in_package_list_increases_offset() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app_with_pkgs(20);
+        app.layout.package_list = rect(0, 5, 40, 10);
+        *app.table_state.offset_mut() = 5;
+        let _ = handle_mouse(
+            &mut app,
+            MouseEvent {
+                kind: MouseEventKind::ScrollDown,
+                column: 10,
+                row: 8,
+                modifiers: KeyModifiers::NONE,
+            },
+        );
+        assert_eq!(
+            app.table_state.offset(),
+            8,
+            "scroll down in list must increase offset by 3"
+        );
+    }
+
+    #[test]
+    fn mouse_scroll_down_clamps_at_last_item_in_package_list() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app_with_pkgs(5);
+        app.layout.package_list = rect(0, 5, 40, 10);
+        *app.table_state.offset_mut() = 3; // only 5 items: max offset = 4
+        let _ = handle_mouse(
+            &mut app,
+            MouseEvent {
+                kind: MouseEventKind::ScrollDown,
+                column: 10,
+                row: 8,
+                modifiers: KeyModifiers::NONE,
+            },
+        );
+        assert_eq!(
+            app.table_state.offset(),
+            4,
+            "scroll down must clamp at last valid offset (len - 1)"
+        );
+    }
+
+    #[test]
+    fn mouse_scroll_up_in_detail_panel_calls_scroll_detail() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app();
+        app.layout.detail_panel = rect(50, 0, 30, 20);
+        app.detail_content_lines = 30; // enough lines so scroll is not clamped
+        app.detail_scroll = 6;
+        let _ = handle_mouse(
+            &mut app,
+            MouseEvent {
+                kind: MouseEventKind::ScrollUp,
+                column: 55,
+                row: 5,
+                modifiers: KeyModifiers::NONE,
+            },
+        );
+        assert_eq!(
+            app.detail_scroll, 3,
+            "scroll up in detail panel must decrease detail_scroll by 3"
+        );
+    }
+
+    #[test]
+    fn mouse_scroll_down_in_detail_panel_calls_scroll_detail() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app();
+        app.layout.detail_panel = rect(50, 0, 30, 10);
+        app.detail_content_lines = 20; // more lines than viewport so scroll has room
+        app.detail_scroll = 0;
+        let _ = handle_mouse(
+            &mut app,
+            MouseEvent {
+                kind: MouseEventKind::ScrollDown,
+                column: 55,
+                row: 5,
+                modifiers: KeyModifiers::NONE,
+            },
+        );
+        assert!(
+            app.detail_scroll > 0,
+            "scroll down in detail panel must increase detail_scroll"
+        );
+    }
+
+    // ── handle_mouse: right-click ─────────────────────────────────────────────
+
+    #[test]
+    fn mouse_right_click_on_package_list_selects_package() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app_with_pkgs(10);
+        app.layout.package_list = rect(0, 5, 40, 10);
+        app.layout.list_content_y = 7;
+        app.selected = 0;
+        // Right-click on row 9 (content_y=7, so row 9 → index 7-5=2 offset from content)
+        let _ = handle_mouse(
+            &mut app,
+            MouseEvent {
+                kind: MouseEventKind::Down(MouseButton::Right),
+                column: 10,
+                row: 9,
+                modifiers: KeyModifiers::NONE,
+            },
+        );
+        // Row 9 with list_content_y=7 and offset=0 → selected = 9-7 = 2
+        assert_eq!(
+            app.selected, 2,
+            "right-click must select the clicked package"
+        );
+    }
+
+    // ── handle_mouse: drag scrollbar ─────────────────────────────────────────
+
+    #[test]
+    fn mouse_drag_on_scrollbar_column_jumps_position() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app_with_pkgs(20);
+        app.layout.package_list = rect(0, 5, 40, 12);
+        app.selected = 0;
+        let scrollbar_col = app.layout.package_list.x + app.layout.package_list.width - 1; // col 39
+                                                                                           // Drag to mid-track should select approximately middle item
+        let mid_row = app.layout.package_list.y + app.layout.package_list.height / 2;
+        let _ = handle_mouse(
+            &mut app,
+            MouseEvent {
+                kind: MouseEventKind::Drag(MouseButton::Left),
+                column: scrollbar_col,
+                row: mid_row,
+                modifiers: KeyModifiers::NONE,
+            },
+        );
+        assert!(
+            app.selected > 0,
+            "dragging scrollbar to mid-track must move selection away from index 0"
+        );
+    }
+
+    // ── open_detail_url ───────────────────────────────────────────────────────
+
+    #[test]
+    fn open_detail_url_no_package_selected_sets_status() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app();
+        app.detail = None;
+        open_detail_url(
+            &mut app,
+            |d| &d.homepage,
+            "No homepage available",
+            "Opening homepage: ",
+        );
+        assert!(
+            app.status_message.contains("No package selected"),
+            "status must say 'No package selected' when detail is None"
+        );
+    }
+
+    #[test]
+    fn open_detail_url_empty_url_sets_unavailable_status() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app();
+        app.detail = Some(crate::models::PackageDetail {
+            homepage: String::new(),
+            ..Default::default()
+        });
+        open_detail_url(
+            &mut app,
+            |d| &d.homepage,
+            "No homepage available",
+            "Opening homepage: ",
+        );
+        assert_eq!(
+            app.status_message, "No homepage available",
+            "status must show unavailable message when URL field is empty"
+        );
+    }
+
+    #[test]
+    fn open_detail_url_valid_https_sets_opening_status() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app();
+        app.detail = Some(crate::models::PackageDetail {
+            homepage: "https://example.com".into(),
+            ..Default::default()
+        });
+        open_detail_url(
+            &mut app,
+            |d| &d.homepage,
+            "No homepage available",
+            "Opening homepage: ",
+        );
+        assert!(
+            app.status_message.starts_with("Opening homepage: "),
+            "status must start with the opening prefix for a valid URL, got: {}",
+            app.status_message
+        );
+    }
+
+    #[test]
+    fn open_detail_url_invalid_scheme_sets_blocked_status() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app();
+        app.detail = Some(crate::models::PackageDetail {
+            homepage: "ftp://evil.example.com".into(),
+            ..Default::default()
+        });
+        open_detail_url(
+            &mut app,
+            |d| &d.homepage,
+            "No homepage available",
+            "Opening homepage: ",
+        );
+        assert!(
+            app.status_message.contains("Blocked"),
+            "status must say Blocked for a non-http/https URL, got: {}",
+            app.status_message
+        );
+    }
 }
