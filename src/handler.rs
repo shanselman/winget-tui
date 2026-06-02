@@ -551,6 +551,9 @@ fn handle_normal_mode(
             "Opening changelog ",
         ),
 
+        // Browse selected package on winget.run
+        KeyCode::Char('w') => open_winget_run(app),
+
         // Sort: cycle through Name↑ → Name↓ → ID↑ → ID↓ → Version↑ → Version↓ → None
         KeyCode::Char('S') => {
             app.cycle_sort();
@@ -737,6 +740,45 @@ fn in_rect(col: u16, row: u16, rect: ratatui::layout::Rect) -> bool {
 /// `get_url`       – extracts the URL field from a `PackageDetail`  
 /// `not_available` – status message shown when the URL field is empty  
 /// `opening_prefix`– prefix prepended to the URL in the "Opening …" message
+/// Build a winget.run URL for a package ID.
+///
+/// Standard IDs (`Publisher.PackageName`) map to the direct package page.
+/// Truncated IDs fall back to a search URL so the browser opens something useful.
+pub fn winget_run_url(id: &str) -> String {
+    if id.ends_with('…') || id.ends_with("...") {
+        let query = id.trim_end_matches('…').trim_end_matches("...");
+        return format!(
+            "https://winget.run/search?query={}",
+            query.trim_end_matches('.')
+        );
+    }
+    match id.find('.') {
+        Some(pos) => {
+            let publisher = &id[..pos];
+            let package = &id[pos + 1..];
+            format!("https://winget.run/pkg/{publisher}/{package}")
+        }
+        None => format!("https://winget.run/search?query={id}"),
+    }
+}
+
+/// Open the selected package's page on winget.run in the default browser.
+fn open_winget_run(app: &mut App) {
+    let id = match app.selected_package() {
+        Some(pkg) => pkg.id.clone(),
+        None => {
+            app.set_status("No package selected");
+            return;
+        }
+    };
+    let url = winget_run_url(&id);
+    if open_url(&url) {
+        app.set_status(format!("Opening winget.run for {}…", id));
+    } else {
+        app.set_status("Blocked: URL must start with http:// or https://");
+    }
+}
+
 fn open_detail_url(
     app: &mut App,
     get_url: impl Fn(&crate::models::PackageDetail) -> &str,
@@ -955,6 +997,44 @@ mod tests {
     #[test]
     fn in_rect_zero_size_rect() {
         assert!(!in_rect(0, 0, rect(0, 0, 0, 0)));
+    }
+
+    // ── winget_run_url ────────────────────────────────────────────────────────
+
+    #[test]
+    fn winget_run_url_standard_id() {
+        assert_eq!(
+            winget_run_url("Microsoft.VisualStudioCode"),
+            "https://winget.run/pkg/Microsoft/VisualStudioCode"
+        );
+    }
+
+    #[test]
+    fn winget_run_url_nested_dots() {
+        assert_eq!(
+            winget_run_url("Publisher.App.Extra"),
+            "https://winget.run/pkg/Publisher/App.Extra"
+        );
+    }
+
+    #[test]
+    fn winget_run_url_no_dot() {
+        assert_eq!(
+            winget_run_url("SimpleApp"),
+            "https://winget.run/search?query=SimpleApp"
+        );
+    }
+
+    #[test]
+    fn winget_run_url_truncated_ellipsis() {
+        let url = winget_run_url("Publisher.App…");
+        assert!(url.starts_with("https://winget.run/search?query="));
+    }
+
+    #[test]
+    fn winget_run_url_truncated_ascii_dots() {
+        let url = winget_run_url("Publisher.App...");
+        assert!(url.starts_with("https://winget.run/search?query="));
     }
 
     // ── open_url ─────────────────────────────────────────────────────────────
@@ -2191,6 +2271,38 @@ mod tests {
             app.mode,
             AppMode::Search,
             "no tab regions: mode must be unchanged"
+        );
+    }
+
+    // ── open_winget_run ───────────────────────────────────────────────────────
+
+    #[test]
+    fn w_key_no_package_shows_status() {
+        let mut app = make_app();
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('w'), KeyModifiers::NONE);
+        assert_eq!(app.status_message, "No package selected");
+    }
+
+    #[test]
+    fn w_key_standard_id_opens_url() {
+        let mut app = make_app_with_pkg("Microsoft.VisualStudioCode", "1.0", "");
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('w'), KeyModifiers::NONE);
+        assert!(
+            app.status_message
+                .contains("winget.run for Microsoft.VisualStudioCode"),
+            "status was: {}",
+            app.status_message
+        );
+    }
+
+    #[test]
+    fn w_key_truncated_id_still_opens() {
+        let mut app = make_app_with_pkg("Publisher.LongName...", "1.0", "");
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('w'), KeyModifiers::NONE);
+        assert!(
+            app.status_message.contains("winget.run for"),
+            "status was: {}",
+            app.status_message
         );
     }
 }
