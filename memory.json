@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-06-02T01:36:12Z",
-  "last_run_id": "26792886903",
+  "last_run": "2026-06-02T14:10:26Z",
+  "last_run_id": "26825236439",
   "monthly_summary_issue": 222,
   "comments_made": {
     "80": "2026-04-16",
@@ -9,15 +9,16 @@
     "126": "2026-04-19",
     "154_pr": "2026-04-27"
   },
-  "open_repo_assist_prs": [200, 201, 202, 204, 205, 206, 207, 208, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221],
+  "open_repo_assist_prs": [200, 201, 202, 204, 205, 206, 207, 208, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220],
   "open_repo_assist_issues": [
     {"number": 188, "title": "ci: add --locked flag (bundle, push failed)"},
     {"number": 192, "title": "test: add unit tests for theme.rs (duplicate, safe to close)"},
-    {"number": 203, "title": "feat: add default_pin_filter config option (superseded by PR #204)"}
+    {"number": 203, "title": "feat: add default_pin_filter config option (superseded by PR #204)"},
+    {"number": 221, "title": "feat: browse selected package on winget.run 'w' key (failed PR, superseded by current run's PR)"}
   ],
   "backlog_cursor": {
     "issues": "no human issues open",
     "next_issue_to_process": "check for new human issues next run"
   },
-  "notes": "2026-06-02 01:36 run: Tasks 2+6+11. Task 2: no human issues open. Task 6: all Repo Assist PRs checked, no CI failures, no merge conflicts. Task 11: updated June 2026 summary #222."
+  "notes": "2026-06-02 14:10 run: Tasks 6+2+11. Task 2: no human issues open. Task 6: checked PRs, all clean. Implemented 'w' keybinding for winget.run (feat from issue #221), submitted PR (branch repo-assist/feat-winget-run-browse-20260602). 8 new tests, 366 total. PR creation result was 'success' with patch/bundle but no PR number visible - PR may appear after workflow. Issue #221 should be closed once PR is confirmed."
 }
