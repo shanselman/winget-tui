@@ -467,6 +467,11 @@ fn handle_normal_mode(
             }
         }
 
+        // Batch Upgrade (Shift+U) — hint when nothing is selected yet
+        KeyCode::Char('U') if app.mode == AppMode::Upgrades && app.selected_packages.is_empty() => {
+            app.set_status("Select packages with Space or 'a', then press U to batch upgrade");
+        }
+
         // Batch Upgrade (Shift+U)
         KeyCode::Char('U')
             if app.mode == AppMode::Upgrades && !app.selected_packages.is_empty() =>
@@ -1668,6 +1673,22 @@ mod tests {
     }
 
     // ── handle_normal_mode: multi-select (Space / a) ─────────────────────────
+
+    #[test]
+    fn shift_u_with_no_selection_shows_hint_status() {
+        let mut app = make_app_with_pkgs(3);
+        app.mode = AppMode::Upgrades;
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('U'), KeyModifiers::NONE);
+        assert!(
+            app.status_message.contains("Space") || app.status_message.contains("select"),
+            "U with empty selection should show a hint, got: {}",
+            app.status_message
+        );
+        assert!(
+            app.confirm.is_none(),
+            "U with no selection should not open confirm dialog"
+        );
+    }
 
     #[test]
     fn a_key_selects_all_packages_in_upgrades_view() {
