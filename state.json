@@ -1,7 +1,7 @@
 {
-  "last_run": "2026-05-17T13:10:04Z",
-  "last_run_id": "25991757822",
-  "monthly_summary_issue": "#171 (May 2026)",
+  "last_run": "2026-06-03T01:41:26Z",
+  "last_run_id": "26858528838",
+  "monthly_summary_issue": 222,
   "comments_made": {
     "80": "2026-04-16",
     "83": "2026-04-16",
@@ -9,46 +9,16 @@
     "126": "2026-04-19",
     "154_pr": "2026-04-27"
   },
-  "open_repo_assist_prs": [
-    {"number": 168, "title": "perf: build only visible rows in package list table"},
-    {"number": 184, "title": "refactor: add From<&Package> for PackageDetail (2 tests)"},
-    {"number": "pending", "title": "perf: cache word_wrap output in detail panel (5 tests, 341->344, branch: repo-assist/perf-cache-desc-wordwrap-2026-05-17)"}
-  ],
-  "improvements_submitted": [
-    "perf: cache word_wrap output in detail panel (avoid re-wrapping on every render frame, 5 tests, 341->344) (2026-05-17) PR pending",
-    "refactor: add From<&Package> for PackageDetail to remove construction duplication (2026-05-17) PR #184",
-    "fix: sync table viewport after apply_filter (stale offset bug when list shrinks) (2026-05-16) PR #182 (merged)",
-    "perf: skip idle renders - process_messages returns bool, handle_events returns bool, conditional draw (2026-05-15) PR #181 (merged)",
-    "docs: add CHANGELOG.md for all 18 releases v0.1.0-v0.10.0 (2026-05-14) PR #179 (merged)",
-    "feat(ui): scrollable help overlay (real UX bug - half of help clipped on 24-row terminals) (2026-05-03) PR #176 (merged)",
-    "test: switch_view state reset + scrollbar_jump (10 tests, 231->241) (2026-05-02) PR #175 (merged)",
-    "test: OperationComplete+Error message handling (5 tests, 231->236) (2026-05-02) PR #174 (merged)",
-    "chore: Cargo.toml metadata (rust-version=1.86, repo, homepage, readme) (2026-05-01) PR #173 (merged)",
-    "test: sort-desc + UnpinnedOnly + version edge cases (6 tests, 231->237) (2026-05-01) PR #172 (merged)",
-    "test: prefer_package (7 tests) + dedupe_packages (3 tests) edge cases (2026-05-01) PR #170 (merged)",
-    "perf: viewport-aware row building in draw_package_list (2026-04-30) PR #168 (open)",
-    "feat(config): default_sort config option (2026-04-29) PR #167 (merged)",
-    "test: word_wrap 11 unit tests (2026-04-29) PR #166 (merged)",
-    "test: ARP/MSIX local stubs + cache invalidation 7 tests (2026-04-28) PR #165 (merged)",
-    "test: handle_normal_mode 28 key binding tests (2026-04-26) PR #156 (merged)",
-    "perf: dedupe_packages O(N^2)->O(N) HashMap (2026-04-26) PR #155 (merged)",
-    "chore: cargo update patch + fix missing s key in help overlay (2026-04-26) PR #159 (merged)",
-    "Up/Down/PgUp/PgDn/Home/End navigation in LocalFilter mode (2026-04-25) PR #153 (merged)",
-    "test: ensure_selection_visible scroll-up + already-visible + csv_escape (2026-04-25) PR #152 (merged)"
+  "open_repo_assist_prs": [200, 201, 202, 204, 205, 206, 207, 208, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 223, 224],
+  "open_repo_assist_issues": [
+    {"number": 188, "title": "ci: add --locked flag (bundle, push failed)"},
+    {"number": 192, "title": "test: add unit tests for theme.rs (duplicate, safe to close)"},
+    {"number": 203, "title": "feat: add default_pin_filter config option (superseded by PR #204)"},
+    {"number": 221, "title": "feat: browse selected package on winget.run 'w' key (superseded by PR #223)"}
   ],
   "backlog_cursor": {
-    "issues": "no human issues open; only Repo Assist issues 158, 169, 171, 185",
+    "issues": "no human issues open",
     "next_issue_to_process": "check for new human issues next run"
   },
-  "pause_test_prs": false,
-  "pause_reason": "Only 2-3 open Repo Assist PRs as of 2026-05-17. Resume improvement work.",
-  "future_test_work": [
-    "Space key toggle-selection in Upgrades view (handler.rs:444-456) - not yet tested",
-    "'a' key select-all/deselect-all in Upgrades view (handler.rs:459-467) - not yet tested",
-    "handle_tab_click function (handler.rs:709-717) - not yet tested"
-  ],
-  "dependabot_prs": {
-    "github_actions": ["#160 (upload-artifact 4->7)", "#161 (azure/login 2.3.0->3.0.0)"]
-  },
-  "notes": "v0.10.0 released 2026-04-26. As of 2026-05-17, main is at ff1eb92 (docs: clarify install). 344 tests passing. Open Repo Assist PRs: #168 (perf: viewport rows), #184 (refactor: From<&Package>), pending new PR (perf: word_wrap cache, 5 tests, branch: repo-assist/perf-cache-desc-wordwrap-2026-05-17). Issue #185 is a workflow failure from previous run (protected workflow files). CI is NOT running on Repo Assist PR branches. cargo clippy -- -D warnings passes cleanly. Dependabot PRs #160 and #161 still open (protected workflow files, bundled in issue #169). Monthly summary #171 updated this run."
+  "notes": "2026-06-03 01:41 run: Tasks 6+3+11. Task 3: no human issues; implemented UX improvement: hint when U pressed with empty selection in Upgrades view, 359 tests (+1). PR created (branch repo-assist/improve-shift-u-hint-20260603). Task 6: checked PRs all clean. PR #223 (w keybinding) open. Issue #221 still needs closing."
 }
