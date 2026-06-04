@@ -185,6 +185,31 @@ impl PartialOrd for VersionPart {
     }
 }
 
+/// Case-insensitive substring search for ASCII needles without heap allocation.
+///
+/// Uses `[u8]::eq_ignore_ascii_case` on a sliding window, avoiding the
+/// `to_lowercase()` allocation that the naive approach requires.  For the
+/// local-filter hot path this eliminates 2 × N allocations per keypress (one
+/// per `pkg.name` and one per `pkg.id`).
+///
+/// Falls back to allocating `to_lowercase()` when the needle contains
+/// non-ASCII bytes, preserving correctness for Unicode queries.
+fn contains_ignore_case(haystack: &str, needle: &str) -> bool {
+    if needle.is_empty() {
+        return true;
+    }
+    // Fast path: pure-ASCII needle — no allocation needed.
+    if needle.is_ascii() {
+        let n = needle.as_bytes();
+        return haystack
+            .as_bytes()
+            .windows(n.len())
+            .any(|w| w.eq_ignore_ascii_case(n));
+    }
+    // Slow path: unicode needle — fall back to full lowercase.
+    haystack.to_lowercase().contains(&needle.to_lowercase())
+}
+
 fn version_key(v: &str) -> Vec<VersionPart> {
     v.split(['.', '-', '+'])
         .map(|part| VersionPart {
@@ -266,9 +291,9 @@ impl App {
             }
         }
         if self.mode != AppMode::Search && !self.local_filter.is_empty() {
-            let query = self.local_filter.to_lowercase();
+            let query = &self.local_filter;
             self.filtered_packages.retain(|pkg| {
-                pkg.name.to_lowercase().contains(&query) || pkg.id.to_lowercase().contains(&query)
+                contains_ignore_case(&pkg.name, query) || contains_ignore_case(&pkg.id, query)
             });
         }
         if self.mode != AppMode::Search {
@@ -2524,5 +2549,50 @@ mod tests {
             !app.process_messages(),
             "should return false on second call when channel is now empty"
         );
+    }
+
+    // ── contains_ignore_case ─────────────────────────────────────────────────
+
+    #[test]
+    fn contains_ignore_case_exact_match() {
+        assert!(contains_ignore_case("hello", "hello"));
+    }
+
+    #[test]
+    fn contains_ignore_case_uppercase_haystack() {
+        assert!(contains_ignore_case("HELLO", "hello"));
+    }
+
+    #[test]
+    fn contains_ignore_case_mixed_case() {
+        assert!(contains_ignore_case("Microsoft.VSCode", "vscode"));
+    }
+
+    #[test]
+    fn contains_ignore_case_substring() {
+        assert!(contains_ignore_case(
+            "Microsoft.WindowsTerminal",
+            "terminal"
+        ));
+    }
+
+    #[test]
+    fn contains_ignore_case_no_match() {
+        assert!(!contains_ignore_case("Git.Git", "python"));
+    }
+
+    #[test]
+    fn contains_ignore_case_empty_needle_always_true() {
+        assert!(contains_ignore_case("anything", ""));
+    }
+
+    #[test]
+    fn contains_ignore_case_empty_haystack_empty_needle() {
+        assert!(contains_ignore_case("", ""));
+    }
+
+    #[test]
+    fn contains_ignore_case_needle_longer_than_haystack() {
+        assert!(!contains_ignore_case("abc", "abcdef"));
     }
 }

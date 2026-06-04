@@ -660,7 +660,15 @@ impl CliBackend {
     }
 
     fn parse_pins_from_table(&self, output: &str) -> Vec<PackagePin> {
-        if output.to_ascii_lowercase().contains("no pins configured") {
+        // `winget pin list` prints "No pins configured." (or locale equivalent)
+        // when the pin list is empty.  Scan without allocating a full lowercase
+        // copy of `output` (which may be several KB of table data when pins exist).
+        const NEEDLE: &[u8] = b"no pins configured";
+        if output
+            .as_bytes()
+            .windows(NEEDLE.len())
+            .any(|w| w.eq_ignore_ascii_case(NEEDLE))
+        {
             return Vec::new();
         }
 
