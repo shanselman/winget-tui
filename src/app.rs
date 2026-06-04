@@ -2480,6 +2480,110 @@ mod tests {
         assert_eq!(csv_escape("line1\nline2"), "\"line1\nline2\"");
     }
 
+    // ── ensure_detail_hint ───────────────────────────────────────────────────
+
+    #[test]
+    fn ensure_detail_hint_skips_when_description_present() {
+        let mut detail = PackageDetail {
+            description: "Some description".to_string(),
+            ..PackageDetail::default()
+        };
+        App::ensure_detail_hint(&mut detail);
+        assert_eq!(detail.description, "Some description");
+    }
+
+    #[test]
+    fn ensure_detail_hint_skips_when_publisher_present() {
+        let mut detail = PackageDetail {
+            publisher: "Some Publisher".to_string(),
+            ..PackageDetail::default()
+        };
+        App::ensure_detail_hint(&mut detail);
+        assert!(
+            detail.description.is_empty(),
+            "should not set description when publisher is present"
+        );
+    }
+
+    #[test]
+    fn ensure_detail_hint_skips_when_homepage_present() {
+        let mut detail = PackageDetail {
+            homepage: "https://example.com".to_string(),
+            ..PackageDetail::default()
+        };
+        App::ensure_detail_hint(&mut detail);
+        assert!(
+            detail.description.is_empty(),
+            "should not set description when homepage is present"
+        );
+    }
+
+    #[test]
+    fn ensure_detail_hint_skips_when_license_present() {
+        let mut detail = PackageDetail {
+            license: "MIT".to_string(),
+            ..PackageDetail::default()
+        };
+        App::ensure_detail_hint(&mut detail);
+        assert!(
+            detail.description.is_empty(),
+            "should not set description when license is present"
+        );
+    }
+
+    #[test]
+    fn ensure_detail_hint_sets_generic_message_for_unknown_source() {
+        let mut detail = PackageDetail {
+            source: "winget".to_string(),
+            ..PackageDetail::default()
+        };
+        App::ensure_detail_hint(&mut detail);
+        assert!(
+            detail.description.contains("the package manifest"),
+            "expected 'the package manifest' in hint, got: {}",
+            detail.description
+        );
+    }
+
+    #[test]
+    fn ensure_detail_hint_sets_local_message_for_local_source() {
+        let mut detail = PackageDetail {
+            source: "local".to_string(),
+            ..PackageDetail::default()
+        };
+        App::ensure_detail_hint(&mut detail);
+        assert!(
+            detail.description.contains("local install records"),
+            "expected 'local install records' in hint, got: {}",
+            detail.description
+        );
+    }
+
+    #[test]
+    fn ensure_detail_hint_local_source_is_case_insensitive() {
+        let mut detail = PackageDetail {
+            source: "LOCAL".to_string(),
+            ..PackageDetail::default()
+        };
+        App::ensure_detail_hint(&mut detail);
+        assert!(
+            detail.description.contains("local install records"),
+            "expected 'local install records' for uppercase LOCAL, got: {}",
+            detail.description
+        );
+    }
+
+    #[test]
+    fn ensure_detail_hint_sets_configured_sources_message_for_empty_source() {
+        let mut detail = PackageDetail::default();
+        App::ensure_detail_hint(&mut detail);
+        assert!(
+            detail.description.contains("the configured winget sources"),
+            "expected 'the configured winget sources' for empty source, got: {}",
+            detail.description
+        );
+    }
+
     // ── process_messages return value ─────────────────────────────────────────
 
     #[test]
