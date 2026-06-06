@@ -1,10 +1,24 @@
 {
-  "last_run": "2026-06-03T14:19:00Z",
-  "last_run_id": "26890742966",
+  "last_run": "2026-06-06T01:26:57Z",
+  "last_run_id": "27048701858",
   "monthly_summary_issue": 222,
-  "monthly_summary_month": "2026-06",
-  "comments_made": {},
-  "fix_attempts": {},
-  "notes": "20 open Repo Assist PRs as of 2026-06-03. No human-filed issues. Consider pausing new PRs. Backlog: issues #188, #192, #203, #221 need attention.",
-  "backlog_cursor": 0
+  "comments_made": {
+    "80": "2026-04-16",
+    "83": "2026-04-16",
+    "88": "2026-04-16",
+    "126": "2026-04-19",
+    "154_pr": "2026-04-27"
+  },
+  "open_repo_assist_prs": [200, 201, 202, 204, 205, 206, 207, 208, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 223, 224, 226, 227],
+  "open_repo_assist_issues": [
+    {"number": 188, "title": "ci: add --locked flag (push failed, needs manual PR)"},
+    {"number": 192, "title": "test: add unit tests for theme.rs (push failed - safe to close, superseded by test coverage in other PRs)"},
+    {"number": 203, "title": "feat: add default_pin_filter config option (superseded by PR #204)"},
+    {"number": 221, "title": "feat: browse selected package on winget.run 'w' key (superseded by PR #223)"}
+  ],
+  "backlog_cursor": {
+    "issues": "no human issues open",
+    "next_issue_to_process": "check for new human issues next run"
+  },
+  "notes": "2026-06-06 01:26 run: Tasks 3+6+11. Task 6: verified PRs #219, #211, #227, #200 - all mergeable_state=clean, no CI failures. Task 3: no human-filed bugs; reviewed full codebase (app.rs, handler.rs, models.rs, config.rs, cli_backend.rs) - no new bugs found; cargo check passes. 22 open Repo Assist PRs - continuing to pause new PR creation until maintainer reviews backlog. Monthly summary #222 updated."
 }
