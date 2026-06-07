@@ -376,6 +376,11 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
                 {
                     " No pinned packages with upgrades found"
                 }
+                AppMode::Upgrades
+                    if matches!(app.pin_filter, crate::models::PinFilter::UnpinnedOnly) =>
+                {
+                    " No unpinned packages with upgrades found"
+                }
                 AppMode::Installed => " No packages found",
                 AppMode::Upgrades => " All packages are up to date!",
             }
