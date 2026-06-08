@@ -440,7 +440,7 @@ impl CliBackend {
             Cow::Borrowed(key)
         };
         match lower.as_ref() {
-            "version" | "packageversion" => "version",
+            "version" | "packageversion" | "versión" | "versão" | "versione" => "version",
             "publisher" | "herausgeber" | "éditeur" | "editore" | "editor" => "publisher",
             "description" | "beschreibung" | "descripción" | "descrição" | "descrizione" => {
                 "description"
@@ -981,6 +981,33 @@ Google Chrome                  Google.Chrome               131.0.6  winget
         assert_eq!(packages[0].id, "Google.Chrome");
         assert_eq!(packages[0].source, "winget");
         assert!(packages[0].available_version.is_empty());
+    }
+
+    #[test]
+    fn parse_spanish_show_output() {
+        let backend = CliBackend::new();
+        // Spanish winget show output uses accented keys like "Versión" and "Descripción".
+        // Before this fix, "Versión" fell through to the unknown arm and the version
+        // field would be empty.
+        let output = "\
+Encontrado Google Chrome [Google.Chrome]
+Versión: 132.0.6834
+Editor: Google LLC
+Descripción: Un navegador web rápido y seguro
+Página principal: https://www.google.com/chrome
+Licencia: Proprietary
+Origen: winget
+";
+        let detail = backend.parse_show_output(output);
+        assert_eq!(detail.id, "Google.Chrome");
+        assert_eq!(detail.name, "Google Chrome");
+        assert_eq!(
+            detail.version, "132.0.6834",
+            "Versión must be parsed as version"
+        );
+        assert_eq!(detail.publisher, "Google LLC");
+        assert_eq!(detail.license, "Proprietary");
+        assert_eq!(detail.source, "winget");
     }
 
     #[test]
@@ -1970,6 +1997,18 @@ Google Chrome  Google.Chrome  131.0
         assert_eq!(CliBackend::normalize_show_key("Origine"), "source");
         // Portuguese
         assert_eq!(CliBackend::normalize_show_key("Licença"), "license");
+    }
+
+    #[test]
+    fn normalize_show_key_locale_version_translations() {
+        // Spanish, Portuguese, and Italian locales use accented/modified forms of
+        // "version" in `winget show` output.  These must map to "version" so that
+        // parse_show_output() correctly populates PackageDetail::version.
+        assert_eq!(CliBackend::normalize_show_key("Versión"), "version"); // Spanish
+        assert_eq!(CliBackend::normalize_show_key("Versão"), "version"); // Portuguese
+        assert_eq!(CliBackend::normalize_show_key("Versione"), "version"); // Italian
+                                                                           // Case-insensitive
+        assert_eq!(CliBackend::normalize_show_key("VERSIÓN"), "version");
     }
 
     #[test]
