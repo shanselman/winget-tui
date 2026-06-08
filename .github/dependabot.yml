@@ -1,21 +1,22 @@
-version: 2
 updates:
-  - package-ecosystem: cargo
-    directory: /
-    schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: deps
-    ignore:
-      - dependency-name: "*"
-        update-types:
-          - "version-update:semver-major"
-
-  - package-ecosystem: github-actions
-    directory: /
-    schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: ci
+- commit-message:
+    prefix: deps
+  directory: /
+  ignore:
+  - dependency-name: "*"
+    update-types:
+    - version-update:semver-major
+  open-pull-requests-limit: 5
+  package-ecosystem: cargo
+  schedule:
+    interval: weekly
+- commit-message:
+    prefix: ci
+  directory: /
+  ignore:
+  - dependency-name: "github/gh-aw-actions/**" # Managed by gh aw compile. Version-locked to the gh-aw compiler; do not bump.
+  open-pull-requests-limit: 5
+  package-ecosystem: github-actions
+  schedule:
+    interval: weekly
+version: 2
