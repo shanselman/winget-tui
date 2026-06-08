@@ -154,7 +154,8 @@ winget-tui
 
 ## Configuration
 
-You can customize the startup view and source filter with an optional config file:
+You can customize the startup view, source filter, sort order, and pinned-package
+filter with an optional config file:
 
 - Windows: `%APPDATA%\winget-tui\config.toml`
 - Dev/non-Windows fallback: `$HOME/.config/winget-tui/config.toml`
@@ -162,8 +163,10 @@ You can customize the startup view and source filter with an optional config fil
 Example:
 
 ```toml
-default_view = "upgrades"    # installed | search | upgrades
-default_source = "winget"    # all | winget | msstore
+default_view = "upgrades"          # installed | search | upgrades
+default_source = "winget"          # all | winget | msstore
+default_sort = "name"              # name | name_desc | id | id_desc | version | version_desc | none
+default_pin_filter = "hide_pinned" # all | pinned | hide_pinned
 ```
 
 ## Architecture

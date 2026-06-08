@@ -7,6 +7,27 @@ Versions match the `v<major>.<minor>.<patch>` tags in git.
 
 ---
 
+## [0.13.0] – 2026-06-07
+
+### Added
+- `default_pin_filter` configuration for choosing the startup pinned-package
+  filter.
+- Mouse support for sorting by clicking the Name, ID, or Version table headers.
+
+### Fixed
+- Upgrades view now shows the correct empty-state message when hiding pinned
+  packages leaves no visible upgrade rows.
+
+### Performance
+- Faster local debug builds by compiling dependencies with `opt-level = 1`.
+
+### Other
+- CI now runs cargo check, test, and clippy with `--locked` for reproducible
+  dependency resolution.
+- Updated `serde_json` and GitHub Actions workflow dependencies.
+
+---
+
 ## [0.12.0] – 2026-05-20
 
 ### Added
