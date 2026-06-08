@@ -922,6 +922,70 @@ Google Chrome                  Google.Chrome               131.0.6778  132.0.683
     }
 
     #[test]
+    fn parse_unknown_locale_positional_fallback_four_columns() {
+        let backend = CliBackend::new();
+        // Unrecognized 4-column headers (no Available): positional fallback maps
+        // Name=0, Id=1, Version=2, Source=3 — the `cols.len() >= 5` branch is skipped.
+        let output = "\
+Foo                            Bar                         Baz          Qux
+----------------------------------------------------------------------------
+Google Chrome                  Google.Chrome               131.0.6778   winget
+";
+        let packages = backend.parse_packages_from_table(output);
+        assert_eq!(
+            packages.len(),
+            1,
+            "should parse via 4-column positional fallback"
+        );
+        assert_eq!(packages[0].name, "Google Chrome");
+        assert_eq!(packages[0].id, "Google.Chrome");
+        assert_eq!(packages[0].version, "131.0.6778");
+        assert_eq!(packages[0].source, "winget");
+        assert!(
+            packages[0].available_version.is_empty(),
+            "no Available column should yield empty available_version"
+        );
+    }
+
+    #[test]
+    fn parse_spanish_upgrade_table() {
+        let backend = CliBackend::new();
+        let output = "\
+Nombre                         ID                          Versión     Disponible   Origen
+-----------------------------------------------------------------------------------------------
+Google Chrome                  Google.Chrome               131.0.6778  132.0.6834   winget
+Microsoft Visual Studio Code   Microsoft.VisualStudioCode  1.95.3      1.96.0       winget
+";
+        let packages = backend.parse_packages_from_table(output);
+        assert_eq!(packages.len(), 2, "should parse Spanish table headers");
+        assert_eq!(packages[0].name, "Google Chrome");
+        assert_eq!(packages[0].id, "Google.Chrome");
+        assert_eq!(packages[0].version, "131.0.6778");
+        assert_eq!(packages[0].available_version, "132.0.6834");
+        assert_eq!(packages[0].source, "winget");
+        assert_eq!(packages[1].id, "Microsoft.VisualStudioCode");
+    }
+
+    #[test]
+    fn parse_portuguese_upgrade_table() {
+        let backend = CliBackend::new();
+        let output = "\
+Nome                           ID                          Versão      Disponível   Fonte
+-----------------------------------------------------------------------------------------------
+Google Chrome                  Google.Chrome               131.0.6778  132.0.6834   winget
+Microsoft Visual Studio Code   Microsoft.VisualStudioCode  1.95.3      1.96.0       winget
+";
+        let packages = backend.parse_packages_from_table(output);
+        assert_eq!(packages.len(), 2, "should parse Portuguese table headers");
+        assert_eq!(packages[0].name, "Google Chrome");
+        assert_eq!(packages[0].id, "Google.Chrome");
+        assert_eq!(packages[0].version, "131.0.6778");
+        assert_eq!(packages[0].available_version, "132.0.6834");
+        assert_eq!(packages[0].source, "winget");
+        assert_eq!(packages[1].id, "Microsoft.VisualStudioCode");
+    }
+
+    #[test]
     fn parse_english_show_output() {
         let backend = CliBackend::new();
         let output = "\
@@ -1558,6 +1622,17 @@ Google\x1b[2JChrome            Google.Chrome               131.0     winget
         );
     }
 
+    #[test]
+    fn sanitize_strips_carriage_return() {
+        // CR (0x0D) is a control character below 0x20 that is not tab or newline,
+        // so it must be stripped by the slow path.
+        assert_eq!(super::sanitize_text("foo\rbar"), "foobar");
+        assert_eq!(super::sanitize_text("\rleading"), "leading");
+        assert_eq!(super::sanitize_text("trailing\r"), "trailing");
+        // Multiple CRs
+        assert_eq!(super::sanitize_text("a\r\r\rb"), "ab");
+    }
+
     // ── parse_sources_from_table ──────────────────────────────────────────────
 
     #[test]
@@ -1854,6 +1929,27 @@ Google Chrome  Google.Chrome  131.0
         assert!(CliBackend::detect_columns("   ").is_empty());
     }
 
+    #[test]
+    fn detect_columns_cjk_wide_chars_advance_display_position_correctly() {
+        // Each CJK character occupies 2 display columns.
+        // "名前" = 2 chars × 2 = 4 display cols; then spaces; then "ID".
+        // The function must track display width, not byte count.
+        let header = "名前      ID      バージョン";
+        let cols = CliBackend::detect_columns(header);
+        assert!(cols.len() >= 2, "should detect at least 2 columns");
+        assert_eq!(cols[0].0, "名前");
+        assert_eq!(
+            cols[0].1, 0,
+            "first column always starts at display position 0"
+        );
+        // "名前" = 4 display cols + 6 spaces = position 10 for "ID"
+        assert_eq!(cols[1].0, "ID");
+        assert_eq!(
+            cols[1].1, 10,
+            "ID starts at display position 10 (4 CJK cols + 6 spaces)"
+        );
+    }
+
     // ── find_column_ci ───────────────────────────────────────────────────────
 
     #[test]
@@ -1953,6 +2049,10 @@ Google Chrome  Google.Chrome  131.0
         assert_eq!(
             CliBackend::normalize_show_key("Herausgeber-URL"),
             "publisher_url"
+        );
+        assert_eq!(
+            CliBackend::normalize_show_key("Versionshinweise URL"),
+            "release_notes_url"
         );
         assert_eq!(CliBackend::normalize_show_key("Lizenz"), "license");
         assert_eq!(CliBackend::normalize_show_key("Quelle"), "source");
