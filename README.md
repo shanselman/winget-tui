@@ -141,6 +141,7 @@ winget-tui
 - **Click** on the filter bar to cycle source filters
 - **Click** on the search bar to start typing a search
 - **Click** on a package row to select it and load details
+- **Click** on the Name, ID, or Version column header to sort (click again to reverse)
 - **Scroll wheel** over the package list to navigate up/down
 - **Scroll wheel** over the detail pane to scroll long package details
 - **Right-click** a package to select and load its details
