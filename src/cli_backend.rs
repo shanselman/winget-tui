@@ -19,9 +19,14 @@ pub struct CliBackend;
 /// space.  A plain digit-prefixed package name such as `"7-Zip 25.01 (x64)"`
 /// is **not** a footer because the digit sequence is followed by `'-'`, not `' '`.
 fn is_winget_footer_line(line: &str) -> bool {
-    let bytes = line.trim_start().as_bytes();
+    // winget footer lines follow the pattern: "<N> <localized text>."
+    // e.g. "2 upgrades available.", "61 packages found.", "1 Paket wurde gefunden."
+    // Requiring a trailing '.' prevents false-positives on package names that happen
+    // to start with a digit followed by a space (e.g. "2 BrightSparks ScreenshotCaptor").
+    let trimmed = line.trim_start();
+    let bytes = trimmed.as_bytes();
     let d = bytes.iter().take_while(|b| b.is_ascii_digit()).count();
-    d > 0 && d < bytes.len() && bytes[d] == b' '
+    d > 0 && d < bytes.len() && bytes[d] == b' ' && trimmed.ends_with('.')
 }
 
 /// Strip ASCII control characters (0x00–0x1F, 0x7F) except tab and newline.
@@ -1810,6 +1815,21 @@ Google Chrome  Google.Chrome  131.0
         // Leading whitespace still checks trimmed content
         assert!(super::is_winget_footer_line("  2 upgrades available."));
         assert!(!super::is_winget_footer_line("  7-Zip 25.01 (x64)"));
+    }
+
+    #[test]
+    fn is_footer_line_does_not_false_positive_on_digit_space_package_name() {
+        // A hypothetical package whose display name begins with "2 " (digit + space)
+        // must NOT be treated as a footer — it would cause is_winget_footer_line to
+        // return true inside take_while and silently truncate the package list.
+        // The trailing-period requirement prevents this false-positive.
+        assert!(!super::is_winget_footer_line(
+            "2 BrightSparks ScreenshotCaptor  NickeManarin.Foo  1.0  winget"
+        ));
+        // Same pattern with leading whitespace (as would appear indented in output)
+        assert!(!super::is_winget_footer_line(
+            "  2 BrightSparks ScreenshotCaptor  NickeManarin.Foo  1.0  winget"
+        ));
     }
 
     // ── detect_columns ───────────────────────────────────────────────────────
