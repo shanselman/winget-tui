@@ -621,6 +621,7 @@ impl CliBackend {
                     "version",
                     "versión",
                     "versão",
+                    "versione",
                 ],
             ),
             pin_type: Self::find_column_ci(cols, &["type", "typ", "tipo"]),
@@ -1315,6 +1316,30 @@ Contoso App     Contoso.App             winget                    Blocking
         let backend = CliBackend::new();
         let pins = backend.parse_pins_from_table("There are no pins configured.");
         assert!(pins.is_empty());
+    }
+
+    #[test]
+    fn parse_italian_pin_list_table_detects_versione_column() {
+        let backend = CliBackend::new();
+        // Italian locale uses "Versione" for the pinned version column
+        let output = "\
+Nome            Id                      Sorgente   Versione Bloccata   Tipo
+-----------------------------------------------------------------------------
+PowerToys       Microsoft.PowerToys     winget     Latest              Pinning
+Git             Git.Git                 winget     2.45.*              Gating
+";
+        let pins = backend.parse_pins_from_table(output);
+        assert_eq!(
+            pins.len(),
+            2,
+            "Italian locale pin table should parse both rows"
+        );
+        assert_eq!(pins[0].id, "Microsoft.PowerToys");
+        assert!(matches!(pins[0].pin_state, PinState::Pinned));
+        assert!(matches!(
+            pins[1].pin_state,
+            PinState::Gating(ref v) if v == "2.45.*"
+        ));
     }
 
     #[test]
