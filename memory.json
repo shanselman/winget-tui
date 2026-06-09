@@ -1,6 +1,6 @@
 {
   "last_run": "2026-06-09T00:00:00Z",
-  "last_run_id": "27177878896",
+  "last_run_id": "27210167192",
   "monthly_summary_issue": null,
   "monthly_summary_disabled": true,
   "monthly_summary_note": "Maintainer closed issue #222 on 2026-06-08 as automation noise. Do not create monthly activity summary issues.",
@@ -35,6 +35,18 @@
       "task": "Task 5",
       "description": "fix: add versione (Italian) to pin_column_map pinned_version list (372 tests)",
       "run_id": "27177878896"
+    },
+    {
+      "branch": "repo-assist/fix-footer-false-positive",
+      "task": "Task 3",
+      "description": "fix: is_winget_footer_line false-positive on digit-space package names, adds ends_with('.') guard (372 tests)",
+      "run_id": "27210167192"
+    },
+    {
+      "branch": "repo-assist/eng-bundle-deps-2026-06-09",
+      "task": "Task 4",
+      "description": "chore: bundled cargo update incl ratatui 0.30.1, supersedes PRs #230 and #236 (371 tests)",
+      "run_id": "27210167192"
     }
   ],
   "open_repo_assist_issues": [],
@@ -42,5 +54,5 @@
     "issues": "no human issues open",
     "next_issue_to_process": "check for new human issues next run"
   },
-  "notes": "2026-06-09 run: Tasks 5+10. (1) Task 10 sort feature: added SortField::AvailableVersion wired through models/app/handler/ui/config; 11 new tests, 382 total. (2) Task 5 locale fix: pin_column_map.pinned_version was missing versione (Italian); 1 new test, consistent with package_column_map. Monthly summary disabled per maintainer (closed #222 2026-06-08). PR #230 deps update still open from earlier run."
+  "notes": "2026-06-09 run 2: Tasks 3+4. (1) Task 3 footer fix: is_winget_footer_line now requires trailing period to prevent false-positive on names like '2 BrightSparks Foo'; 1 new regression test. (2) Task 4 bundled cargo update: ratatui 0.30.0->0.30.1 + 33 other crates; supersedes dependabot PR #236 and repo-assist PR #230 - maintainer should close those. Task 11 (monthly summary) remains disabled per maintainer."
 }
