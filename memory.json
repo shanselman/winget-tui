@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-06-08T14:15:00Z",
-  "last_run_id": "27143413016",
+  "last_run": "2026-06-09T00:00:00Z",
+  "last_run_id": "27177878896",
   "monthly_summary_issue": null,
   "monthly_summary_disabled": true,
   "monthly_summary_note": "Maintainer closed issue #222 on 2026-06-08 as automation noise. Do not create monthly activity summary issues.",
@@ -14,15 +14,27 @@
   "open_repo_assist_prs": [
     {
       "branch": "repo-assist/improve-normalize-show-key-locale-versions",
-      "task": "Task 5 - Coding Improvements",
+      "task": "Task 5",
       "description": "fix: add Spanish/Portuguese/Italian version key to normalize_show_key",
       "run_id": "27143413016"
     },
     {
       "branch": "repo-assist/testing-improvements-locale-edge-cases",
-      "task": "Task 9 - Testing Improvements",
+      "task": "Task 9",
       "description": "test: add locale, edge-case, and CJK column-detection tests (376 tests)",
       "run_id": "27143413016"
+    },
+    {
+      "branch": "repo-assist/feat-sort-available-version",
+      "task": "Task 10",
+      "description": "feat: sort Upgrades view by available version (382 tests)",
+      "run_id": "27177878896"
+    },
+    {
+      "branch": "repo-assist/fix-pin-col-map-italian-versione",
+      "task": "Task 5",
+      "description": "fix: add versione (Italian) to pin_column_map pinned_version list (372 tests)",
+      "run_id": "27177878896"
     }
   ],
   "open_repo_assist_issues": [],
@@ -30,5 +42,5 @@
     "issues": "no human issues open",
     "next_issue_to_process": "check for new human issues next run"
   },
-  "notes": "2026-06-08 14:15 run: Two new PRs created. (1) Task 5 coding fix: normalize_show_key was missing versión/versão/versione version key translations for ES/PT/IT locales - minor correctness fix, 373 tests pass. (2) Task 9 testing: 5 new tests for Spanish/Portuguese upgrade table parsing, 4-column positional fallback, CR sanitization, CJK column display-width - 376 tests pass. PR #230 (deps update) still open from previous run. Monthly summary disabled per maintainer (closed #222 2026-06-08)."
+  "notes": "2026-06-09 run: Tasks 5+10. (1) Task 10 sort feature: added SortField::AvailableVersion wired through models/app/handler/ui/config; 11 new tests, 382 total. (2) Task 5 locale fix: pin_column_map.pinned_version was missing versione (Italian); 1 new test, consistent with package_column_map. Monthly summary disabled per maintainer (closed #222 2026-06-08). PR #230 deps update still open from earlier run."
 }
