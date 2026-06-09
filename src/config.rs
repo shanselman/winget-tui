@@ -109,6 +109,8 @@ impl Config {
                         "id_desc" => (SortField::Id, SortDir::Desc),
                         "version" => (SortField::Version, SortDir::Asc),
                         "version_desc" => (SortField::Version, SortDir::Desc),
+                        "available" => (SortField::AvailableVersion, SortDir::Asc),
+                        "available_desc" => (SortField::AvailableVersion, SortDir::Desc),
                         _ => (SortField::None, SortDir::Asc),
                     };
                     cfg.default_sort_field = field;
@@ -258,6 +260,20 @@ default_source = \"msstore\"
         let cfg = Config::parse(r#"default_sort = "unknown""#);
         assert_eq!(cfg.default_sort_field, SortField::None);
         assert_eq!(cfg.default_sort_dir, SortDir::Asc);
+    }
+
+    #[test]
+    fn parse_default_sort_available_asc() {
+        let cfg = Config::parse(r#"default_sort = "available""#);
+        assert_eq!(cfg.default_sort_field, SortField::AvailableVersion);
+        assert_eq!(cfg.default_sort_dir, SortDir::Asc);
+    }
+
+    #[test]
+    fn parse_default_sort_available_desc() {
+        let cfg = Config::parse(r#"default_sort = "available_desc""#);
+        assert_eq!(cfg.default_sort_field, SortField::AvailableVersion);
+        assert_eq!(cfg.default_sort_dir, SortDir::Desc);
     }
 
     #[test]

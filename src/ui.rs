@@ -237,7 +237,12 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
             )),
             sort_header("ID", SortField::Id, app.sort_field, dir),
             sort_header("Version", SortField::Version, app.sort_field, dir),
-            Cow::Borrowed("Available"),
+            sort_header(
+                "Available",
+                SortField::AvailableVersion,
+                app.sort_field,
+                dir,
+            ),
             Cow::Borrowed("Source"),
         ]
     } else {
@@ -1051,6 +1056,10 @@ fn draw_help_overlay(f: &mut Frame, app: &mut App) {
             Span::styled("  S           ", key),
             Span::raw("Cycle sort: Name↑ → Name↓ → ID↑ → ID↓ → Version↑ → Version↓ → off"),
         ]),
+        Line::from(vec![
+            Span::styled("              ", key),
+            Span::raw("(Upgrades also: → Available↑ → Available↓ → off)"),
+        ]),
         Line::raw(""),
         Line::from(Span::styled("  Mouse", section)),
         Line::from(vec![
@@ -1059,7 +1068,9 @@ fn draw_help_overlay(f: &mut Frame, app: &mut App) {
         ]),
         Line::from(vec![
             Span::styled("  Header click", key),
-            Span::raw("Sort by Name / ID / Version (click again to reverse)"),
+            Span::raw(
+                "Sort by Name / ID / Version / Available (Upgrades) — click again to reverse",
+            ),
         ]),
         Line::from(vec![
             Span::styled("  Scroll      ", key),

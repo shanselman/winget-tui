@@ -11,6 +11,8 @@ pub enum SortField {
     Name,
     Id,
     Version,
+    /// Sort by the available (latest) version; meaningful only in Upgrades view.
+    AvailableVersion,
 }
 
 impl SortField {
@@ -24,6 +26,7 @@ impl fmt::Display for SortField {
             Self::Name => write!(f, "Name"),
             Self::Id => write!(f, "ID"),
             Self::Version => write!(f, "Version"),
+            Self::AvailableVersion => write!(f, "Available"),
         }
     }
 }

@@ -628,19 +628,22 @@ fn click_sort_header(app: &mut App, col: u16) {
 
     // Determine the sort field based on column percentages defined in ui.rs.
     // Non-Upgrades: Name 25%, ID 35%, Version 20%, Source 20% (unsortable)
-    // Upgrades:     Name 25%, ID 30%, Version 15%, Available 15% (unsortable), Source 15% (unsortable)
+    // Upgrades:     Name 25%, ID 30%, Version 15%, Available 15%, Source 15% (unsortable)
     let field = if app.mode == AppMode::Upgrades {
         let boundary_name = content_width * 25 / 100;
         let boundary_id = boundary_name + content_width * 30 / 100;
         let boundary_version = boundary_id + content_width * 15 / 100;
+        let boundary_available = boundary_version + content_width * 15 / 100;
         if offset < boundary_name {
             SortField::Name
         } else if offset < boundary_id {
             SortField::Id
         } else if offset < boundary_version {
             SortField::Version
+        } else if offset < boundary_available {
+            SortField::AvailableVersion
         } else {
-            return; // Available or Source — not sortable
+            return; // Source — not sortable
         }
     } else {
         let boundary_name = content_width * 25 / 100;
@@ -2353,5 +2356,64 @@ mod tests {
         app.layout.package_list = rect(0, 0, 2, 10); // content_width = 2-3 = underflows to 0
         click_sort_header(&mut app, 0);
         assert_eq!(app.sort_field, SortField::None);
+    }
+
+    fn make_app_with_upgrades_layout() -> App {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app_with_pkgs(3);
+        app.mode = AppMode::Upgrades;
+        // package_list starts at x=0, width=100; content_width = 97
+        app.layout.package_list = rect(0, 0, 100, 10);
+        app.layout.list_content_y = 3;
+        app
+    }
+
+    #[test]
+    fn click_sort_header_upgrades_available_column_sets_available_sort() {
+        let mut app = make_app_with_upgrades_layout();
+        // Upgrades: Name 25%, ID 30%, Version 15%, Available 15%, Source 15%
+        // content_width=97; boundary_version = (24+29) = 53+14=67; boundary_available=67+14=81
+        // Available column: offsets 67..81; click at col=(x0+74)=75
+        click_sort_header(&mut app, 75);
+        assert_eq!(app.sort_field, SortField::AvailableVersion);
+        assert_eq!(app.sort_dir, SortDir::Asc);
+    }
+
+    #[test]
+    fn click_sort_header_upgrades_available_column_toggles_direction() {
+        let mut app = make_app_with_upgrades_layout();
+        click_sort_header(&mut app, 75); // AvailableVersion Asc
+        assert_eq!(app.sort_dir, SortDir::Asc);
+        click_sort_header(&mut app, 75); // AvailableVersion Desc
+        assert_eq!(app.sort_dir, SortDir::Desc);
+    }
+
+    #[test]
+    fn click_sort_header_upgrades_source_column_is_noop() {
+        let mut app = make_app_with_upgrades_layout();
+        // Source starts at offset 81; col = x0 + 83 = 84
+        click_sort_header(&mut app, 84);
+        assert_eq!(
+            app.sort_field,
+            SortField::None,
+            "Source column must not set sort in Upgrades mode"
+        );
+    }
+
+    #[test]
+    fn click_sort_header_non_upgrades_available_column_is_noop() {
+        // The Available column position (offset ~74) maps to Source in non-Upgrades mode
+        // because the column widths differ; confirm it does NOT set AvailableVersion
+        let mut app = make_app_with_list_layout();
+        app.mode = AppMode::Installed;
+        // In Installed mode: boundary_version = 24+34=58, boundary... 58+97*20/100=58+19=77
+        // offset 74 → between boundary_version(58) and Source start(77) → Version sort
+        click_sort_header(&mut app, 75); // offset=74, inside Version column in Installed
+        assert_ne!(
+            app.sort_field,
+            SortField::AvailableVersion,
+            "AvailableVersion sort must only appear in Upgrades mode"
+        );
     }
 }
