@@ -186,7 +186,7 @@ impl PartialOrd for VersionPart {
 }
 
 fn version_key(v: &str) -> Vec<VersionPart> {
-    v.split(['.', '-', '+'])
+    v.split(['.', '-', '+', '_'])
         .map(|part| VersionPart {
             num: part.parse::<u64>().ok(),
             src: part.to_string(),
@@ -1639,6 +1639,28 @@ mod tests {
         assert_eq!(
             compare_versions("1.0+20240101", "1.0+20230101"),
             std::cmp::Ordering::Greater
+        );
+    }
+
+    #[test]
+    fn compare_versions_underscore_separator_numeric() {
+        // Underscore-delimited versions (used by some Windows packages).
+        // Without '_' as a split char "1.0_10" would compare as one opaque token
+        // "0_10" against "0_9" lexicographically ('1' < '9'), giving the wrong
+        // result.  With '_' in the split set both sides parse numerically and
+        // 10 > 9 correctly.
+        assert_eq!(
+            compare_versions("1.0_10", "1.0_9"),
+            std::cmp::Ordering::Greater,
+            "1.0_10 should sort after 1.0_9 (numeric, not lexicographic)"
+        );
+        assert_eq!(
+            compare_versions("2.0_1", "2.0_1"),
+            std::cmp::Ordering::Equal
+        );
+        assert_eq!(
+            compare_versions("1.0_2", "1.0_10"),
+            std::cmp::Ordering::Less
         );
     }
 
