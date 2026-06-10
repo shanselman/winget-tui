@@ -400,6 +400,7 @@ impl App {
             || !detail.publisher.is_empty()
             || !detail.homepage.is_empty()
             || !detail.license.is_empty()
+            || !detail.release_notes_url.is_empty()
         {
             return;
         }
@@ -2456,6 +2457,37 @@ mod tests {
         assert_eq!(spy.show_calls().len(), calls_before);
         assert_eq!(app.detail.as_ref().unwrap().name, "Google Chrome");
         assert!(!app.detail_loading);
+    }
+
+    // ── ensure_detail_hint ───────────────────────────────────────────────────
+
+    #[test]
+    fn ensure_detail_hint_skips_hint_when_release_notes_url_is_set() {
+        // A package with only release_notes_url populated (description etc. empty)
+        // must NOT receive the "metadata unavailable" fallback text.
+        let mut detail = PackageDetail {
+            id: "Pkg.A".to_string(),
+            release_notes_url: "https://example.com/releases".to_string(),
+            ..PackageDetail::default()
+        };
+        App::ensure_detail_hint(&mut detail);
+        assert!(
+            detail.description.is_empty(),
+            "description should not be set when release_notes_url is present"
+        );
+    }
+
+    #[test]
+    fn ensure_detail_hint_adds_fallback_when_all_fields_empty() {
+        let mut detail = PackageDetail {
+            id: "Pkg.B".to_string(),
+            ..PackageDetail::default()
+        };
+        App::ensure_detail_hint(&mut detail);
+        assert!(
+            !detail.description.is_empty(),
+            "description fallback should be added when no metadata fields are set"
+        );
     }
 
     // ── csv_escape ────────────────────────────────────────────────────────────
