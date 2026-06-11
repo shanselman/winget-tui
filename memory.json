@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-06-10T15:30:00Z",
-  "last_run_id": "27317876801",
+  "last_run": "2026-06-11T00:00:00Z",
+  "last_run_id": "27352700257",
   "monthly_summary_issue": null,
   "monthly_summary_disabled": true,
   "monthly_summary_note": "Maintainer closed issue #222 on 2026-06-08 as automation noise. Do not create monthly activity summary issues.",
@@ -16,64 +16,61 @@
       "branch": "repo-assist/improve-normalize-show-key-locale-versions",
       "pr": 231,
       "task": "Task 5",
-      "description": "fix: add Spanish/Portuguese/Italian version key to normalize_show_key",
-      "run_id": "27143413016"
+      "description": "fix: add Spanish/Portuguese/Italian version key to normalize_show_key"
     },
     {
       "branch": "repo-assist/testing-improvements-locale-edge-cases",
       "pr": 232,
       "task": "Task 9",
-      "description": "test: add locale, edge-case, and CJK column-detection tests",
-      "run_id": "27143413016"
+      "description": "test: add locale, edge-case, and CJK column-detection tests"
     },
     {
       "branch": "repo-assist/fix-pin-col-map-italian-versione",
       "pr": 234,
       "task": "Task 5",
-      "description": "fix: add versione (Italian) to pin_column_map pinned_version list",
-      "run_id": "27177878896"
+      "description": "fix: add versione (Italian) to pin_column_map pinned_version list"
     },
     {
       "branch": "repo-assist/fix-footer-false-positive",
       "pr": 237,
       "task": "Task 3",
-      "description": "fix: is_winget_footer_line false-positive on digit-space package names",
-      "run_id": "27210167192"
+      "description": "fix: is_winget_footer_line false-positive on digit-space package names"
     },
     {
       "branch": "repo-assist/eng-bundle-deps-2026-06-09",
       "pr": 238,
       "task": "Task 4",
-      "description": "chore: bundled cargo update incl ratatui 0.30.1, supersedes PRs #230 and #236",
-      "run_id": "27210167192"
+      "description": "chore: bundled cargo update incl ratatui 0.30.1, supersedes PRs #230 and #236"
     },
     {
       "branch": "repo-assist/fix-ensure-detail-hint",
       "pr": 239,
       "task": "Task 3",
-      "description": "fix: ensure_detail_hint suppresses fallback when release_notes_url is set",
-      "run_id": "27247028405"
+      "description": "fix: ensure_detail_hint suppresses fallback when release_notes_url is set"
     },
     {
       "branch": "repo-assist/improve-version-key-underscore",
       "pr": 240,
       "task": "Task 5",
-      "description": "fix: split on '_' in version_key for consistent underscore-version sorting",
-      "run_id": "27247028405"
+      "description": "fix: split on '_' in version_key for consistent underscore-version sorting"
     },
     {
       "branch": "repo-assist/feat-sort-available-version-upgrades",
-      "pr": null,
+      "pr": 241,
       "task": "Task 10",
-      "description": "feat: sort Upgrades view by available version (7 new tests, 379 total)",
-      "run_id": "27281256199"
+      "description": "feat: sort Upgrades view by available version"
     },
     {
       "branch": "repo-assist/fix-detail-stale-after-sort",
-      "pr": null,
+      "pr": 242,
       "task": "Task 3",
-      "description": "fix: reload detail panel after sort to prevent stale display",
-      "run_id": "27317876801"
+      "description": "fix: reload detail panel after sort to prevent stale display"
+    },
+    {
+      "branch": "repo-assist/perf-clip-2026-06-11",
+      "pr": null,
+      "task": "Task 8+10",
+      "description": "perf: cache logo OnceLock, consolidate load_detail scans, pre-slice rows; feat: y=copy ID to clipboard"
     }
   ],
   "open_repo_assist_issues": [],
@@ -81,5 +78,5 @@
     "issues": "no human issues open",
     "next_issue_to_process": "check for new human issues next run"
   },
-  "notes": "2026-06-10 run (27317876801): Tasks 2+3. Task 2: No human issues open. Task 3: Fixed stale detail panel bug - after sort via S key or column header click, app.selected stays at same index but points to different package; detail pane was not refreshed. Fix: call load_detail_for_selected() at both sort call-sites in handler.rs. 2 new tests, 373 total. Branch: repo-assist/fix-detail-stale-after-sort. Task 11 (monthly summary) remains disabled per maintainer."
+  "notes": "2026-06-11 run (27352700257): Tasks 8+10. Task 8: 3 perf improvements - (1) cache theme::logo_lines() with OnceLock (93 Spans/frame → 1 clone/frame), (2) consolidate up to 3 O(N) load_detail scans into 1, (3) pre-slice draw_package_list to viewport rows O(N)→O(viewport). Task 10: 'y' key copies selected package ID to clipboard (clip.exe/pbcopy/xclip, no new deps), help overlay updated, AGENTS.md updated. All 371 tests pass. Branch: repo-assist/perf-clip-2026-06-11. Task 11 remains disabled per maintainer."
 }
