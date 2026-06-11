@@ -554,6 +554,9 @@ fn handle_normal_mode(
         // Sort: cycle through Name↑ → Name↓ → ID↑ → ID↓ → Version↑ → Version↓ → None
         KeyCode::Char('S') => {
             app.cycle_sort();
+            // Re-sorting changes which package is at the selected index.
+            // Reload the detail pane so it stays in sync with the highlighted row.
+            load_detail_for_selected(app);
         }
 
         _ => {}
@@ -734,6 +737,9 @@ fn handle_mouse(app: &mut App, mouse: crossterm::event::MouseEvent) -> anyhow::R
                 let header_row = app.layout.list_content_y.saturating_sub(1);
                 if row == header_row && app.layout.list_content_y > 0 {
                     click_sort_header(app, col);
+                    // Re-sorting changes which package is at the selected index.
+                    // Reload the detail pane so it stays in sync with the highlighted row.
+                    load_detail_for_selected(app);
                     return Ok(false);
                 }
 
@@ -2353,5 +2359,51 @@ mod tests {
         app.layout.package_list = rect(0, 0, 2, 10); // content_width = 2-3 = underflows to 0
         click_sort_header(&mut app, 0);
         assert_eq!(app.sort_field, SortField::None);
+    }
+
+    // ── sort: detail panel stays in sync ──────────────────────────────────────
+
+    #[test]
+    fn s_key_sort_reloads_detail_for_selected_package() {
+        // After re-sorting, the package at `selected` changes.  load_detail must
+        // be triggered so the detail pane does not show a stale package.
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app_with_pkgs(3);
+        app.mode = AppMode::Installed;
+        let initial_gen = app.detail_generation;
+
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('S'), KeyModifiers::NONE);
+
+        assert!(
+            app.detail_generation > initial_gen,
+            "pressing S to sort must trigger a detail reload for the new selected package"
+        );
+    }
+
+    #[test]
+    fn click_sort_header_via_handle_mouse_reloads_detail() {
+        // Clicking a sortable column header through the full mouse handler must
+        // also trigger a detail reload for the package now at the selected index.
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app_with_pkgs(3);
+        app.layout.package_list = rect(0, 0, 100, 10);
+        app.layout.list_content_y = 3; // header row is at y=2
+        let initial_gen = app.detail_generation;
+
+        // Left-click on the Name column header (col=5, row=2)
+        let mouse = MouseEvent {
+            kind: MouseEventKind::Down(MouseButton::Left),
+            column: 5,
+            row: 2,
+            modifiers: KeyModifiers::NONE,
+        };
+        let _ = handle_mouse(&mut app, mouse);
+
+        assert!(
+            app.detail_generation > initial_gen,
+            "clicking a sort header must trigger a detail reload for the new selected package"
+        );
     }
 }
