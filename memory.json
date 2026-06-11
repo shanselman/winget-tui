@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-06-10T13:55:33Z",
-  "last_run_id": "27281256199",
+  "last_run": "2026-06-10T15:30:00Z",
+  "last_run_id": "27317876801",
   "monthly_summary_issue": null,
   "monthly_summary_disabled": true,
   "monthly_summary_note": "Maintainer closed issue #222 on 2026-06-08 as automation noise. Do not create monthly activity summary issues.",
@@ -67,6 +67,13 @@
       "task": "Task 10",
       "description": "feat: sort Upgrades view by available version (7 new tests, 379 total)",
       "run_id": "27281256199"
+    },
+    {
+      "branch": "repo-assist/fix-detail-stale-after-sort",
+      "pr": null,
+      "task": "Task 3",
+      "description": "fix: reload detail panel after sort to prevent stale display",
+      "run_id": "27317876801"
     }
   ],
   "open_repo_assist_issues": [],
@@ -74,5 +81,5 @@
     "issues": "no human issues open",
     "next_issue_to_process": "check for new human issues next run"
   },
-  "notes": "2026-06-10 run: Tasks 6+10. Task 6: Checked all 8 open Repo Assist PRs (#231-#240 range) - no CI failures, no merge conflicts (main still at 11990b75). PRs #230 (old deps) and #236 (ratatui dependabot) are still open alongside #238 (bundle deps which supersedes them). Task 10: Implemented feat-sort-available-version-upgrades - adds SortField::AvailableVersion so Upgrades view can be sorted by the available upgrade version via both keyboard (S key) and mouse click on Available header. 7 new tests, 379 total. PR created. Task 11 (monthly summary) remains disabled per maintainer. 9 total open Repo Assist PRs (8 confirmed + new #feat-sort-available-version-upgrades)."
+  "notes": "2026-06-10 run (27317876801): Tasks 2+3. Task 2: No human issues open. Task 3: Fixed stale detail panel bug - after sort via S key or column header click, app.selected stays at same index but points to different package; detail pane was not refreshed. Fix: call load_detail_for_selected() at both sort call-sites in handler.rs. 2 new tests, 373 total. Branch: repo-assist/fix-detail-stale-after-sort. Task 11 (monthly summary) remains disabled per maintainer."
 }
