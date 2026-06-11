@@ -551,6 +551,15 @@ fn handle_normal_mode(
             "Opening changelog ",
         ),
 
+        // Copy selected package ID to clipboard (y = vim "yank" mnemonic)
+        KeyCode::Char('y') => {
+            if let Some(pkg) = app.filtered_packages.get(app.selected) {
+                let id = pkg.id.clone();
+                copy_to_clipboard(&id);
+                app.set_status(format!("Copied to clipboard: {id}"));
+            }
+        }
+
         // Sort: cycle through Name↑ → Name↓ → ID↑ → ID↓ → Version↑ → Version↓ → None
         KeyCode::Char('S') => {
             app.cycle_sort();
@@ -867,6 +876,40 @@ fn open_url(url: &str) -> bool {
         }
     }
     true
+}
+
+/// Write `text` to the system clipboard using a platform clipboard command.
+///
+/// - Windows: `clip.exe` reads from stdin.
+/// - macOS:   `pbcopy` reads from stdin.
+/// - Linux:   `xclip -selection clipboard` reads from stdin.
+///
+/// Errors are silently ignored; the caller has already updated the status bar.
+fn copy_to_clipboard(text: &str) {
+    #[cfg(not(test))]
+    {
+        use std::io::Write;
+        use std::process::{Command, Stdio};
+
+        #[cfg(target_os = "windows")]
+        let mut cmd = Command::new("clip");
+        #[cfg(target_os = "macos")]
+        let mut cmd = Command::new("pbcopy");
+        #[cfg(not(any(target_os = "windows", target_os = "macos")))]
+        let mut cmd = {
+            let mut c = Command::new("xclip");
+            c.args(["-selection", "clipboard"]);
+            c
+        };
+
+        if let Ok(mut child) = cmd.stdin(Stdio::piped()).spawn() {
+            if let Some(stdin) = child.stdin.as_mut() {
+                let _ = stdin.write_all(text.as_bytes());
+            }
+        }
+    }
+    #[cfg(test)]
+    let _ = text; // suppress unused-variable warning in test builds
 }
 
 /// Determine which tab was clicked based on x position

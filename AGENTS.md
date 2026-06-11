@@ -79,6 +79,7 @@ default_source = "all"       # all | winget | msstore
 - `Space`, `a`, `U`: multi-select and batch upgrade in Upgrades view
 - `o`: open homepage
 - `c`: open changelog / release notes
+- `y`: copy package ID to clipboard
 - `S`: cycle sorting
 - `?`: help
 - `q` / `Esc`: quit or close dialog

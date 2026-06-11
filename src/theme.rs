@@ -199,7 +199,16 @@ pub const LOGO_HEIGHT: u16 = 3;
 
 /// Render "winget" as pixel word art using half-blocks.
 /// 3 text rows tall (6 pixel rows), rendered in the accent color.
+///
+/// The result is computed once and cached for the lifetime of the process.
+/// Subsequent calls return a clone of the cached value, avoiding the per-frame
+/// allocation and grid-iteration overhead at the cost of a shallow Vec clone.
 pub fn logo_lines() -> Vec<Line<'static>> {
+    static LOGO: std::sync::OnceLock<Vec<Line<'static>>> = std::sync::OnceLock::new();
+    LOGO.get_or_init(build_logo_lines).clone()
+}
+
+fn build_logo_lines() -> Vec<Line<'static>> {
     // Letters designed on a 5x6 grid (or narrower), 1px gap between each.
     //
     //  w         i     n         g         e         t

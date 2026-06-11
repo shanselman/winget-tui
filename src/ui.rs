@@ -257,11 +257,23 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
     )
     .height(1);
 
-    let rows: Vec<Row> = app
-        .filtered_packages
+    // Only build Row objects for the visible viewport.  For a list of 500
+    // packages with a 25-row viewport this reduces Row/Cell allocations by ~20×.
+    // app.layout.package_list is set earlier in this frame by draw_main_content,
+    // so package_list_viewport_rows() returns the correct value here.
+    // app.table_state.offset() is kept consistent by ensure_selection_visible().
+    let total = app.filtered_packages.len();
+    let offset = app.table_state.offset();
+    let viewport = app.package_list_viewport_rows().max(1);
+    // +2 row buffer so a partially-visible bottom row is never cut off.
+    let vis_start = offset.min(total);
+    let vis_end = (offset + viewport + 2).min(total);
+
+    let rows: Vec<Row> = app.filtered_packages[vis_start..vis_end]
         .iter()
         .enumerate()
-        .map(|(i, pkg)| {
+        .map(|(rel_i, pkg)| {
+            let i = vis_start + rel_i;
             let is_selected = i == app.selected;
             let is_marked = app.mode == AppMode::Upgrades && app.selected_packages.contains(&i);
             let style = if is_selected {
@@ -400,7 +412,13 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
 
     let table = Table::new(rows, &widths).header(header).block(block);
 
-    f.render_stateful_widget(table, area, &mut app.table_state);
+    // Rows are pre-sliced to the visible viewport, so render with offset=0.
+    // Visual row selection is applied per-row via style above; TableState is
+    // not needed for highlight purposes (table has no highlight_style set).
+    // app.table_state.offset is managed by ensure_selection_visible() and is
+    // used above to compute vis_start — it does not need to be passed here.
+    let mut local_state = ratatui::widgets::TableState::default();
+    f.render_stateful_widget(table, area, &mut local_state);
 
     // Scrollbar
     if app.filtered_packages.len() > app.package_list_viewport_rows() {
@@ -1046,6 +1064,10 @@ fn draw_help_overlay(f: &mut Frame, app: &mut App) {
         Line::from(vec![
             Span::styled("  c           ", key),
             Span::raw("Open changelog / release notes"),
+        ]),
+        Line::from(vec![
+            Span::styled("  y           ", key),
+            Span::raw("Copy package ID to clipboard"),
         ]),
         Line::from(vec![
             Span::styled("  S           ", key),

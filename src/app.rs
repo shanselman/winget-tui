@@ -479,14 +479,25 @@ impl App {
         // call would always fail. Show a local detail stub instead.
         let is_truncated = id.ends_with('…') || id.ends_with("...");
         let is_local = id.starts_with("ARP\\") || id.starts_with("MSIX\\");
-        let pkg_source_empty = self
-            .filtered_packages
-            .iter()
-            .find(|p| p.id == id)
-            .is_some_and(|p| p.source.is_empty());
+
+        // Single scan: extract all data needed for both the early-return and
+        // normal paths, avoiding up to two extra O(N) passes over filtered_packages.
+        let pkg_data = self.filtered_packages.iter().find(|p| p.id == id).map(|p| {
+            (
+                p.id.clone(),
+                p.name.clone(),
+                p.version.clone(),
+                p.source.clone(),
+                p.pin_state.clone(),
+            )
+        });
+
+        let pkg_source_empty = pkg_data
+            .as_ref()
+            .is_some_and(|(_, _, _, src, _)| src.is_empty());
 
         if is_truncated || is_local || pkg_source_empty {
-            if let Some(pkg) = self.filtered_packages.iter().find(|p| p.id == id) {
+            if let Some((pkg_id, name, version, source, pin_state)) = pkg_data {
                 let kind = if is_truncated {
                     "Package ID was truncated by winget"
                 } else if id.starts_with("ARP\\") {
@@ -497,15 +508,15 @@ impl App {
                     "Installed locally (not from a winget source)"
                 };
                 let detail = PackageDetail {
-                    id: pkg.id.clone(),
-                    name: pkg.name.clone(),
-                    version: pkg.version.clone(),
-                    source: if pkg.source.is_empty() {
+                    id: pkg_id,
+                    name,
+                    version,
+                    source: if source.is_empty() {
                         "local".to_string()
                     } else {
-                        pkg.source.clone()
+                        source
                     },
-                    pin_state: pkg.pin_state.clone(),
+                    pin_state,
                     description: format!(
                         "{}\n\n\
                          This package has no manifest in any configured winget source. \
@@ -523,14 +534,16 @@ impl App {
             return;
         }
 
-        // Pre-populate from Package list data for instant feedback
-        if let Some(pkg) = self.filtered_packages.iter().find(|p| p.id == id) {
+        // Pre-populate from Package list data for instant feedback.
+        // pkg_data was not consumed in the early-return block above (only
+        // reached when the early-return condition was false).
+        if let Some((pkg_id, name, version, source, pin_state)) = pkg_data {
             self.detail = Some(PackageDetail {
-                id: pkg.id.clone(),
-                name: pkg.name.clone(),
-                version: pkg.version.clone(),
-                source: pkg.source.clone(),
-                pin_state: pkg.pin_state.clone(),
+                id: pkg_id,
+                name,
+                version,
+                source,
+                pin_state,
                 ..PackageDetail::default()
             });
         }
