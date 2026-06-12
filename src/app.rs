@@ -638,9 +638,9 @@ impl App {
         include_available: bool,
     ) -> std::io::Result<()> {
         let header = if include_available {
-            "Name,Id,Version,Source,AvailableVersion"
+            "Name,Id,Version,Source,AvailableVersion,PinState"
         } else {
-            "Name,Id,Version,Source"
+            "Name,Id,Version,Source,PinState"
         };
         writeln!(writer, "{header}")?;
 
@@ -656,6 +656,11 @@ impl App {
             if include_available {
                 write!(writer, ",{}", csv_escape(&pkg.available_version))?;
             }
+            let pin_str = match &pkg.pin_state {
+                crate::models::PinState::None => String::new(),
+                other => other.label(),
+            };
+            write!(writer, ",{}", csv_escape(&pin_str))?;
             writeln!(writer)?;
         }
         Ok(())
@@ -1897,7 +1902,7 @@ mod tests {
     }
 
     #[test]
-    fn write_csv_installed_uses_four_column_header() {
+    fn write_csv_installed_uses_five_column_header() {
         let spy = SpyBackend::new();
         let mut app = make_app(spy as Arc<dyn WingetBackend>);
         app.mode = AppMode::Installed;
@@ -1907,11 +1912,11 @@ mod tests {
         app.write_csv(&mut buf, false).unwrap();
 
         let content = String::from_utf8(buf).unwrap();
-        assert!(content.starts_with("Name,Id,Version,Source\n"));
+        assert!(content.starts_with("Name,Id,Version,Source,PinState\n"));
     }
 
     #[test]
-    fn write_csv_upgrades_uses_five_column_header() {
+    fn write_csv_upgrades_uses_six_column_header() {
         let spy = SpyBackend::new();
         let mut app = make_app(spy as Arc<dyn WingetBackend>);
         app.mode = AppMode::Upgrades;
@@ -1921,7 +1926,65 @@ mod tests {
         app.write_csv(&mut buf, true).unwrap();
 
         let content = String::from_utf8(buf).unwrap();
-        assert!(content.starts_with("Name,Id,Version,Source,AvailableVersion\n"));
+        assert!(content.starts_with("Name,Id,Version,Source,AvailableVersion,PinState\n"));
+    }
+
+    #[test]
+    fn write_csv_pin_state_empty_for_unpinned_packages() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.filtered_packages = make_packages(1); // pin_state is PinState::None
+
+        let mut buf = Vec::new();
+        app.write_csv(&mut buf, false).unwrap();
+
+        let content = String::from_utf8(buf).unwrap();
+        // Data row should end with a comma (empty PinState) then newline
+        let data_row = content.lines().nth(1).unwrap();
+        assert!(
+            data_row.ends_with(','),
+            "unpinned PinState column should be empty: {data_row}"
+        );
+    }
+
+    #[test]
+    fn write_csv_pin_state_label_for_pinned_package() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.filtered_packages = vec![
+            Package {
+                id: "Foo.Bar".to_string(),
+                name: "Foo Bar".to_string(),
+                version: "1.0".to_string(),
+                source: "winget".to_string(),
+                available_version: String::new(),
+                pin_state: PinState::Pinned,
+            },
+            Package {
+                id: "Baz.Qux".to_string(),
+                name: "Baz Qux".to_string(),
+                version: "2.0".to_string(),
+                source: "winget".to_string(),
+                available_version: String::new(),
+                pin_state: PinState::Gating("3.0.*".to_string()),
+            },
+        ];
+
+        let mut buf = Vec::new();
+        app.write_csv(&mut buf, false).unwrap();
+
+        let content = String::from_utf8(buf).unwrap();
+        let lines: Vec<&str> = content.lines().collect();
+        assert!(
+            lines[1].ends_with("Pinned for upgrade-all"),
+            "Pinned row: {}",
+            lines[1]
+        );
+        assert!(
+            lines[2].ends_with("Pinned to 3.0.*"),
+            "Gating row: {}",
+            lines[2]
+        );
     }
 
     #[test]
