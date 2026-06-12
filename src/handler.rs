@@ -78,7 +78,7 @@ fn handle_help_input(app: &mut App, key: KeyCode) {
     }
 }
 
-fn handle_confirm(app: &mut App, key: KeyCode) -> anyhow::Result<bool> {
+fn handle_confirm(app: &mut App, key: KeyCode) -> anyhow::Result<()> {
     match key {
         KeyCode::Char('y') | KeyCode::Char('Y') => {
             if let Some(confirm) = app.confirm.take() {
@@ -93,10 +93,10 @@ fn handle_confirm(app: &mut App, key: KeyCode) -> anyhow::Result<bool> {
         }
         _ => {}
     }
-    Ok(false)
+    Ok(())
 }
 
-fn handle_version_input(app: &mut App, key: KeyCode) -> anyhow::Result<bool> {
+fn handle_version_input(app: &mut App, key: KeyCode) -> anyhow::Result<()> {
     match key {
         KeyCode::Esc => {
             app.input_mode = InputMode::Normal;
@@ -128,10 +128,10 @@ fn handle_version_input(app: &mut App, key: KeyCode) -> anyhow::Result<bool> {
         }
         _ => {}
     }
-    Ok(false)
+    Ok(())
 }
 
-fn handle_search_input(app: &mut App, key: KeyCode) -> anyhow::Result<bool> {
+fn handle_search_input(app: &mut App, key: KeyCode) -> anyhow::Result<()> {
     match key {
         KeyCode::Esc => {
             app.input_mode = InputMode::Normal;
@@ -153,10 +153,10 @@ fn handle_search_input(app: &mut App, key: KeyCode) -> anyhow::Result<bool> {
         }
         _ => {}
     }
-    Ok(false)
+    Ok(())
 }
 
-fn handle_local_filter_input(app: &mut App, key: KeyCode) -> anyhow::Result<bool> {
+fn handle_local_filter_input(app: &mut App, key: KeyCode) -> anyhow::Result<()> {
     match key {
         KeyCode::Esc => {
             app.input_mode = InputMode::Normal;
@@ -218,14 +218,10 @@ fn handle_local_filter_input(app: &mut App, key: KeyCode) -> anyhow::Result<bool
         }
         _ => {}
     }
-    Ok(false)
+    Ok(())
 }
 
-fn handle_normal_mode(
-    app: &mut App,
-    key: KeyCode,
-    modifiers: KeyModifiers,
-) -> anyhow::Result<bool> {
+fn handle_normal_mode(app: &mut App, key: KeyCode, modifiers: KeyModifiers) -> anyhow::Result<()> {
     match key {
         KeyCode::Char('q') | KeyCode::Esc => {
             app.should_quit = true;
@@ -558,7 +554,7 @@ fn handle_normal_mode(
 
         _ => {}
     }
-    Ok(false)
+    Ok(())
 }
 
 /// Switch the active view/mode, resetting selection and triggering a refresh
@@ -687,7 +683,7 @@ fn select_package_at_row(app: &mut App, row: u16) {
     }
 }
 
-fn handle_mouse(app: &mut App, mouse: crossterm::event::MouseEvent) -> anyhow::Result<bool> {
+fn handle_mouse(app: &mut App, mouse: crossterm::event::MouseEvent) -> anyhow::Result<()> {
     let col = mouse.column;
     let row = mouse.row;
 
@@ -696,18 +692,18 @@ fn handle_mouse(app: &mut App, mouse: crossterm::event::MouseEvent) -> anyhow::R
             // Dismiss dialogs/help on click outside
             if app.show_help {
                 app.show_help = false;
-                return Ok(false);
+                return Ok(());
             }
             if app.confirm.is_some() {
                 app.confirm = None;
                 app.set_status("Cancelled");
-                return Ok(false);
+                return Ok(());
             }
 
             // Click on tab bar — switch views
             if in_rect(col, row, app.layout.tab_bar) {
                 handle_tab_click(app, col);
-                return Ok(false);
+                return Ok(());
             }
 
             // Click on search/filter bar
@@ -717,7 +713,7 @@ fn handle_mouse(app: &mut App, mouse: crossterm::event::MouseEvent) -> anyhow::R
                 } else {
                     InputMode::LocalFilter
                 };
-                return Ok(false);
+                return Ok(());
             }
 
             // Click on package list
@@ -727,24 +723,24 @@ fn handle_mouse(app: &mut App, mouse: crossterm::event::MouseEvent) -> anyhow::R
                 let scrollbar_col = list.x + list.width - 1;
                 if col == scrollbar_col && !app.filtered_packages.is_empty() {
                     scrollbar_jump(app, row);
-                    return Ok(false);
+                    return Ok(());
                 }
 
                 // Click on header row → sort by that column
                 let header_row = app.layout.list_content_y.saturating_sub(1);
                 if row == header_row && app.layout.list_content_y > 0 {
                     click_sort_header(app, col);
-                    return Ok(false);
+                    return Ok(());
                 }
 
                 select_package_at_row(app, row);
-                return Ok(false);
+                return Ok(());
             }
 
             // Click on detail panel
             if in_rect(col, row, app.layout.detail_panel) {
                 app.focus = FocusZone::DetailPanel;
-                return Ok(false);
+                return Ok(());
             }
         }
 
@@ -786,7 +782,7 @@ fn handle_mouse(app: &mut App, mouse: crossterm::event::MouseEvent) -> anyhow::R
         _ => {}
     }
 
-    Ok(false)
+    Ok(())
 }
 
 /// Map a Y position on the scrollbar track to a package index
