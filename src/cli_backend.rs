@@ -139,8 +139,11 @@ impl CliBackend {
     fn compare_versions_like(a: &str, b: &str) -> Ordering {
         let a = a.trim();
         let b = b.trim();
-        let a_unknown = a.is_empty() || a.eq_ignore_ascii_case("unknown");
-        let b_unknown = b.is_empty() || b.eq_ignore_ascii_case("unknown");
+        let is_unknown_ver = |s: &str| {
+            s.is_empty() || s.eq_ignore_ascii_case("unknown") || s.eq_ignore_ascii_case("n/a")
+        };
+        let a_unknown = is_unknown_ver(a);
+        let b_unknown = is_unknown_ver(b);
         match (a_unknown, b_unknown) {
             (true, false) => return Ordering::Less,
             (false, true) => return Ordering::Greater,
@@ -1069,6 +1072,20 @@ Google Chrome                  Google.Chrome               131.0.6  winget
         assert_eq!(
             CliBackend::compare_versions_like("unknown", "unknown"),
             Ordering::Equal
+        );
+    }
+
+    #[test]
+    fn compare_versions_like_na_is_less_than_real() {
+        // winget returns "N/A" for packages with no version info; such a
+        // package should lose to any package that has a real version.
+        assert_eq!(
+            CliBackend::compare_versions_like("N/A", "1.0"),
+            Ordering::Less
+        );
+        assert_eq!(
+            CliBackend::compare_versions_like("1.0", "N/A"),
+            Ordering::Greater
         );
     }
 
