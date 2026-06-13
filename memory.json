@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-06-12T13:50:00Z",
-  "last_run_id": "27419839313",
+  "last_run": "2026-06-13T00:00:00Z",
+  "last_run_id": "27452602409",
   "monthly_summary_issue": null,
   "monthly_summary_disabled": true,
   "monthly_summary_note": "Maintainer closed issue #222 on 2026-06-08 as automation noise. Do not create monthly activity summary issues.",
@@ -9,106 +9,29 @@
     "83": "2026-04-16",
     "88": "2026-04-16",
     "126": "2026-04-19",
-    "154_pr": "2026-04-27"
+    "154_pr": "2026-04-27",
+    "230_pr": "2026-06-13"
   },
   "open_repo_assist_prs": [
-    {
-      "branch": "repo-assist/improve-normalize-show-key-locale-versions",
-      "pr": 231,
-      "task": "Task 5",
-      "description": "fix: add Spanish/Portuguese/Italian version key to normalize_show_key",
-      "mergeable": "clean"
-    },
-    {
-      "branch": "repo-assist/testing-improvements-locale-edge-cases",
-      "pr": 232,
-      "task": "Task 9",
-      "description": "test: add locale, edge-case, and CJK column-detection tests",
-      "mergeable": "clean"
-    },
-    {
-      "branch": "repo-assist/fix-pin-col-map-italian-versione",
-      "pr": 234,
-      "task": "Task 5",
-      "description": "fix: add versione (Italian) to pin_column_map pinned_version list",
-      "mergeable": "clean"
-    },
-    {
-      "branch": "repo-assist/fix-footer-false-positive",
-      "pr": 237,
-      "task": "Task 3",
-      "description": "fix: is_winget_footer_line false-positive on digit-space package names",
-      "mergeable": "clean"
-    },
-    {
-      "branch": "repo-assist/eng-bundle-deps-2026-06-09",
-      "pr": 238,
-      "task": "Task 4",
-      "description": "chore: bundled cargo update incl ratatui 0.30.1, supersedes PRs #230 and #236",
-      "mergeable": "clean"
-    },
-    {
-      "branch": "repo-assist/fix-ensure-detail-hint",
-      "pr": 239,
-      "task": "Task 3",
-      "description": "fix: ensure_detail_hint suppresses fallback when release_notes_url is set",
-      "mergeable": "clean"
-    },
-    {
-      "branch": "repo-assist/improve-version-key-underscore",
-      "pr": 240,
-      "task": "Task 5",
-      "description": "fix: split on '_' in version_key for consistent underscore-version sorting",
-      "mergeable": "clean"
-    },
-    {
-      "branch": "repo-assist/feat-sort-available-version-upgrades",
-      "pr": 241,
-      "task": "Task 10",
-      "description": "feat: sort Upgrades view by available version",
-      "mergeable": "clean"
-    },
-    {
-      "branch": "repo-assist/fix-detail-stale-after-sort",
-      "pr": 242,
-      "task": "Task 3",
-      "description": "fix: reload detail panel after sort to prevent stale display",
-      "mergeable": "clean"
-    },
-    {
-      "branch": "repo-assist/improve-handler-return-types",
-      "pr": 244,
-      "task": "Task 5",
-      "description": "refactor: change 6 handler helper fn return types from Result<bool> to Result<()>",
-      "mergeable": "unstable"
-    },
-    {
-      "branch": "repo-assist/eng-tokio-features-2026-06-12",
-      "pr": 245,
-      "task": "Task 4",
-      "description": "chore: trim tokio features from full to minimal required set",
-      "mergeable": "unstable"
-    },
-    {
-      "branch": "repo-assist/improve-csv-pin-state-2026-06-12",
-      "pr": "pending_246",
-      "task": "Task 5",
-      "description": "feat: add PinState column to CSV export; 373 tests pass",
-      "mergeable": "new"
-    },
-    {
-      "branch": "repo-assist/eng-deps-update-2026-06-08",
-      "pr": 230,
-      "task": "Task 4",
-      "description": "deps: update Cargo.lock (superseded by PR #238)",
-      "mergeable": "clean",
-      "note": "superseded by #238 which is more current"
-    }
+    {"branch": "repo-assist/improve-normalize-show-key-locale-versions", "pr": 231, "task": "Task 5", "description": "fix: add Spanish/Portuguese/Italian version key to normalize_show_key"},
+    {"branch": "repo-assist/testing-improvements-locale-edge-cases", "pr": 232, "task": "Task 9", "description": "test: add locale, edge-case, and CJK column-detection tests"},
+    {"branch": "repo-assist/fix-pin-col-map-italian-versione", "pr": 234, "task": "Task 5", "description": "fix: add versione (Italian) to pin_column_map pinned_version list"},
+    {"branch": "repo-assist/fix-footer-false-positive", "pr": 237, "task": "Task 3", "description": "fix: is_winget_footer_line false-positive on digit-space package names"},
+    {"branch": "repo-assist/eng-bundle-deps-2026-06-09", "pr": 238, "task": "Task 4", "description": "chore: bundled cargo update incl ratatui 0.30.1, supersedes PRs #230 and #236"},
+    {"branch": "repo-assist/fix-ensure-detail-hint", "pr": 239, "task": "Task 3", "description": "fix: ensure_detail_hint suppresses fallback when release_notes_url is set"},
+    {"branch": "repo-assist/improve-version-key-underscore", "pr": 240, "task": "Task 5", "description": "fix: split on '_' in version_key for consistent underscore-version sorting"},
+    {"branch": "repo-assist/feat-sort-available-version-upgrades", "pr": 241, "task": "Task 10", "description": "feat: sort Upgrades view by available version"},
+    {"branch": "repo-assist/fix-detail-stale-after-sort", "pr": 242, "task": "Task 3", "description": "fix: reload detail panel after sort to prevent stale display"},
+    {"branch": "repo-assist/improve-handler-return-types", "pr": 244, "task": "Task 5", "description": "refactor: change 6 handler helper fn return types from Result<bool> to Result<()>"},
+    {"branch": "repo-assist/eng-tokio-features-2026-06-12", "pr": 245, "task": "Task 4", "description": "chore: trim tokio features from full to minimal required set"},
+    {"branch": "repo-assist/improve-csv-pin-state-2026-06-12", "pr": 246, "task": "Task 5", "description": "feat: add PinState column to CSV export"},
+    {"branch": "repo-assist/fix-na-version-dedup-2026-06-13", "pr": "pending_new", "task": "Task 5", "description": "fix: treat N/A as unknown in compare_versions_like deduplication"},
+    {"branch": "repo-assist/eng-deps-update-2026-06-08", "pr": 230, "task": "Task 4", "description": "deps: update Cargo.lock (superseded by #238)", "note": "Commented 2026-06-13 suggesting maintainer close this PR"}
   ],
   "open_repo_assist_issues": [],
   "backlog_cursor": {
     "issues": "no human issues open",
     "next_issue_to_process": "check for new human issues next run"
   },
-  "notes": "2026-06-12 run (27419839313): Tasks 5+6. Task 5: Added PinState column to CSV export in app.rs write_csv(). New header: 'Name,Id,Version,Source,PinState' (installed) and 'Name,Id,Version,Source,AvailableVersion,PinState' (upgrades). PinState::None emits empty string, others emit label() text. 2 new tests added. 373 tests pass. PR created as branch repo-assist/improve-csv-pin-state-2026-06-12. Task 6: Surveyed all 13 open Repo Assist PRs (#230, #231, #232, #234, #237, #238, #239, #240, #241, #242, #244, #245 + new CSV PR). All are clean/mergeable against main - no CI failures or conflicts to fix. PR #230 is superseded by #238 (documented in #238 body). Task 11 remains disabled per maintainer."
+  "notes": "2026-06-13 run (27452602409): Task 6: All Repo Assist PRs healthy (no CI, no merge conflicts). Added comment to PR #230 noting it is superseded by #238 and suggesting maintainer close it. Task 5: Fix compare_versions_like to treat N/A as unknown version - winget returns N/A for ARP packages without version; without fix, N/A package incorrectly beats real-versioned package in deduplication (n>9 lexicographically). Added is_unknown_ver closure covering empty/unknown/n-a. 1 new test (compare_versions_like_na_is_less_than_real). 372 tests pass. All checks pass. PR created on branch repo-assist/fix-na-version-dedup-2026-06-13. Task 11 disabled per maintainer."
 }
