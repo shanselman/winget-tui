@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-06-13T00:00:00Z",
-  "last_run_id": "27452602409",
+  "last_run": "2026-06-13T12:00:00Z",
+  "last_run_id": "27467776133",
   "monthly_summary_issue": null,
   "monthly_summary_disabled": true,
   "monthly_summary_note": "Maintainer closed issue #222 on 2026-06-08 as automation noise. Do not create monthly activity summary issues.",
@@ -25,7 +25,8 @@
     {"branch": "repo-assist/improve-handler-return-types", "pr": 244, "task": "Task 5", "description": "refactor: change 6 handler helper fn return types from Result<bool> to Result<()>"},
     {"branch": "repo-assist/eng-tokio-features-2026-06-12", "pr": 245, "task": "Task 4", "description": "chore: trim tokio features from full to minimal required set"},
     {"branch": "repo-assist/improve-csv-pin-state-2026-06-12", "pr": 246, "task": "Task 5", "description": "feat: add PinState column to CSV export"},
-    {"branch": "repo-assist/fix-na-version-dedup-2026-06-13", "pr": "pending_new", "task": "Task 5", "description": "fix: treat N/A as unknown in compare_versions_like deduplication"},
+    {"branch": "repo-assist/fix-na-version-dedup-2026-06-13", "pr": 247, "task": "Task 5", "description": "fix: treat N/A as unknown in compare_versions_like deduplication"},
+    {"branch": "repo-assist/fix-scroll-down-viewport-overflow-2026-06-13", "pr": "pending_new", "task": "Task 3", "description": "fix: clamp mouse scroll-down offset to last full viewport page"},
     {"branch": "repo-assist/eng-deps-update-2026-06-08", "pr": 230, "task": "Task 4", "description": "deps: update Cargo.lock (superseded by #238)", "note": "Commented 2026-06-13 suggesting maintainer close this PR"}
   ],
   "open_repo_assist_issues": [],
@@ -33,5 +34,5 @@
     "issues": "no human issues open",
     "next_issue_to_process": "check for new human issues next run"
   },
-  "notes": "2026-06-13 run (27452602409): Task 6: All Repo Assist PRs healthy (no CI, no merge conflicts). Added comment to PR #230 noting it is superseded by #238 and suggesting maintainer close it. Task 5: Fix compare_versions_like to treat N/A as unknown version - winget returns N/A for ARP packages without version; without fix, N/A package incorrectly beats real-versioned package in deduplication (n>9 lexicographically). Added is_unknown_ver closure covering empty/unknown/n-a. 1 new test (compare_versions_like_na_is_less_than_real). 372 tests pass. All checks pass. PR created on branch repo-assist/fix-na-version-dedup-2026-06-13. Task 11 disabled per maintainer."
+  "notes": "2026-06-13 run (27467776133): Task 6: All Repo Assist PRs healthy (no CI, no merge conflicts; CI 'action_required' is infrastructure-only). Task 3: Fix mouse ScrollDown viewport overflow - max offset was len-1 (only 1 pkg visible at bottom); correct max is len-viewport. Added 2 tests. 373 tests pass. All checks pass. PR created on branch repo-assist/fix-scroll-down-viewport-overflow-2026-06-13. Task 11 disabled per maintainer. Previous run PR #247 (fix-na-version-dedup) confirmed open."
 }
