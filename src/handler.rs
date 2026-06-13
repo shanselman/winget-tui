@@ -759,7 +759,12 @@ fn handle_mouse(app: &mut App, mouse: crossterm::event::MouseEvent) -> anyhow::R
         }
         MouseEventKind::ScrollDown => {
             if in_rect(col, row, app.layout.package_list) {
-                let max = app.filtered_packages.len().saturating_sub(1);
+                // Cap the offset so the last page is always full: the bottom of
+                // the viewport should land exactly on the last package, not past it.
+                // Without this, a large list could scroll to offset len-1 leaving
+                // only one row visible (the rest blank).
+                let viewport = app.package_list_viewport_rows().max(1);
+                let max = app.filtered_packages.len().saturating_sub(viewport);
                 let offset = app.table_state.offset_mut();
                 *offset = (*offset + 3).min(max);
             } else if in_rect(col, row, app.layout.detail_panel) {
@@ -1896,6 +1901,57 @@ mod tests {
         // Selection should NOT move — only the viewport offset changes
         assert_eq!(app.selected, 2);
         assert_eq!(app.table_state.offset(), 2); // scrolled up by 3
+    }
+
+    #[tokio::test]
+    async fn mouse_wheel_down_scrolls_viewport_not_selection() {
+        let mut app = make_app_with_pkgs(10);
+        // area = 12 rows tall; 4 are chrome (border+padding+header+border), so 8 data rows visible
+        app.layout.package_list = rect(0, 10, 40, 12);
+        app.selected = 2;
+        *app.table_state.offset_mut() = 0;
+
+        let _ = handle_mouse(
+            &mut app,
+            MouseEvent {
+                kind: MouseEventKind::ScrollDown,
+                column: 5,
+                row: 12,
+                modifiers: KeyModifiers::NONE,
+            },
+        );
+
+        // Selection should NOT move — only the viewport offset changes
+        assert_eq!(app.selected, 2);
+        assert_eq!(app.table_state.offset(), 2); // scrolled down by 3, but max=2 (10-8)
+    }
+
+    #[tokio::test]
+    async fn mouse_wheel_down_clamps_to_last_full_page() {
+        // 50 packages, 8 visible rows → max offset = 42
+        let mut app = make_app_with_pkgs(50);
+        app.layout.package_list = rect(0, 10, 40, 12);
+        // Start near the bottom; spamming scroll shouldn't blow past the last full page
+        *app.table_state.offset_mut() = 45;
+
+        for _ in 0..10 {
+            let _ = handle_mouse(
+                &mut app,
+                MouseEvent {
+                    kind: MouseEventKind::ScrollDown,
+                    column: 5,
+                    row: 12,
+                    modifiers: KeyModifiers::NONE,
+                },
+            );
+        }
+
+        // Max offset is len(50) - viewport(8) = 42; must not exceed it
+        assert!(
+            app.table_state.offset() <= 42,
+            "offset {} exceeded max 42 — scroll would produce blank rows",
+            app.table_state.offset()
+        );
     }
 
     // ── switch_view state reset ───────────────────────────────────────────────
