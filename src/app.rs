@@ -267,8 +267,27 @@ impl App {
         }
         if self.mode != AppMode::Search && !self.local_filter.is_empty() {
             let query = self.local_filter.to_lowercase();
+            let q = query.as_bytes();
+            let n = q.len();
             self.filtered_packages.retain(|pkg| {
-                pkg.name.to_lowercase().contains(&query) || pkg.id.to_lowercase().contains(&query)
+                // For the common case where both the query and the package
+                // fields are ASCII, use a zero-allocation byte-window search.
+                // Fall back to allocating to_lowercase() for non-ASCII queries
+                // (e.g. CJK package names with a CJK search term).
+                if query.is_ascii() {
+                    pkg.name
+                        .as_bytes()
+                        .windows(n)
+                        .any(|w| w.eq_ignore_ascii_case(q))
+                        || pkg
+                            .id
+                            .as_bytes()
+                            .windows(n)
+                            .any(|w| w.eq_ignore_ascii_case(q))
+                } else {
+                    pkg.name.to_lowercase().contains(&query)
+                        || pkg.id.to_lowercase().contains(&query)
+                }
             });
         }
         if self.mode != AppMode::Search {

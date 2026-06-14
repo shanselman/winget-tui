@@ -24,6 +24,25 @@ fn is_winget_footer_line(line: &str) -> bool {
     d > 0 && d < bytes.len() && bytes[d] == b' '
 }
 
+/// Returns `true` if `haystack` contains `needle` using case-insensitive ASCII
+/// comparison, without allocating a lowercase copy of `haystack`.
+///
+/// Only ASCII case-folding is applied (A–Z ↔ a–z).  Non-ASCII characters are
+/// compared byte-for-byte and will not match their Unicode case-folded
+/// equivalents.  This is sufficient for all winget status messages (which are
+/// ASCII-only) and avoids the heap allocation that `to_ascii_lowercase()` would
+/// require.
+fn str_contains_ignore_ascii_case(haystack: &str, needle: &str) -> bool {
+    let n = needle.len();
+    if n == 0 {
+        return true;
+    }
+    haystack
+        .as_bytes()
+        .windows(n)
+        .any(|w| w.eq_ignore_ascii_case(needle.as_bytes()))
+}
+
 /// Strip ASCII control characters (0x00–0x1F, 0x7F) except tab and newline.
 /// Prevents ANSI escape injection from malicious package metadata.
 ///
@@ -296,8 +315,11 @@ impl CliBackend {
             .iter()
             .position(|l| {
                 let trimmed = l.trim();
+                // Separator lines contain only '-' and ' ' characters (all ASCII).
+                // Comparing bytes is equivalent to comparing chars here and avoids
+                // the UTF-8 decoding overhead of the chars() iterator.
                 trimmed.len() > 10
-                    && trimmed.chars().all(|c| c == '-' || c == ' ')
+                    && trimmed.bytes().all(|b| b == b'-' || b == b' ')
                     && trimmed.contains('-')
             })
             .filter(|&i| i > 0)
@@ -660,7 +682,10 @@ impl CliBackend {
     }
 
     fn parse_pins_from_table(&self, output: &str) -> Vec<PackagePin> {
-        if output.to_ascii_lowercase().contains("no pins configured") {
+        // Avoid allocating a full lowercase copy of `output` for the common
+        // "no pins configured" check.  The byte-window approach is O(N) but
+        // zero-allocation for this very frequent early-exit path.
+        if str_contains_ignore_ascii_case(output, "no pins configured") {
             return Vec::new();
         }
 
@@ -825,6 +850,32 @@ impl WingetBackend for CliBackend {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // ── str_contains_ignore_ascii_case ───────────────────────────────────────
+
+    #[test]
+    fn str_contains_case_insensitive_basic() {
+        assert!(str_contains_ignore_ascii_case(
+            "No pins configured.",
+            "no pins configured"
+        ));
+        assert!(str_contains_ignore_ascii_case(
+            "NO PINS CONFIGURED.",
+            "no pins configured"
+        ));
+        assert!(!str_contains_ignore_ascii_case("nothing here", "pins"));
+    }
+
+    #[test]
+    fn str_contains_case_insensitive_empty_needle() {
+        assert!(str_contains_ignore_ascii_case("anything", ""));
+        assert!(str_contains_ignore_ascii_case("", ""));
+    }
+
+    #[test]
+    fn str_contains_case_insensitive_empty_haystack() {
+        assert!(!str_contains_ignore_ascii_case("", "needle"));
+    }
 
     // ── find_table_separator ──────────────────────────────────────────────────
 
@@ -2022,6 +2073,14 @@ Git                        Git.Git                    2.45.*          Gating
         let backend = make_backend();
         let pins = backend.parse_pins_from_table("No pins configured.");
         assert!(pins.is_empty());
+    }
+
+    #[test]
+    fn parse_pins_from_table_no_pins_uppercase() {
+        // Verify the case-insensitive check handles mixed-case variants.
+        let backend = make_backend();
+        assert!(backend.parse_pins_from_table("NO PINS CONFIGURED.").is_empty());
+        assert!(backend.parse_pins_from_table("No Pins Configured.").is_empty());
     }
 
     #[test]
