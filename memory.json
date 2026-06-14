@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-06-14T00:00:00Z",
-  "last_run_id": "27484879901",
+  "last_run": "2026-06-14T13:19:13Z",
+  "last_run_id": "27500090915",
   "monthly_summary_issue": null,
   "monthly_summary_disabled": true,
   "monthly_summary_note": "Maintainer closed issue #222 on 2026-06-08 as automation noise. Do not create monthly activity summary issues.",
@@ -27,12 +27,13 @@
     {"branch": "repo-assist/improve-csv-pin-state-2026-06-12", "pr": 246, "task": "Task 5"},
     {"branch": "repo-assist/fix-na-version-dedup-2026-06-13", "pr": 247, "task": "Task 5"},
     {"branch": "repo-assist/fix-scroll-down-viewport-overflow-2026-06-13", "pr": 248, "task": "Task 3"},
-    {"branch": "repo-assist/test-nav-keys-home-end-pgup-pgdn", "pr": "pending", "task": "Task 9", "description": "test: add 16 nav key tests for Home/End/PgUp/PgDn/k/j and detail-panel focus"}
+    {"branch": "repo-assist/test-nav-keys-home-end-pgup-pgdn", "pr": 249, "task": "Task 9"},
+    {"branch": "repo-assist/perf-parse-filter-2026-06-14", "pr": "pending", "task": "Task 8", "description": "perf: zero-alloc separator scan, pin-check, and local filter"}
   ],
   "open_repo_assist_issues": [],
   "backlog_cursor": {
     "issues": "no human issues open",
     "next_issue_to_process": "check for new human issues next run"
   },
-  "notes": "2026-06-14 run (27484879901): Task 6: All Repo Assist PRs have infrastructure-only CI (action_required), no code failures. Task 9: Added 16 handler nav key tests (Home/End/PgUp/PgDn/k/j/Ctrl+C/detail-focus scroll). 387 tests pass. All checks pass. PR created on branch repo-assist/test-nav-keys-home-end-pgup-pgdn. Task 11 permanently disabled."
+  "notes": "2026-06-14 run (27500090915): Task 6: All PRs have no CI check runs configured, nothing to fix. Task 8: Three perf improvements - (1) find_table_separator: bytes() instead of chars() for ASCII-only separator lines; (2) parse_pins_from_table: zero-alloc str_contains_ignore_ascii_case helper instead of to_ascii_lowercase().contains(); (3) apply_filter local filter: byte-window eq_ignore_ascii_case for ASCII queries instead of per-package to_lowercase() allocations. 4 new tests, 375 total pass. PR created on branch repo-assist/perf-parse-filter-2026-06-14. Task 11 permanently disabled."
 }
