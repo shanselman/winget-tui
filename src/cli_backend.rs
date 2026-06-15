@@ -186,10 +186,12 @@ impl CliBackend {
     }
 
     fn dedupe_packages(packages: Vec<Package>) -> Vec<Package> {
+        // Pre-size to the input length to avoid incremental HashMap rehashing and
+        // Vec reallocation when all packages are unique (the common case).
         // HashMap maps (id, source_lowercase) → index in `deduped` for O(1) lookup,
         // replacing the previous O(N) linear scan and making the whole function O(N).
-        let mut index: HashMap<(String, String), usize> = HashMap::new();
-        let mut deduped: Vec<Package> = Vec::new();
+        let mut index: HashMap<(String, String), usize> = HashMap::with_capacity(packages.len());
+        let mut deduped: Vec<Package> = Vec::with_capacity(packages.len());
         for pkg in packages {
             let key = (pkg.id.clone(), pkg.source.to_ascii_lowercase());
             match index.get(&key) {

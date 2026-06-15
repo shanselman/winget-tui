@@ -167,14 +167,21 @@ pub struct App {
 #[derive(Debug, Clone, Eq, PartialEq)]
 struct VersionPart {
     num: Option<u64>,
-    src: String,
+    /// `Some(text)` only for non-numeric parts; `None` when `num` is `Some`.
+    /// This avoids a heap allocation for the overwhelmingly common all-numeric
+    /// version components (e.g. every part of `"1.2.3.4"`).
+    src: Option<String>,
 }
 
 impl Ord for VersionPart {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         match (self.num, other.num) {
             (Some(left), Some(right)) => left.cmp(&right),
-            _ => self.src.cmp(&other.src),
+            _ => self
+                .src
+                .as_deref()
+                .unwrap_or("")
+                .cmp(other.src.as_deref().unwrap_or("")),
         }
     }
 }
@@ -187,9 +194,14 @@ impl PartialOrd for VersionPart {
 
 fn version_key(v: &str) -> Vec<VersionPart> {
     v.split(['.', '-', '+'])
-        .map(|part| VersionPart {
-            num: part.parse::<u64>().ok(),
-            src: part.to_string(),
+        .map(|part| {
+            let num = part.parse::<u64>().ok();
+            VersionPart {
+                // Only allocate the string for non-numeric parts (e.g. "beta", "rc").
+                // For purely numeric parts the string is never needed for comparison.
+                src: num.is_none().then(|| part.to_string()),
+                num,
+            }
         })
         .collect()
 }
@@ -201,6 +213,11 @@ fn compare_versions(a: &str, b: &str) -> std::cmp::Ordering {
 
 impl App {
     fn annotate_pins(packages: &mut [Package], pins: Vec<PackagePin>) {
+        // Fast path: no pins configured (the common case for most users).
+        // Avoids constructing the HashMap entirely.
+        if pins.is_empty() {
+            return;
+        }
         let pin_map: HashMap<String, _> = pins
             .into_iter()
             .map(|pin| (pin.id, pin.pin_state))
@@ -2523,6 +2540,55 @@ mod tests {
         assert!(
             !app.process_messages(),
             "should return false on second call when channel is now empty"
+        );
+    }
+
+    // ── version_key allocation optimization ───────────────────────────────────
+
+    #[test]
+    fn version_key_numeric_parts_have_no_src_allocation() {
+        // All-numeric version: each VersionPart should have src=None (no heap alloc)
+        let key = version_key("1.2.3.4");
+        assert_eq!(key.len(), 4);
+        for part in &key {
+            assert!(part.num.is_some(), "all-numeric parts should have num=Some");
+            assert!(
+                part.src.is_none(),
+                "all-numeric parts must not allocate a String for src"
+            );
+        }
+    }
+
+    #[test]
+    fn version_key_text_parts_have_src_string() {
+        // Non-numeric part "beta" should have src=Some(_)
+        let key = version_key("1.0-beta");
+        assert_eq!(key.len(), 3); // ["1", "0", "beta"]
+        assert!(key[0].num == Some(1) && key[0].src.is_none());
+        assert!(key[1].num == Some(0) && key[1].src.is_none());
+        assert!(
+            key[2].num.is_none() && key[2].src.as_deref() == Some("beta"),
+            "non-numeric part must store src string"
+        );
+    }
+
+    #[test]
+    fn version_key_mixed_numeric_text_comparison_correct() {
+        // "1.0" (all numeric) < "1.0-beta" (numeric prefix + text suffix)
+        // because the shorter vec compares less when all common elements are equal.
+        assert_eq!(
+            compare_versions("1.0", "1.0-beta"),
+            std::cmp::Ordering::Less
+        );
+        // "1.0-beta" < "1.0-rc" (text lexicographic comparison)
+        assert_eq!(
+            compare_versions("1.0-beta", "1.0-rc"),
+            std::cmp::Ordering::Less
+        );
+        // Numeric comparison still beats lexicographic even with text suffix
+        assert_eq!(
+            compare_versions("2.0-beta", "1.9"),
+            std::cmp::Ordering::Greater
         );
     }
 }
