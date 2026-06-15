@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-06-14T13:19:13Z",
-  "last_run_id": "27500090915",
+  "last_run": "2026-06-15T01:40:00Z",
+  "last_run_id": "27519014405",
   "monthly_summary_issue": null,
   "monthly_summary_disabled": true,
   "monthly_summary_note": "Maintainer closed issue #222 on 2026-06-08 as automation noise. Do not create monthly activity summary issues.",
@@ -28,12 +28,13 @@
     {"branch": "repo-assist/fix-na-version-dedup-2026-06-13", "pr": 247, "task": "Task 5"},
     {"branch": "repo-assist/fix-scroll-down-viewport-overflow-2026-06-13", "pr": 248, "task": "Task 3"},
     {"branch": "repo-assist/test-nav-keys-home-end-pgup-pgdn", "pr": 249, "task": "Task 9"},
-    {"branch": "repo-assist/perf-parse-filter-2026-06-14", "pr": "pending", "task": "Task 8", "description": "perf: zero-alloc separator scan, pin-check, and local filter"}
+    {"branch": "repo-assist/perf-parse-filter-2026-06-14", "pr": 250, "task": "Task 8", "description": "perf: zero-alloc separator scan, pin-check, and local filter"},
+    {"branch": "repo-assist/perf-versionpart-dedupe-pins-2026-06-15", "pr": 251, "task": "Task 8", "description": "perf: VersionPart.src Option<String>, dedupe capacity hint, annotate_pins fast path"}
   ],
   "open_repo_assist_issues": [],
   "backlog_cursor": {
     "issues": "no human issues open",
     "next_issue_to_process": "check for new human issues next run"
   },
-  "notes": "2026-06-14 run (27500090915): Task 6: All PRs have no CI check runs configured, nothing to fix. Task 8: Three perf improvements - (1) find_table_separator: bytes() instead of chars() for ASCII-only separator lines; (2) parse_pins_from_table: zero-alloc str_contains_ignore_ascii_case helper instead of to_ascii_lowercase().contains(); (3) apply_filter local filter: byte-window eq_ignore_ascii_case for ASCII queries instead of per-package to_lowercase() allocations. 4 new tests, 375 total pass. PR created on branch repo-assist/perf-parse-filter-2026-06-14. Task 11 permanently disabled."
+  "notes": "2026-06-15 run (27519014405): Task 8: Three perf improvements - (1) VersionPart.src: Option<String> instead of String - skip heap alloc for numeric version parts (vast majority of real packages); (2) dedupe_packages: HashMap::with_capacity + Vec::with_capacity to avoid rehashing on 100+ package lists; (3) annotate_pins: early return when pins is empty (most users have no pins). PR created as #251 on branch repo-assist/perf-versionpart-dedupe-pins-2026-06-15. 374 tests pass (+3 new). Task 6: All PRs target main at same SHA 11990b753401ddfbdb9a8bc8b64ef8383f867b3e, no merge conflicts, no CI configured, nothing to fix. Task 11 permanently disabled (maintainer requested)."
 }
