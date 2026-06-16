@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-06-16T01:41:00Z",
-  "last_run_id": "27588249042",
+  "last_run": "2026-06-16T14:29:52Z",
+  "last_run_id": "27624799317",
   "monthly_summary_issue": null,
   "monthly_summary_disabled": true,
   "monthly_summary_note": "Maintainer closed issue #222 on 2026-06-08 as automation noise. Do not create monthly activity summary issues.",
@@ -13,32 +13,38 @@
     "230_pr": "2026-06-13"
   },
   "open_repo_assist_prs": [
-    {"branch": "repo-assist/improve-normalize-show-key-locale-versions", "pr": 231, "task": "Task 5"},
-    {"branch": "repo-assist/testing-improvements-locale-edge-cases", "pr": 232, "task": "Task 9"},
-    {"branch": "repo-assist/fix-pin-col-map-italian-versione", "pr": 234, "task": "Task 5"},
-    {"branch": "repo-assist/fix-footer-false-positive", "pr": 237, "task": "Task 3"},
-    {"branch": "repo-assist/eng-bundle-deps-2026-06-09", "pr": 238, "task": "Task 4"},
-    {"branch": "repo-assist/fix-ensure-detail-hint", "pr": 239, "task": "Task 3"},
-    {"branch": "repo-assist/improve-version-key-underscore", "pr": 240, "task": "Task 5"},
-    {"branch": "repo-assist/feat-sort-available-version-upgrades", "pr": 241, "task": "Task 10"},
-    {"branch": "repo-assist/fix-detail-stale-after-sort", "pr": 242, "task": "Task 3"},
-    {"branch": "repo-assist/improve-handler-return-types", "pr": 244, "task": "Task 5"},
-    {"branch": "repo-assist/eng-tokio-features-2026-06-12", "pr": 245, "task": "Task 4"},
-    {"branch": "repo-assist/improve-csv-pin-state-2026-06-12", "pr": 246, "task": "Task 5"},
-    {"branch": "repo-assist/fix-na-version-dedup-2026-06-13", "pr": 247, "task": "Task 5"},
-    {"branch": "repo-assist/fix-scroll-down-viewport-overflow-2026-06-13", "pr": 248, "task": "Task 3"},
-    {"branch": "repo-assist/test-nav-keys-home-end-pgup-pgdn", "pr": 249, "task": "Task 9"},
-    {"branch": "repo-assist/perf-parse-filter-2026-06-14", "pr": 250, "task": "Task 8"},
-    {"branch": "repo-assist/perf-versionpart-dedupe-pins-2026-06-15", "pr": 251, "task": "Task 8"},
-    {"branch": "repo-assist/eng-ci-restore-keys-2026-06-16", "pr": null, "task": "Task 4", "description": "ci: add restore-keys to cargo caches for warm fallback builds (ci.yml + build.yml)"}
+    {"branch": "repo-assist/improve-normalize-show-key-locale-versions", "pr": 231, "task": "Task 5", "files": ["src/cli_backend.rs"], "status": "action_required_ci"},
+    {"branch": "repo-assist/testing-improvements-locale-edge-cases", "pr": 232, "task": "Task 9", "files": ["src/cli_backend.rs"], "status": "action_required_ci"},
+    {"branch": "repo-assist/fix-pin-col-map-italian-versione", "pr": 234, "task": "Task 5", "files": ["src/cli_backend.rs"], "status": "action_required_ci"},
+    {"branch": "repo-assist/fix-footer-false-positive", "pr": 237, "task": "Task 3", "files": ["src/cli_backend.rs"], "status": "action_required_ci"},
+    {"branch": "repo-assist/eng-bundle-deps-2026-06-09", "pr": 238, "task": "Task 4", "files": ["Cargo.lock"], "status": "action_required_ci", "supersedes": [230, 236]},
+    {"branch": "repo-assist/fix-ensure-detail-hint", "pr": 239, "task": "Task 3", "files": ["src/app.rs"], "status": "action_required_ci"},
+    {"branch": "repo-assist/improve-version-key-underscore", "pr": 240, "task": "Task 5", "files": ["src/cli_backend.rs"], "status": "action_required_ci"},
+    {"branch": "repo-assist/feat-sort-available-version-upgrades", "pr": 241, "task": "Task 10", "files": ["src/app.rs", "src/models.rs"], "status": "action_required_ci"},
+    {"branch": "repo-assist/fix-detail-stale-after-sort", "pr": 242, "task": "Task 3", "files": ["src/handler.rs", "src/app.rs"], "status": "action_required_ci"},
+    {"branch": "repo-assist/improve-handler-return-types", "pr": 244, "task": "Task 5", "files": ["src/handler.rs"], "status": "action_required_ci", "conflict_risk": "PR 242 also touches handler.rs"},
+    {"branch": "repo-assist/eng-tokio-features-2026-06-12", "pr": 245, "task": "Task 4", "files": ["Cargo.toml"], "status": "unstable_ci"},
+    {"branch": "repo-assist/improve-csv-pin-state-2026-06-12", "pr": 246, "task": "Task 5", "files": ["src/app.rs"], "status": "action_required_ci"},
+    {"branch": "repo-assist/fix-na-version-dedup-2026-06-13", "pr": 247, "task": "Task 5", "files": ["src/cli_backend.rs"], "status": "action_required_ci"},
+    {"branch": "repo-assist/fix-scroll-down-viewport-overflow-2026-06-13", "pr": 248, "task": "Task 3", "files": ["src/app.rs"], "status": "action_required_ci"},
+    {"branch": "repo-assist/test-nav-keys-home-end-pgup-pgdn", "pr": 249, "task": "Task 9", "files": ["src/handler.rs"], "status": "action_required_ci"},
+    {"branch": "repo-assist/perf-parse-filter-2026-06-14", "pr": 250, "task": "Task 8", "files": ["src/cli_backend.rs", "src/app.rs"], "status": "action_required_ci"},
+    {"branch": "repo-assist/perf-versionpart-dedupe-pins-2026-06-15", "pr": 251, "task": "Task 8", "files": ["src/cli_backend.rs", "src/models.rs"], "status": "action_required_ci"},
+    {"branch": "repo-assist/eng-deps-update-2026-06-08", "pr": 230, "task": "Task 4", "files": ["Cargo.lock"], "status": "action_required_ci", "note": "Superseded by PR #238 - safe to close"}
   ],
-  "stale_branches": [
-    "repo-assist/eng-ci-cache-restore-keys-2026-06-15-20ac42451ea7fed4 (EMPTY - no commits, can be ignored)"
+  "deferred_work": [
+    {
+      "id": "eng-ci-restore-keys",
+      "description": "Add restore-keys to cargo caches in ci.yml and build.yml for warm fallback builds",
+      "priority": "low",
+      "defer_reason": "PR backlog too large - defer until maintainer reviews existing PRs",
+      "defer_until": "backlog_clears"
+    }
   ],
   "open_repo_assist_issues": [],
   "backlog_cursor": {
     "issues": "no human issues open",
     "next_issue_to_process": "check for new human issues next run"
   },
-  "notes": "2026-06-16T01:41 run (27588249042): Tasks selected: 6 (Maintain PRs) and 4 (Engineering). Task 6: CI shows 'action_required' for all PR branches (infrastructure issue - GitHub requires maintainer workflow approval for automated PRs). Not fixable by code changes. Key conflict risk: PR #242 and PR #244 both modify handler.rs (sort+detail-reload vs return-type changes) - these may conflict when merging one after the other. PR #238 and Dependabot PR #236 both touch Cargo.lock with ratatui 0.30.1 bump - would conflict. Task 4: Created PR for CI cache restore-keys improvement (ci.yml + build.yml). Branch eng-ci-cache-restore-keys-2026-06-15-20ac42451ea7fed4 was a stale empty branch from last run - created fresh branch eng-ci-restore-keys-2026-06-16 instead. NOTE: 19+ open Repo Assist PRs still pending. Strongly recommend maintainer review existing backlog before more PRs are created. PR creation should be paused for at least the next few runs."
+  "notes": "2026-06-16T14:29 run (27624799317): Tasks selected: 4 (Engineering) and 6 (Maintain PRs). Task 6: All 18 Repo Assist PRs have action_required CI (infrastructure - GitHub requires maintainer workflow approval). Main is unchanged at v0.13.0 (sha 11990b7). No merge conflicts in any PRs. No maintainer comments on any open PRs. PR #230 already has Repo Assist comment noting it is superseded by #238. PR #238 is mergeable_state=clean and supersedes both #230 and Dependabot #236. Key conflict risks: PR #242+#244 both touch handler.rs; PR #230+#238 both touch Cargo.lock (but #230 superseded). Task 4: cargo update dry-run shows same updates as PR #238 covers (ratatui 0.30.1 + transitive deps). Small additional updates available (js-sys 0.3.102, memchr 2.8.2 vs 0.3.100/2.8.1 in #238). eng-ci-restore-keys improvement deferred to future run when backlog clears. PR CREATION PAUSED: 18 open PRs, no maintainer engagement yet. Wait for backlog to clear before creating more PRs."
 }
