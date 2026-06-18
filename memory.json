@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-06-18T02:00:00Z",
-  "last_run_id": "27730950511",
+  "last_run": "2026-06-18T13:51:00Z",
+  "last_run_id": "27764149320",
   "monthly_summary_issue": null,
   "monthly_summary_disabled": true,
   "monthly_summary_note": "Maintainer closed issue #222 on 2026-06-08 as automation noise. Do not create monthly activity summary issues.",
@@ -18,7 +18,7 @@
     {"branch":"repo-assist/testing-improvements-locale-edge-cases","pr":232,"task":"Task 9","files":["src/cli_backend.rs"],"status":"action_required_ci"},
     {"branch":"repo-assist/fix-pin-col-map-italian-versione","pr":234,"task":"Task 5","files":["src/cli_backend.rs"],"status":"action_required_ci"},
     {"branch":"repo-assist/fix-footer-false-positive","pr":237,"task":"Task 3","files":["src/cli_backend.rs"],"status":"action_required_ci"},
-    {"branch":"repo-assist/eng-bundle-deps-2026-06-09","pr":238,"task":"Task 4","files":["Cargo.lock"],"status":"action_required_ci","supersedes":[230,236]},
+    {"branch":"repo-assist/eng-bundle-deps-2026-06-09","pr":238,"task":"Task 4","files":["Cargo.lock"],"status":"superseded_by_new_deps_pr","note":"Superseded by 2026-06-18 deps PR - safe to close"},
     {"branch":"repo-assist/fix-ensure-detail-hint","pr":239,"task":"Task 3","files":["src/app.rs"],"status":"action_required_ci"},
     {"branch":"repo-assist/improve-version-key-underscore","pr":240,"task":"Task 5","files":["src/cli_backend.rs"],"status":"action_required_ci"},
     {"branch":"repo-assist/feat-sort-available-version-upgrades","pr":241,"task":"Task 10","files":["src/app.rs","src/models.rs"],"status":"action_required_ci"},
@@ -32,11 +32,11 @@
     {"branch":"repo-assist/perf-parse-filter-2026-06-14","pr":250,"task":"Task 8","files":["src/cli_backend.rs","src/app.rs"],"status":"action_required_ci"},
     {"branch":"repo-assist/perf-versionpart-dedupe-pins-2026-06-15","pr":251,"task":"Task 8","files":["src/cli_backend.rs","src/models.rs"],"status":"action_required_ci"},
     {"branch":"repo-assist/eng-deps-update-2026-06-08","pr":230,"task":"Task 4","files":["Cargo.lock"],"status":"action_required_ci","note":"Superseded by PR #238 - safe to close, already commented"},
-    {"branch":"repo-assist/perf-clip-2026-06-11-1daaaf59aeaad750","pr":"tbd-run27659928036","task":"Task 6","files":["src/app.rs","src/handler.rs","src/theme.rs","src/ui.rs","AGENTS.md"],"status":"created_prior_run","closes":243,"note":"Perf+feat PR from existing branch."},
-    {"branch":"repo-assist/docs-update-config-and-mouse-sort-2026-06-18","pr":"tbd-27730950511","task":"Task 3","files":["AGENTS.md","README.md"],"status":"created_this_run","closes":229,"note":"Docs fix: AGENTS.md config keys + README mouse-sort. Closes issue #229."}
+    {"branch":"repo-assist/docs-update-config-and-mouse-sort-2026-06-18","pr":"tbd-27730950511","task":"Task 3","files":["AGENTS.md","README.md"],"status":"created_prior_run","closes":229,"note":"Docs fix: AGENTS.md config keys + README mouse-sort. Closes issue #229."},
+    {"branch":"repo-assist/eng-deps-update-2026-06-18","pr":"tbd-27764149320","task":"Task 4","files":["Cargo.lock"],"status":"created_this_run","supersedes":238,"note":"cargo update 2026-06-18: bumps 26 crates, removes 14 unused. 371 tests pass."}
   ],
   "open_repo_assist_issues": [
-    {"number":229,"title":"[Repo Assist] docs: update AGENTS.md config keys and README mouse-sort entry","note":"PR created this run to close it"},
+    {"number":229,"title":"[Repo Assist] docs: update AGENTS.md config keys and README mouse-sort entry","note":"PR created in prior run to close it"},
     {"number":233,"title":"feat: sort Upgrades view by available version (PR #241 covers this)"},
     {"number":243,"title":"perf: cache logo, etc. - PR created prior run"},
     {"number":253,"title":"ci: add restore-keys to cargo caches (requires human to apply - workflows permission)"}
@@ -48,5 +48,5 @@
     "issues": "no human issues open",
     "next_issue_to_process": "check for new human issues next run"
   },
-  "notes": "2026-06-18T02:00 run (27730950511): Tasks selected: 2 (Issue Comment) and 3 (Issue Fix). Task 2: no human issues. Task 3: no new code bugs found; all known bugs already have open PRs. Fixed issue #229 docs gap: created PR for AGENTS.md config keys (default_sort, default_pin_filter) and README mouse-sort bullet. 20 Repo Assist PRs total now, all awaiting CI approval. Monthly summary disabled by maintainer."
+  "notes": "2026-06-18T13:51 run (27764149320): Tasks selected: 4 (Engineering Investments) and 2 (Issue Comment). Task 2: no human issues open - nothing to do. Task 4: ran cargo update, bumped 26 crates (bytes, compact_str, either, log, memchr, mio, regex, smallvec, syn, time, uuid, wasm-bindgen + others), removed 14 unused transitive deps (foldhash, hashbrown, indexmap etc.). 371 tests pass. Created new deps PR superseding #238. Monthly summary disabled by maintainer."
 }
