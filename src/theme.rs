@@ -1,5 +1,6 @@
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
+use std::sync::OnceLock;
 
 // ── Winget-inspired color palette ───────────────────────────────────────────
 
@@ -199,7 +200,15 @@ pub const LOGO_HEIGHT: u16 = 3;
 
 /// Render "winget" as pixel word art using half-blocks.
 /// 3 text rows tall (6 pixel rows), rendered in the accent color.
+///
+/// The result is computed once and cached; subsequent calls clone the cached
+/// `Vec<Line<'static>>` (pointer copies only — no string allocations).
 pub fn logo_lines() -> Vec<Line<'static>> {
+    static CACHE: OnceLock<Vec<Line<'static>>> = OnceLock::new();
+    CACHE.get_or_init(build_logo_lines).clone()
+}
+
+fn build_logo_lines() -> Vec<Line<'static>> {
     // Letters designed on a 5x6 grid (or narrower), 1px gap between each.
     //
     //  w         i     n         g         e         t
