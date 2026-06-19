@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-06-18T13:51:00Z",
-  "last_run_id": "27764149320",
+  "last_run": "2026-06-19T01:44:44Z",
+  "last_run_id": "27800241651",
   "monthly_summary_issue": null,
   "monthly_summary_disabled": true,
   "monthly_summary_note": "Maintainer closed issue #222 on 2026-06-08 as automation noise. Do not create monthly activity summary issues.",
@@ -14,31 +14,31 @@
     "252_issue": "2026-06-17"
   },
   "open_repo_assist_prs": [
-    {"branch":"repo-assist/improve-normalize-show-key-locale-versions","pr":231,"task":"Task 5","files":["src/cli_backend.rs"],"status":"action_required_ci"},
-    {"branch":"repo-assist/testing-improvements-locale-edge-cases","pr":232,"task":"Task 9","files":["src/cli_backend.rs"],"status":"action_required_ci"},
-    {"branch":"repo-assist/fix-pin-col-map-italian-versione","pr":234,"task":"Task 5","files":["src/cli_backend.rs"],"status":"action_required_ci"},
-    {"branch":"repo-assist/fix-footer-false-positive","pr":237,"task":"Task 3","files":["src/cli_backend.rs"],"status":"action_required_ci"},
-    {"branch":"repo-assist/eng-bundle-deps-2026-06-09","pr":238,"task":"Task 4","files":["Cargo.lock"],"status":"superseded_by_new_deps_pr","note":"Superseded by 2026-06-18 deps PR - safe to close"},
-    {"branch":"repo-assist/fix-ensure-detail-hint","pr":239,"task":"Task 3","files":["src/app.rs"],"status":"action_required_ci"},
-    {"branch":"repo-assist/improve-version-key-underscore","pr":240,"task":"Task 5","files":["src/cli_backend.rs"],"status":"action_required_ci"},
-    {"branch":"repo-assist/feat-sort-available-version-upgrades","pr":241,"task":"Task 10","files":["src/app.rs","src/models.rs"],"status":"action_required_ci"},
-    {"branch":"repo-assist/fix-detail-stale-after-sort","pr":242,"task":"Task 3","files":["src/handler.rs","src/app.rs"],"status":"action_required_ci"},
-    {"branch":"repo-assist/improve-handler-return-types","pr":244,"task":"Task 5","files":["src/handler.rs"],"status":"action_required_ci","conflict_risk":"PR 242 also touches handler.rs"},
-    {"branch":"repo-assist/eng-tokio-features-2026-06-12","pr":245,"task":"Task 4","files":["Cargo.toml"],"status":"unstable_ci"},
-    {"branch":"repo-assist/improve-csv-pin-state-2026-06-12","pr":246,"task":"Task 5","files":["src/app.rs"],"status":"action_required_ci"},
-    {"branch":"repo-assist/fix-na-version-dedup-2026-06-13","pr":247,"task":"Task 5","files":["src/cli_backend.rs"],"status":"action_required_ci"},
-    {"branch":"repo-assist/fix-scroll-down-viewport-overflow-2026-06-13","pr":248,"task":"Task 3","files":["src/app.rs"],"status":"action_required_ci"},
-    {"branch":"repo-assist/test-nav-keys-home-end-pgup-pgdn","pr":249,"task":"Task 9","files":["src/handler.rs"],"status":"action_required_ci"},
-    {"branch":"repo-assist/perf-parse-filter-2026-06-14","pr":250,"task":"Task 8","files":["src/cli_backend.rs","src/app.rs"],"status":"action_required_ci"},
-    {"branch":"repo-assist/perf-versionpart-dedupe-pins-2026-06-15","pr":251,"task":"Task 8","files":["src/cli_backend.rs","src/models.rs"],"status":"action_required_ci"},
-    {"branch":"repo-assist/eng-deps-update-2026-06-08","pr":230,"task":"Task 4","files":["Cargo.lock"],"status":"action_required_ci","note":"Superseded by PR #238 - safe to close, already commented"},
-    {"branch":"repo-assist/docs-update-config-and-mouse-sort-2026-06-18","pr":"tbd-27730950511","task":"Task 3","files":["AGENTS.md","README.md"],"status":"created_prior_run","closes":229,"note":"Docs fix: AGENTS.md config keys + README mouse-sort. Closes issue #229."},
-    {"branch":"repo-assist/eng-deps-update-2026-06-18","pr":"tbd-27764149320","task":"Task 4","files":["Cargo.lock"],"status":"created_this_run","supersedes":238,"note":"cargo update 2026-06-18: bumps 26 crates, removes 14 unused. 371 tests pass."}
+    {"branch":"repo-assist/improve-normalize-show-key-locale-versions","pr":231,"task":"Task 5","files":["src/cli_backend.rs"],"status":"open"},
+    {"branch":"repo-assist/testing-improvements-locale-edge-cases","pr":232,"task":"Task 9","files":["src/cli_backend.rs"],"status":"open"},
+    {"branch":"repo-assist/fix-pin-col-map-italian-versione","pr":234,"task":"Task 5","files":["src/cli_backend.rs"],"status":"open"},
+    {"branch":"repo-assist/fix-footer-false-positive","pr":237,"task":"Task 3","files":["src/cli_backend.rs"],"status":"open"},
+    {"branch":"repo-assist/eng-bundle-deps-2026-06-09","pr":238,"task":"Task 4","files":["Cargo.lock"],"status":"open","note":"Superseded by PR #258 - safe to close"},
+    {"branch":"repo-assist/fix-ensure-detail-hint","pr":239,"task":"Task 3","files":["src/app.rs"],"status":"open"},
+    {"branch":"repo-assist/improve-version-key-underscore","pr":240,"task":"Task 5","files":["src/cli_backend.rs"],"status":"open"},
+    {"branch":"repo-assist/feat-sort-available-version-upgrades","pr":241,"task":"Task 10","files":["src/app.rs","src/models.rs"],"status":"open"},
+    {"branch":"repo-assist/fix-detail-stale-after-sort","pr":242,"task":"Task 3","files":["src/handler.rs","src/app.rs"],"status":"open"},
+    {"branch":"repo-assist/improve-handler-return-types","pr":244,"task":"Task 5","files":["src/handler.rs"],"status":"open"},
+    {"branch":"repo-assist/eng-tokio-features-2026-06-12","pr":245,"task":"Task 4","files":["Cargo.toml"],"status":"open"},
+    {"branch":"repo-assist/improve-csv-pin-state-2026-06-12","pr":246,"task":"Task 5","files":["src/app.rs"],"status":"open"},
+    {"branch":"repo-assist/fix-na-version-dedup-2026-06-13","pr":247,"task":"Task 5","files":["src/cli_backend.rs"],"status":"open"},
+    {"branch":"repo-assist/fix-scroll-down-viewport-overflow-2026-06-13","pr":248,"task":"Task 3","files":["src/app.rs"],"status":"open"},
+    {"branch":"repo-assist/test-nav-keys-home-end-pgup-pgdn","pr":249,"task":"Task 9","files":["src/handler.rs"],"status":"open"},
+    {"branch":"repo-assist/perf-parse-filter-2026-06-14","pr":250,"task":"Task 8","files":["src/cli_backend.rs","src/app.rs"],"status":"open"},
+    {"branch":"repo-assist/perf-versionpart-dedupe-pins-2026-06-15","pr":251,"task":"Task 8","files":["src/cli_backend.rs","src/models.rs"],"status":"open"},
+    {"branch":"repo-assist/eng-deps-update-2026-06-08","pr":230,"task":"Task 4","files":["Cargo.lock"],"status":"open","note":"Superseded by PR #258 - safe to close"},
+    {"branch":"repo-assist/eng-deps-update-2026-06-18","pr":258,"task":"Task 4","files":["Cargo.lock"],"status":"open","note":"cargo update 2026-06-18: bumps 26 crates. 371 tests pass."},
+    {"branch":"repo-assist/test-detail-focus-confirm-ops-2026-06-19","pr":"tbd-27800241651","task":"Task 9","files":["src/handler.rs","src/models.rs"],"status":"created_this_run","note":"17 new tests: detail-panel focus nav, confirm y/Y/N, ctrl+c, Op::Pin/Unpin display, PinState::None.label(). 371->388 tests."}
   ],
   "open_repo_assist_issues": [
-    {"number":229,"title":"[Repo Assist] docs: update AGENTS.md config keys and README mouse-sort entry","note":"PR created in prior run to close it"},
+    {"number":229,"title":"[Repo Assist] docs: update AGENTS.md config keys and README mouse-sort entry"},
     {"number":233,"title":"feat: sort Upgrades view by available version (PR #241 covers this)"},
-    {"number":243,"title":"perf: cache logo, etc. - PR created prior run"},
+    {"number":243,"title":"perf: cache logo, etc."},
     {"number":253,"title":"ci: add restore-keys to cargo caches (requires human to apply - workflows permission)"}
   ],
   "deferred_work": [
@@ -48,5 +48,5 @@
     "issues": "no human issues open",
     "next_issue_to_process": "check for new human issues next run"
   },
-  "notes": "2026-06-18T13:51 run (27764149320): Tasks selected: 4 (Engineering Investments) and 2 (Issue Comment). Task 2: no human issues open - nothing to do. Task 4: ran cargo update, bumped 26 crates (bytes, compact_str, either, log, memchr, mio, regex, smallvec, syn, time, uuid, wasm-bindgen + others), removed 14 unused transitive deps (foldhash, hashbrown, indexmap etc.). 371 tests pass. Created new deps PR superseding #238. Monthly summary disabled by maintainer."
+  "notes": "2026-06-19T01:44 run (27800241651): Tasks selected: 2 (Issue Comment) and 9 (Testing Improvements). Task 2: no human issues open - nothing to do. Task 9: added 17 tests covering detail-panel focus navigation (Up/Down/k/j/PgUp/PgDn/Home/End when FocusZone::DetailPanel), handle_confirm y/Y/N execute and cancel paths, ctrl+c quit, Operation::Pin/Unpin Display, PinState::None.label(). All 388 tests pass. Monthly summary disabled by maintainer."
 }
