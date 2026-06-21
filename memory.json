@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-06-20T13:15:27Z",
-  "last_run_id": "27872250906",
+  "last_run": "2026-06-21T01:40:35Z",
+  "last_run_id": "27889905451",
   "monthly_summary_issue": null,
   "monthly_summary_disabled": true,
   "monthly_summary_note": "Maintainer closed issue #222 on 2026-06-08 as automation noise. Do not create monthly activity summary issues.",
@@ -11,52 +11,43 @@
     "126": "2026-04-19",
     "154_pr": "2026-04-27",
     "230_pr": "2026-06-13",
-    "252_issue": "2026-06-17"
+    "252_issue": "2026-06-17",
+    "238_pr": "2026-06-20"
   },
   "open_repo_assist_prs": [
     {
       "branch": "repo-assist/improve-normalize-show-key-locale-versions",
       "pr": 231,
       "task": "Task 5",
-      "files": [
-        "src/cli_backend.rs"
-      ],
+      "files": ["src/cli_backend.rs"],
       "status": "open"
     },
     {
       "branch": "repo-assist/testing-improvements-locale-edge-cases",
       "pr": 232,
       "task": "Task 9",
-      "files": [
-        "src/cli_backend.rs"
-      ],
+      "files": ["src/cli_backend.rs"],
       "status": "open"
     },
     {
       "branch": "repo-assist/fix-pin-col-map-italian-versione",
       "pr": 234,
       "task": "Task 5",
-      "files": [
-        "src/cli_backend.rs"
-      ],
+      "files": ["src/cli_backend.rs"],
       "status": "open"
     },
     {
       "branch": "repo-assist/fix-footer-false-positive",
       "pr": 237,
       "task": "Task 3",
-      "files": [
-        "src/cli_backend.rs"
-      ],
+      "files": ["src/cli_backend.rs"],
       "status": "open"
     },
     {
       "branch": "repo-assist/eng-bundle-deps-2026-06-09",
       "pr": 238,
       "task": "Task 4",
-      "files": [
-        "Cargo.lock"
-      ],
+      "files": ["Cargo.lock"],
       "status": "open",
       "note": "Superseded by PR #258. Comment added 2026-06-20 run."
     },
@@ -64,159 +55,129 @@
       "branch": "repo-assist/fix-ensure-detail-hint",
       "pr": 239,
       "task": "Task 3",
-      "files": [
-        "src/app.rs"
-      ],
+      "files": ["src/app.rs"],
       "status": "open"
     },
     {
       "branch": "repo-assist/improve-version-key-underscore",
       "pr": 240,
       "task": "Task 5",
-      "files": [
-        "src/cli_backend.rs"
-      ],
+      "files": ["src/cli_backend.rs"],
       "status": "open"
     },
     {
       "branch": "repo-assist/feat-sort-available-version-upgrades",
       "pr": 241,
       "task": "Task 10",
-      "files": [
-        "src/app.rs",
-        "src/models.rs"
-      ],
+      "files": ["src/app.rs", "src/models.rs"],
       "status": "open"
     },
     {
       "branch": "repo-assist/fix-detail-stale-after-sort",
       "pr": 242,
       "task": "Task 3",
-      "files": [
-        "src/handler.rs",
-        "src/app.rs"
-      ],
+      "files": ["src/handler.rs", "src/app.rs"],
       "status": "open"
     },
     {
       "branch": "repo-assist/improve-handler-return-types",
       "pr": 244,
       "task": "Task 5",
-      "files": [
-        "src/handler.rs"
-      ],
+      "files": ["src/handler.rs"],
       "status": "open"
     },
     {
       "branch": "repo-assist/eng-tokio-features-2026-06-12",
       "pr": 245,
       "task": "Task 4",
-      "files": [
-        "Cargo.toml"
-      ],
+      "files": ["Cargo.toml"],
       "status": "open"
     },
     {
       "branch": "repo-assist/improve-csv-pin-state-2026-06-12",
       "pr": 246,
       "task": "Task 5",
-      "files": [
-        "src/app.rs"
-      ],
+      "files": ["src/app.rs"],
       "status": "open"
     },
     {
       "branch": "repo-assist/fix-na-version-dedup-2026-06-13",
       "pr": 247,
       "task": "Task 5",
-      "files": [
-        "src/cli_backend.rs"
-      ],
+      "files": ["src/cli_backend.rs"],
       "status": "open"
     },
     {
       "branch": "repo-assist/fix-scroll-down-viewport-overflow-2026-06-13",
       "pr": 248,
       "task": "Task 3",
-      "files": [
-        "src/app.rs"
-      ],
+      "files": ["src/app.rs"],
       "status": "open"
     },
     {
       "branch": "repo-assist/test-nav-keys-home-end-pgup-pgdn",
       "pr": 249,
       "task": "Task 9",
-      "files": [
-        "src/handler.rs"
-      ],
+      "files": ["src/handler.rs"],
       "status": "open"
     },
     {
       "branch": "repo-assist/perf-parse-filter-2026-06-14",
       "pr": 250,
       "task": "Task 8",
-      "files": [
-        "src/cli_backend.rs",
-        "src/app.rs"
-      ],
+      "files": ["src/cli_backend.rs", "src/app.rs"],
       "status": "open"
     },
     {
       "branch": "repo-assist/perf-versionpart-dedupe-pins-2026-06-15",
       "pr": 251,
       "task": "Task 8",
-      "files": [
-        "src/cli_backend.rs",
-        "src/models.rs"
-      ],
+      "files": ["src/cli_backend.rs", "src/models.rs"],
       "status": "open"
     },
     {
       "branch": "repo-assist/eng-deps-update-2026-06-08",
       "pr": 230,
       "task": "Task 4",
-      "files": [
-        "Cargo.lock"
-      ],
+      "files": ["Cargo.lock"],
       "status": "open",
-      "note": "Superseded by PR #258 (via #238). Comment on PR says #238 supersedes it; #258 is latest."
+      "note": "Superseded by PR #258. Comment added 2026-06-13 run."
     },
     {
       "branch": "repo-assist/eng-deps-update-2026-06-18",
       "pr": 258,
       "task": "Task 4",
-      "files": [
-        "Cargo.lock"
-      ],
+      "files": ["Cargo.lock"],
       "status": "open"
     },
     {
       "branch": "repo-assist/test-detail-focus-confirm-ops-2026-06-19",
       "pr": 259,
       "task": "Task 9",
-      "files": [
-        "src/handler.rs",
-        "src/models.rs"
-      ],
+      "files": ["src/handler.rs", "src/models.rs"],
       "status": "open"
     },
     {
       "branch": "repo-assist/perf-logo-cache-detail-scan-2026-06-19",
       "pr": 260,
       "task": "Task 5",
-      "files": [
-        "src/theme.rs",
-        "src/app.rs"
-      ],
+      "files": ["src/theme.rs", "src/app.rs"],
       "status": "open"
+    },
+    {
+      "branch": "repo-assist/docs-readme-column-sort-2026-06-21",
+      "pr": "TBD",
+      "task": "Task 5",
+      "files": ["README.md"],
+      "status": "open",
+      "note": "Created 2026-06-21 run. Documents mouse click on column headers to sort."
     }
   ],
   "open_repo_assist_issues": [
     {
       "number": 229,
       "title": "[Repo Assist] docs: update AGENTS.md config keys and README mouse-sort entry",
-      "note": "Should be closed by new PR docs-agents-config-keys-2026-06-20"
+      "note": "AGENTS.md is a protected file (protected-files: fallback-to-issue config). README mouse-sort docs now covered by new PR (branch docs-readme-column-sort-2026-06-21)."
     },
     {
       "number": 233,
@@ -236,7 +197,7 @@
     },
     {
       "number": 257,
-      "title": "docs: update AGENTS.md + README (should be closed by new PR docs-agents-config-keys-2026-06-20)"
+      "title": "docs: update AGENTS.md + README (README part covered by new PR)"
     },
     {
       "number": 261,
@@ -257,5 +218,6 @@
     "issues": "no human issues open",
     "next_issue_to_process": "check for new human issues next run"
   },
-  "notes": "2026-06-20T13:15 run (27872250906): Tasks selected: 6 (Maintain Repo Assist PRs) and 1 (Issue Labelling). Task 1: 0 unlabelled issues, nothing to do. Task 6: Checked all 21 open Repo Assist PRs. All code PRs (based on 11990b75) are clean (no merge conflicts - main only changed Cargo.lock). PRs #230 and #238 superseded by #258. Added comment to PR #238 about supersession by #258. PR #230 already has comment from run 27452602409. PR #258 (deps-2026-06-18) has mergeable_state=unstable (CI infrastructure issue). Issues #229, #257, #261 are all about same AGENTS.md docs change (protected files - blocked). Monthly summary disabled by maintainer."
+  "ci_status_note": "All Repo Assist PR branches show CI as 'action_required' - this is a GitHub Actions security gate requiring maintainer approval before CI runs on bot-created branches. Not a code failure. All PRs are clean from merge-conflict perspective.",
+  "notes": "2026-06-21T01:40 run (27889905451): Tasks selected: 6 (Maintain Repo Assist PRs) and 2 (Issue Investigation and Comment). Task 6: Reviewed all 21 open PRs. All show 'action_required' CI (security gate, not code failure). No merge conflicts - main only moved by 1 commit (Cargo.lock from #236). PRs #230 and #238 superseded by #258 (already commented in previous runs). No new actionable items for Task 6. Task 2: No human issues open - all 8 open issues are Repo Assist-created. Pivoted to Task 5 (Coding Improvements): Created PR docs(readme): document mouse click on column headers to sort. README.md was missing the column-header click-to-sort mouse feature which is implemented in handler.rs::click_sort_header(). Monthly summary disabled by maintainer."
 }
