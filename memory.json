@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-06-21T02:00:00Z",
-  "last_run_id": "27905690866",
+  "last_run": "2026-06-22T01:40:00Z",
+  "last_run_id": "27924348864",
   "monthly_summary_issue": null,
   "monthly_summary_disabled": true,
   "monthly_summary_note": "Maintainer closed issue #222 on 2026-06-08 as automation noise. Do not create monthly activity summary issues.",
@@ -12,7 +12,8 @@
     "154_pr": "2026-04-27",
     "230_pr": "2026-06-13",
     "252_issue": "2026-06-17",
-    "238_pr": "2026-06-20"
+    "238_pr": "2026-06-20",
+    "249_pr": "2026-06-22"
   },
   "open_repo_assist_prs": [
     {
@@ -20,57 +21,80 @@
       "pr": 232,
       "task": "Task 9",
       "files": ["src/cli_backend.rs"],
-      "status": "open"
+      "status": "open",
+      "mergeable_state": "clean"
     },
     {
       "branch": "repo-assist/feat-sort-available-version-upgrades",
       "pr": 241,
       "task": "Task 10",
       "files": ["src/app.rs", "src/models.rs"],
-      "status": "open"
+      "status": "open",
+      "mergeable_state": "clean"
     },
     {
       "branch": "repo-assist/improve-csv-pin-state-2026-06-12",
       "pr": 246,
       "task": "Task 5",
       "files": ["src/app.rs"],
-      "status": "open"
+      "status": "open",
+      "mergeable_state": "unstable"
     },
     {
       "branch": "repo-assist/fix-scroll-down-viewport-overflow-2026-06-13",
       "pr": 248,
       "task": "Task 3",
       "files": ["src/app.rs"],
-      "status": "open"
+      "status": "open",
+      "mergeable_state": "unstable"
     },
     {
       "branch": "repo-assist/test-nav-keys-home-end-pgup-pgdn",
       "pr": 249,
       "task": "Task 9",
       "files": ["src/handler.rs"],
-      "status": "open"
+      "status": "open - recommend closing",
+      "note": "Conflicts with PR #259: duplicate ctrl_c_sets_should_quit test. Replacement PR created (repo-assist/test-list-nav-keys-2026-06-22). Commented on PR #249 recommending close.",
+      "mergeable_state": "unstable"
     },
     {
       "branch": "repo-assist/test-detail-focus-confirm-ops-2026-06-19",
       "pr": 259,
       "task": "Task 9",
       "files": ["src/handler.rs", "src/models.rs"],
-      "status": "open"
+      "status": "open",
+      "mergeable_state": "unstable"
     },
     {
-      "branch": "repo-assist/test-mouse-and-op-complete-2026-06-21",
-      "pr": "TBD",
+      "branch": "repo-assist/test-mouse-and-op-complete-2026-06-21-46f6738c1e054c45",
+      "pr": 263,
       "task": "Task 9+10",
       "files": ["src/handler.rs", "src/app.rs"],
       "status": "open",
       "note": "14 new tests: 10 mouse interactions + 2 viewport-rows + 2 OperationComplete edge cases. 371→385 tests."
+    },
+    {
+      "branch": "repo-assist/eng-deps-update-2026-06-22",
+      "pr": "TBD",
+      "task": "Task 4",
+      "files": ["Cargo.lock"],
+      "status": "open",
+      "note": "cargo update: ratatui 0.30.2, bytes 1.12, mio 1.2.1, and many patch updates. 371 tests pass."
+    },
+    {
+      "branch": "repo-assist/test-list-nav-keys-2026-06-22",
+      "pr": "TBD",
+      "task": "Task 6",
+      "files": ["src/handler.rs"],
+      "status": "open",
+      "note": "Replacement for PR #249. 11 tests: Home/End/PgUp/PgDn/k/j for list-focus. Excludes duplicate ctrl_c test. 371→382 tests."
     }
   ],
   "open_repo_assist_issues": [
     {
       "number": 229,
       "title": "[Repo Assist] docs: update AGENTS.md config keys and README mouse-sort entry",
-      "note": "AGENTS.md is a protected file (protected-files: fallback-to-issue config). README mouse-sort docs now covered by new PR (branch docs-readme-column-sort-2026-06-21)."
+      "note": "AGENTS.md is a protected file. README part may be covered by a separate PR."
     },
     {
       "number": 233,
@@ -78,7 +102,7 @@
     },
     {
       "number": 243,
-      "title": "perf: cache logo, etc. (partially covered by PR #260)"
+      "title": "perf: cache logo, etc."
     },
     {
       "number": 253,
@@ -86,11 +110,11 @@
     },
     {
       "number": 256,
-      "title": "perf: cache logo+detail+rows + clipboard copy (partially covered by PR #260)"
+      "title": "perf: cache logo+detail+rows + clipboard copy"
     },
     {
       "number": 257,
-      "title": "docs: update AGENTS.md + README (README part covered by new PR)"
+      "title": "docs: update AGENTS.md + README"
     },
     {
       "number": 261,
@@ -111,6 +135,6 @@
     "issues": "no human issues open",
     "next_issue_to_process": "check for new human issues next run"
   },
-  "ci_status_note": "All Repo Assist PR branches show CI as 'action_required' - this is a GitHub Actions security gate requiring maintainer approval before CI runs on bot-created branches. Not a code failure. All PRs are clean from merge-conflict perspective.",
-  "notes": "2026-06-21T02:00 run (27905690866): Tasks selected: 9 (Testing Improvements) and 10 (Take the Repository Forward). Task 9: Added 10 mouse interaction tests to handler.rs (ScrollDown clamp, detail scroll both dirs, click-dismiss help, click-dismiss confirm, click search bar in Search/Installed mode, right-click select, drag scrollbar). Task 10: Added 4 tests to app.rs (package_list_viewport_rows normal + small-height, BatchUpgrade failure triggers refresh, OperationComplete success empty message uses done suffix). 371→385 tests; fmt+clippy clean. Created draft PR branch repo-assist/test-mouse-and-op-complete-2026-06-21. Memory reconciled: removed ~16 stale PR entries no longer open on GitHub (only 6+1 new PRs retained). Monthly summary disabled."
+  "ci_status_note": "Repo Assist PR branches show CI as 'action_required' - this is a GitHub Actions security gate requiring maintainer approval. Not a code failure. PRs #232 and #241 show mergeable_state=clean; others show unstable (CI pending).",
+  "notes": "2026-06-22T01:40 run (27924348864): Tasks selected: 4 (Engineering Investments) and 6 (Maintain Repo Assist PRs). Task 4: ran cargo update, applied ratatui 0.30.2, bytes 1.12, mio 1.2.1, and 30+ patch updates. Cargo.lock shrunk (removed wasip3, wit-bindgen*, etc.). 371 tests pass. Created draft PR on branch repo-assist/eng-deps-update-2026-06-22. Task 6: Discovered that PR #249 and PR #259 both add ctrl_c_sets_should_quit test (duplicate function name compile error if both merged). Created replacement PR (repo-assist/test-list-nav-keys-2026-06-22) with just the 11 unique list-navigation tests from #249 (Home/End/PgUp/PgDn/k/j). Commented on PR #249 recommending close. Monthly summary disabled by maintainer."
 }
