@@ -152,6 +152,9 @@ pub struct App {
     pub detail_cache: HashMap<String, PackageDetail>,
     /// Indices into filtered_packages that are selected for batch operations
     pub selected_packages: HashSet<usize>,
+    /// Count of packages that pass all filters except the local text filter.
+    /// Used to display "X of Y" in the package list title when a local filter is active.
+    pub unfiltered_count: usize,
     /// A high-signal status message to restore after the next list refresh completes.
     pub post_refresh_status: Option<String>,
     pub backend: Arc<dyn WingetBackend>,
@@ -246,6 +249,7 @@ impl App {
             detail_generation: 0,
             detail_cache: HashMap::new(),
             selected_packages: HashSet::new(),
+            unfiltered_count: 0,
             post_refresh_status: None,
             backend,
             message_tx,
@@ -267,6 +271,13 @@ impl App {
         }
         if self.mode != AppMode::Search && !self.local_filter.is_empty() {
             let query = self.local_filter.to_lowercase();
+            // Snapshot the count visible without the text filter (only pin filter applied).
+            // ui.rs uses this to render "X of Y" in the package-list title.
+            self.unfiltered_count = self
+                .filtered_packages
+                .iter()
+                .filter(|pkg| self.pin_filter.matches(&pkg.pin_state))
+                .count();
             self.filtered_packages.retain(|pkg| {
                 pkg.name.to_lowercase().contains(&query) || pkg.id.to_lowercase().contains(&query)
             });
@@ -1553,8 +1564,87 @@ mod tests {
         assert_eq!(app.pin_filter, PinFilter::UnpinnedOnly);
     }
 
-    // ── annotate_pins ──────────────────────────────────────────────────────
+    // ── unfiltered_count ───────────────────────────────────────────────────
 
+    #[test]
+    fn apply_filter_unfiltered_count_equals_total_when_no_local_filter() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.mode = AppMode::Installed;
+        app.packages = make_packages(5);
+        app.apply_filter();
+        // No local filter active — unfiltered_count was not set this pass but
+        // filtered_packages should equal the full list.
+        assert_eq!(app.filtered_packages.len(), 5);
+    }
+
+    #[test]
+    fn apply_filter_unfiltered_count_reflects_total_without_text_filter() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.mode = AppMode::Installed;
+        // 5 packages: "Alpha", "Alpha 2", "Beta", "Gamma", "Delta"
+        app.packages = vec![
+            make_package("Alpha", "A.Alpha", "1.0"),
+            make_package("Alpha 2", "A.Alpha2", "1.0"),
+            make_package("Beta", "B.Beta", "1.0"),
+            make_package("Gamma", "G.Gamma", "1.0"),
+            make_package("Delta", "D.Delta", "1.0"),
+        ];
+        app.local_filter = "alpha".to_string();
+        app.apply_filter();
+        // 2 packages match "alpha"; unfiltered_count should be the total (5)
+        assert_eq!(
+            app.filtered_packages.len(),
+            2,
+            "local filter should narrow the visible list"
+        );
+        assert_eq!(
+            app.unfiltered_count, 5,
+            "unfiltered_count should reflect the total without the text filter"
+        );
+    }
+
+    #[test]
+    fn apply_filter_unfiltered_count_respects_pin_filter() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.mode = AppMode::Installed;
+        // 4 packages: 2 pinned, 2 unpinned
+        app.packages = vec![
+            Package {
+                id: "A.Pinned1".to_string(),
+                name: "Pinned Alpha".to_string(),
+                version: "1.0".to_string(),
+                source: "winget".to_string(),
+                available_version: String::new(),
+                pin_state: PinState::Pinned,
+            },
+            Package {
+                id: "A.Pinned2".to_string(),
+                name: "Pinned Beta".to_string(),
+                version: "1.0".to_string(),
+                source: "winget".to_string(),
+                available_version: String::new(),
+                pin_state: PinState::Pinned,
+            },
+            make_package("Gamma", "G.Gamma", "1.0"),
+            make_package("Delta", "D.Delta", "1.0"),
+        ];
+        // Show only pinned packages, with a text filter that matches one of them
+        app.pin_filter = PinFilter::PinnedOnly;
+        app.local_filter = "alpha".to_string();
+        app.apply_filter();
+        // Only "Pinned Alpha" matches both filters
+        assert_eq!(app.filtered_packages.len(), 1);
+        // unfiltered_count should be 2 (both pinned packages, ignoring text filter)
+        assert_eq!(
+            app.unfiltered_count, 2,
+            "unfiltered_count should count packages passing pin filter but not text filter"
+        );
+    }
+
+    // ── annotate_pins ──────────────────────────────────────────────────────
     #[test]
     fn annotate_pins_applies_matching_pin_state() {
         let mut packages = vec![
