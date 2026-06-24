@@ -302,6 +302,13 @@ impl App {
                     self.filtered_packages.reverse();
                 }
             }
+            SortField::AvailableVersion => {
+                self.filtered_packages
+                    .sort_by_cached_key(|pkg| version_key(&pkg.available_version));
+                if self.sort_dir == SortDir::Desc {
+                    self.filtered_packages.reverse();
+                }
+            }
         }
         // Keep selection in bounds
         if self.selected >= self.filtered_packages.len() {
@@ -360,7 +367,10 @@ impl App {
         self.status_message = msg.into();
     }
 
-    /// Advance through sort states: None → Name↑ → Name↓ → ID↑ → ID↓ → Version↑ → Version↓ → None → …
+    /// Advance through sort states:
+    ///
+    /// - All views: None → Name↑ → Name↓ → ID↑ → ID↓ → Version↑ → Version↓ → None → …
+    /// - Upgrades only: Version↓ → Available↑ → Available↓ → None → …
     pub fn cycle_sort(&mut self) {
         use crate::models::{SortDir, SortField};
         let (next_field, next_dir) = match (self.sort_field, self.sort_dir) {
@@ -370,6 +380,14 @@ impl App {
             (SortField::Id, SortDir::Asc) => (SortField::Id, SortDir::Desc),
             (SortField::Id, SortDir::Desc) => (SortField::Version, SortDir::Asc),
             (SortField::Version, SortDir::Asc) => (SortField::Version, SortDir::Desc),
+            // In Upgrades view, Version↓ advances to Available↑
+            (SortField::Version, SortDir::Desc) if self.mode == AppMode::Upgrades => {
+                (SortField::AvailableVersion, SortDir::Asc)
+            }
+            (SortField::AvailableVersion, SortDir::Asc) => {
+                (SortField::AvailableVersion, SortDir::Desc)
+            }
+            (SortField::AvailableVersion, SortDir::Desc) => (SortField::None, SortDir::Asc),
             (SortField::Version, SortDir::Desc) => (SortField::None, SortDir::Asc),
         };
         self.sort_field = next_field;
@@ -2125,8 +2143,136 @@ mod tests {
         assert_eq!(app.sort_dir, crate::models::SortDir::Asc);
         app.cycle_sort();
         assert_eq!(app.sort_dir, crate::models::SortDir::Desc);
+        // non-Upgrades: Version↓ goes straight to None (no AvailableVersion step)
         app.cycle_sort();
         assert_eq!(app.sort_field, crate::models::SortField::None);
+    }
+
+    #[test]
+    fn cycle_sort_upgrades_view_includes_available_version() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.mode = AppMode::Upgrades;
+        // Advance to Version↓
+        app.sort_field = crate::models::SortField::Version;
+        app.sort_dir = crate::models::SortDir::Desc;
+        // Next step should be AvailableVersion↑
+        app.cycle_sort();
+        assert_eq!(app.sort_field, crate::models::SortField::AvailableVersion);
+        assert_eq!(app.sort_dir, crate::models::SortDir::Asc);
+        app.cycle_sort();
+        assert_eq!(app.sort_field, crate::models::SortField::AvailableVersion);
+        assert_eq!(app.sort_dir, crate::models::SortDir::Desc);
+        // After Available↓, back to None
+        app.cycle_sort();
+        assert_eq!(app.sort_field, crate::models::SortField::None);
+    }
+
+    #[test]
+    fn cycle_sort_non_upgrades_view_skips_available_version() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        // Default mode is Installed
+        app.sort_field = crate::models::SortField::Version;
+        app.sort_dir = crate::models::SortDir::Desc;
+        // Version↓ → None (no AvailableVersion)
+        app.cycle_sort();
+        assert_eq!(app.sort_field, crate::models::SortField::None);
+    }
+
+    #[test]
+    fn apply_filter_sort_by_available_version_ascending() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.mode = AppMode::Upgrades;
+        app.packages = vec![
+            Package {
+                id: "A".to_string(),
+                name: "A".to_string(),
+                version: "1.0".to_string(),
+                source: "winget".to_string(),
+                available_version: "2.0".to_string(),
+                pin_state: PinState::None,
+            },
+            Package {
+                id: "B".to_string(),
+                name: "B".to_string(),
+                version: "1.0".to_string(),
+                source: "winget".to_string(),
+                available_version: "10.0".to_string(),
+                pin_state: PinState::None,
+            },
+            Package {
+                id: "C".to_string(),
+                name: "C".to_string(),
+                version: "1.0".to_string(),
+                source: "winget".to_string(),
+                available_version: "3.0".to_string(),
+                pin_state: PinState::None,
+            },
+        ];
+        app.sort_field = crate::models::SortField::AvailableVersion;
+        app.sort_dir = crate::models::SortDir::Asc;
+        app.apply_filter();
+        let ids: Vec<&str> = app
+            .filtered_packages
+            .iter()
+            .map(|p| p.id.as_str())
+            .collect();
+        assert_eq!(ids, vec!["A", "C", "B"], "2.0 < 3.0 < 10.0");
+    }
+
+    #[test]
+    fn apply_filter_sort_by_available_version_descending() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.mode = AppMode::Upgrades;
+        app.packages = vec![
+            Package {
+                id: "A".to_string(),
+                name: "A".to_string(),
+                version: "1.0".to_string(),
+                source: "winget".to_string(),
+                available_version: "2.0".to_string(),
+                pin_state: PinState::None,
+            },
+            Package {
+                id: "B".to_string(),
+                name: "B".to_string(),
+                version: "1.0".to_string(),
+                source: "winget".to_string(),
+                available_version: "10.0".to_string(),
+                pin_state: PinState::None,
+            },
+            Package {
+                id: "C".to_string(),
+                name: "C".to_string(),
+                version: "1.0".to_string(),
+                source: "winget".to_string(),
+                available_version: "3.0".to_string(),
+                pin_state: PinState::None,
+            },
+        ];
+        app.sort_field = crate::models::SortField::AvailableVersion;
+        app.sort_dir = crate::models::SortDir::Desc;
+        app.apply_filter();
+        let ids: Vec<&str> = app
+            .filtered_packages
+            .iter()
+            .map(|p| p.id.as_str())
+            .collect();
+        assert_eq!(ids, vec!["B", "C", "A"], "10.0 > 3.0 > 2.0");
+    }
+
+    #[test]
+    fn cycle_sort_status_shows_available_label() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.mode = AppMode::Upgrades;
+        app.sort_field = crate::models::SortField::Version;
+        app.sort_dir = crate::models::SortDir::Desc;
+        app.cycle_sort();
+        assert_eq!(app.status_message, "Sort: Available ↑");
     }
 
     // ── scroll_detail ─────────────────────────────────────────────────────────
