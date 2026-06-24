@@ -19,13 +19,13 @@ pub fn handle_events(app: &mut App) -> anyhow::Result<bool> {
         Event::Key(key) if key.kind == KeyEventKind::Press => {
             // Confirm dialog takes priority
             if app.confirm.is_some() {
-                handle_confirm(app, key.code)?;
+                handle_confirm(app, key.code);
                 return Ok(true);
             }
 
             // Version input prompt takes priority after confirm
             if app.input_mode == InputMode::VersionInput {
-                handle_version_input(app, key.code)?;
+                handle_version_input(app, key.code);
                 return Ok(true);
             }
 
@@ -36,14 +36,14 @@ pub fn handle_events(app: &mut App) -> anyhow::Result<bool> {
             }
 
             match app.input_mode {
-                InputMode::Search => handle_search_input(app, key.code)?,
-                InputMode::LocalFilter => handle_local_filter_input(app, key.code)?,
-                InputMode::Normal => handle_normal_mode(app, key.code, key.modifiers)?,
+                InputMode::Search => handle_search_input(app, key.code),
+                InputMode::LocalFilter => handle_local_filter_input(app, key.code),
+                InputMode::Normal => handle_normal_mode(app, key.code, key.modifiers),
                 InputMode::VersionInput => unreachable!("handled above"),
             };
         }
         Event::Mouse(mouse) => {
-            handle_mouse(app, mouse)?;
+            handle_mouse(app, mouse);
         }
         _ => {}
     }
@@ -78,7 +78,7 @@ fn handle_help_input(app: &mut App, key: KeyCode) {
     }
 }
 
-fn handle_confirm(app: &mut App, key: KeyCode) -> anyhow::Result<bool> {
+fn handle_confirm(app: &mut App, key: KeyCode) {
     match key {
         KeyCode::Char('y') | KeyCode::Char('Y') => {
             if let Some(confirm) = app.confirm.take() {
@@ -93,10 +93,9 @@ fn handle_confirm(app: &mut App, key: KeyCode) -> anyhow::Result<bool> {
         }
         _ => {}
     }
-    Ok(false)
 }
 
-fn handle_version_input(app: &mut App, key: KeyCode) -> anyhow::Result<bool> {
+fn handle_version_input(app: &mut App, key: KeyCode) {
     match key {
         KeyCode::Esc => {
             app.input_mode = InputMode::Normal;
@@ -128,10 +127,9 @@ fn handle_version_input(app: &mut App, key: KeyCode) -> anyhow::Result<bool> {
         }
         _ => {}
     }
-    Ok(false)
 }
 
-fn handle_search_input(app: &mut App, key: KeyCode) -> anyhow::Result<bool> {
+fn handle_search_input(app: &mut App, key: KeyCode) {
     match key {
         KeyCode::Esc => {
             app.input_mode = InputMode::Normal;
@@ -153,10 +151,9 @@ fn handle_search_input(app: &mut App, key: KeyCode) -> anyhow::Result<bool> {
         }
         _ => {}
     }
-    Ok(false)
 }
 
-fn handle_local_filter_input(app: &mut App, key: KeyCode) -> anyhow::Result<bool> {
+fn handle_local_filter_input(app: &mut App, key: KeyCode) {
     match key {
         KeyCode::Esc => {
             app.input_mode = InputMode::Normal;
@@ -218,14 +215,9 @@ fn handle_local_filter_input(app: &mut App, key: KeyCode) -> anyhow::Result<bool
         }
         _ => {}
     }
-    Ok(false)
 }
 
-fn handle_normal_mode(
-    app: &mut App,
-    key: KeyCode,
-    modifiers: KeyModifiers,
-) -> anyhow::Result<bool> {
+fn handle_normal_mode(app: &mut App, key: KeyCode, modifiers: KeyModifiers) {
     match key {
         KeyCode::Char('q') | KeyCode::Esc => {
             app.should_quit = true;
@@ -558,7 +550,6 @@ fn handle_normal_mode(
 
         _ => {}
     }
-    Ok(false)
 }
 
 /// Switch the active view/mode, resetting selection and triggering a refresh
@@ -687,7 +678,7 @@ fn select_package_at_row(app: &mut App, row: u16) {
     }
 }
 
-fn handle_mouse(app: &mut App, mouse: crossterm::event::MouseEvent) -> anyhow::Result<bool> {
+fn handle_mouse(app: &mut App, mouse: crossterm::event::MouseEvent) {
     let col = mouse.column;
     let row = mouse.row;
 
@@ -696,18 +687,18 @@ fn handle_mouse(app: &mut App, mouse: crossterm::event::MouseEvent) -> anyhow::R
             // Dismiss dialogs/help on click outside
             if app.show_help {
                 app.show_help = false;
-                return Ok(false);
+                return;
             }
             if app.confirm.is_some() {
                 app.confirm = None;
                 app.set_status("Cancelled");
-                return Ok(false);
+                return;
             }
 
             // Click on tab bar — switch views
             if in_rect(col, row, app.layout.tab_bar) {
                 handle_tab_click(app, col);
-                return Ok(false);
+                return;
             }
 
             // Click on search/filter bar
@@ -717,7 +708,7 @@ fn handle_mouse(app: &mut App, mouse: crossterm::event::MouseEvent) -> anyhow::R
                 } else {
                     InputMode::LocalFilter
                 };
-                return Ok(false);
+                return;
             }
 
             // Click on package list
@@ -727,24 +718,23 @@ fn handle_mouse(app: &mut App, mouse: crossterm::event::MouseEvent) -> anyhow::R
                 let scrollbar_col = list.x + list.width - 1;
                 if col == scrollbar_col && !app.filtered_packages.is_empty() {
                     scrollbar_jump(app, row);
-                    return Ok(false);
+                    return;
                 }
 
                 // Click on header row → sort by that column
                 let header_row = app.layout.list_content_y.saturating_sub(1);
                 if row == header_row && app.layout.list_content_y > 0 {
                     click_sort_header(app, col);
-                    return Ok(false);
+                    return;
                 }
 
                 select_package_at_row(app, row);
-                return Ok(false);
+                return;
             }
 
             // Click on detail panel
             if in_rect(col, row, app.layout.detail_panel) {
                 app.focus = FocusZone::DetailPanel;
-                return Ok(false);
             }
         }
 
@@ -785,8 +775,6 @@ fn handle_mouse(app: &mut App, mouse: crossterm::event::MouseEvent) -> anyhow::R
 
         _ => {}
     }
-
-    Ok(false)
 }
 
 /// Map a Y position on the scrollbar track to a package index
@@ -1083,7 +1071,7 @@ mod tests {
             message: "Upgrade Foo?".into(),
             operation: Operation::Upgrade { id: "Foo".into() },
         });
-        let _ = handle_confirm(&mut app, KeyCode::Char('n'));
+        handle_confirm(&mut app, KeyCode::Char('n'));
         assert!(app.confirm.is_none(), "confirm should be cleared on 'n'");
         assert_eq!(app.status_message, "Cancelled");
     }
@@ -1095,7 +1083,7 @@ mod tests {
             message: "Upgrade Foo?".into(),
             operation: Operation::Upgrade { id: "Foo".into() },
         });
-        let _ = handle_confirm(&mut app, KeyCode::Esc);
+        handle_confirm(&mut app, KeyCode::Esc);
         assert!(app.confirm.is_none());
         assert_eq!(app.status_message, "Cancelled");
     }
@@ -1107,7 +1095,7 @@ mod tests {
             message: "Upgrade Foo?".into(),
             operation: Operation::Upgrade { id: "Foo".into() },
         });
-        let _ = handle_confirm(&mut app, KeyCode::Char('x'));
+        handle_confirm(&mut app, KeyCode::Char('x'));
         assert!(
             app.confirm.is_some(),
             "unrecognised key must not clear the dialog"
@@ -1120,7 +1108,7 @@ mod tests {
     fn search_input_esc_returns_to_normal_mode() {
         let mut app = make_app();
         app.input_mode = InputMode::Search;
-        let _ = handle_search_input(&mut app, KeyCode::Esc);
+        handle_search_input(&mut app, KeyCode::Esc);
         assert_eq!(app.input_mode, InputMode::Normal);
     }
 
@@ -1128,8 +1116,8 @@ mod tests {
     fn search_input_char_appends_to_query() {
         let mut app = make_app();
         app.input_mode = InputMode::Search;
-        let _ = handle_search_input(&mut app, KeyCode::Char('a'));
-        let _ = handle_search_input(&mut app, KeyCode::Char('b'));
+        handle_search_input(&mut app, KeyCode::Char('a'));
+        handle_search_input(&mut app, KeyCode::Char('b'));
         assert_eq!(app.search_query, "ab");
     }
 
@@ -1138,7 +1126,7 @@ mod tests {
         let mut app = make_app();
         app.input_mode = InputMode::Search;
         app.search_query = "abc".into();
-        let _ = handle_search_input(&mut app, KeyCode::Backspace);
+        handle_search_input(&mut app, KeyCode::Backspace);
         assert_eq!(app.search_query, "ab");
     }
 
@@ -1147,7 +1135,7 @@ mod tests {
         let mut app = make_app();
         app.input_mode = InputMode::Search;
         app.search_query = String::new();
-        let _ = handle_search_input(&mut app, KeyCode::Enter);
+        handle_search_input(&mut app, KeyCode::Enter);
         // Empty query: input_mode switches to Normal but no search is triggered
         assert_eq!(app.input_mode, InputMode::Normal);
         assert!(app.search_query.is_empty());
@@ -1158,7 +1146,7 @@ mod tests {
         let mut app = make_app();
         app.mode = AppMode::Installed;
 
-        let _ = handle_normal_mode(&mut app, KeyCode::Char('/'), KeyModifiers::NONE);
+        handle_normal_mode(&mut app, KeyCode::Char('/'), KeyModifiers::NONE);
 
         assert_eq!(app.input_mode, InputMode::LocalFilter);
     }
@@ -1168,7 +1156,7 @@ mod tests {
         let mut app = make_app();
         app.mode = AppMode::Search;
 
-        let _ = handle_normal_mode(&mut app, KeyCode::Char('/'), KeyModifiers::NONE);
+        handle_normal_mode(&mut app, KeyCode::Char('/'), KeyModifiers::NONE);
 
         assert_eq!(app.input_mode, InputMode::Search);
     }
@@ -1200,8 +1188,8 @@ mod tests {
         let rt = test_runtime();
         let _guard = rt.enter();
 
-        let _ = handle_local_filter_input(&mut app, KeyCode::Char('c'));
-        let _ = handle_local_filter_input(&mut app, KeyCode::Char('h'));
+        handle_local_filter_input(&mut app, KeyCode::Char('c'));
+        handle_local_filter_input(&mut app, KeyCode::Char('h'));
 
         assert_eq!(app.local_filter, "ch");
         assert_eq!(app.filtered_packages.len(), 1);
@@ -1218,7 +1206,7 @@ mod tests {
         let rt = test_runtime();
         let _guard = rt.enter();
 
-        let _ = handle_local_filter_input(&mut app, KeyCode::Esc);
+        handle_local_filter_input(&mut app, KeyCode::Esc);
 
         assert_eq!(app.input_mode, InputMode::Normal);
         assert!(app.local_filter.is_empty());
@@ -1235,7 +1223,7 @@ mod tests {
         let rt = test_runtime();
         let _guard = rt.enter();
 
-        let _ = handle_local_filter_input(&mut app, KeyCode::Enter);
+        handle_local_filter_input(&mut app, KeyCode::Enter);
 
         assert_eq!(app.input_mode, InputMode::Normal);
         assert_eq!(app.local_filter, "pkg1");
@@ -1252,7 +1240,7 @@ mod tests {
 
         // Initial selection is 0; Down should advance it
         app.selected = 0;
-        let _ = handle_local_filter_input(&mut app, KeyCode::Down);
+        handle_local_filter_input(&mut app, KeyCode::Down);
         assert_eq!(app.selected, 1, "Down should move selection to index 1");
         assert_eq!(
             app.input_mode,
@@ -1261,7 +1249,7 @@ mod tests {
         );
 
         // Up should move it back
-        let _ = handle_local_filter_input(&mut app, KeyCode::Up);
+        handle_local_filter_input(&mut app, KeyCode::Up);
         assert_eq!(app.selected, 0, "Up should move selection back to index 0");
         assert_eq!(app.input_mode, InputMode::LocalFilter);
     }
@@ -1275,11 +1263,11 @@ mod tests {
         let _guard = rt.enter();
 
         app.selected = 2;
-        let _ = handle_local_filter_input(&mut app, KeyCode::Home);
+        handle_local_filter_input(&mut app, KeyCode::Home);
         assert_eq!(app.selected, 0, "Home should jump to first item");
         assert_eq!(app.input_mode, InputMode::LocalFilter);
 
-        let _ = handle_local_filter_input(&mut app, KeyCode::End);
+        handle_local_filter_input(&mut app, KeyCode::End);
         assert_eq!(app.selected, 4, "End should jump to last item");
         assert_eq!(app.input_mode, InputMode::LocalFilter);
     }
@@ -1291,7 +1279,7 @@ mod tests {
         let mut app = make_app_with_pkg("Test.App", "1.0", "");
         app.input_mode = InputMode::VersionInput;
         app.version_input = "1.".to_string();
-        let _ = handle_version_input(&mut app, KeyCode::Char('5'));
+        handle_version_input(&mut app, KeyCode::Char('5'));
         assert_eq!(app.version_input, "1.5");
         assert_eq!(app.input_mode, InputMode::VersionInput);
     }
@@ -1301,7 +1289,7 @@ mod tests {
         let mut app = make_app_with_pkg("Test.App", "1.0", "");
         app.input_mode = InputMode::VersionInput;
         app.version_input = "1.5".to_string();
-        let _ = handle_version_input(&mut app, KeyCode::Backspace);
+        handle_version_input(&mut app, KeyCode::Backspace);
         assert_eq!(app.version_input, "1.");
         assert_eq!(app.input_mode, InputMode::VersionInput);
     }
@@ -1311,7 +1299,7 @@ mod tests {
         let mut app = make_app_with_pkg("Test.App", "1.0", "");
         app.input_mode = InputMode::VersionInput;
         app.version_input = String::new();
-        let _ = handle_version_input(&mut app, KeyCode::Backspace);
+        handle_version_input(&mut app, KeyCode::Backspace);
         assert_eq!(app.version_input, "");
     }
 
@@ -1320,7 +1308,7 @@ mod tests {
         let mut app = make_app_with_pkg("Test.App", "1.0", "");
         app.input_mode = InputMode::VersionInput;
         app.version_input = "2.0".to_string();
-        let _ = handle_version_input(&mut app, KeyCode::Esc);
+        handle_version_input(&mut app, KeyCode::Esc);
         assert_eq!(app.input_mode, InputMode::Normal);
         assert_eq!(app.version_input, "");
     }
@@ -1330,7 +1318,7 @@ mod tests {
         let mut app = make_app_with_pkg("Test.App", "1.0", "");
         app.input_mode = InputMode::VersionInput;
         app.version_input = "2.0.1".to_string();
-        let _ = handle_version_input(&mut app, KeyCode::Enter);
+        handle_version_input(&mut app, KeyCode::Enter);
         assert_eq!(app.input_mode, InputMode::Normal);
         assert_eq!(app.version_input, "");
         let confirm = app.confirm.expect("confirm dialog should be set");
@@ -1350,7 +1338,7 @@ mod tests {
         let mut app = make_app_with_pkg("Test.App", "1.0", "");
         app.input_mode = InputMode::VersionInput;
         app.version_input = String::new();
-        let _ = handle_version_input(&mut app, KeyCode::Enter);
+        handle_version_input(&mut app, KeyCode::Enter);
         let confirm = app.confirm.expect("confirm dialog should be set");
         match confirm.operation {
             Operation::Install { version, .. } => {
@@ -1365,7 +1353,7 @@ mod tests {
         let mut app = make_app_with_pkg("Test.App", "1.0", "");
         app.input_mode = InputMode::VersionInput;
         app.version_input = "  2.0  ".to_string();
-        let _ = handle_version_input(&mut app, KeyCode::Enter);
+        handle_version_input(&mut app, KeyCode::Enter);
         let confirm = app.confirm.expect("confirm dialog should be set");
         match confirm.operation {
             Operation::Install { version, .. } => {
@@ -1385,7 +1373,7 @@ mod tests {
         app.mode = AppMode::Upgrades;
         app.selected_packages = [0usize, 1usize].into_iter().collect();
 
-        let _ = handle_normal_mode(&mut app, KeyCode::Char('U'), KeyModifiers::NONE);
+        handle_normal_mode(&mut app, KeyCode::Char('U'), KeyModifiers::NONE);
 
         let confirm = app.confirm.expect("confirm dialog should be set");
         assert_eq!(confirm.message, "Upgrade 2 selected packages?");
@@ -1400,7 +1388,7 @@ mod tests {
         let mut app = make_app_with_pkg("Microsoft.Azure.Function...", "4.0", "4.1");
         app.mode = AppMode::Upgrades;
 
-        let _ = handle_normal_mode(&mut app, KeyCode::Char('u'), KeyModifiers::NONE);
+        handle_normal_mode(&mut app, KeyCode::Char('u'), KeyModifiers::NONE);
 
         let confirm = app.confirm.expect("confirm dialog should be set");
         assert!(
@@ -1438,7 +1426,7 @@ mod tests {
         app.filtered_packages = app.packages.clone();
         app.selected_packages = [0usize, 1usize].into_iter().collect();
 
-        let _ = handle_normal_mode(&mut app, KeyCode::Char('U'), KeyModifiers::NONE);
+        handle_normal_mode(&mut app, KeyCode::Char('U'), KeyModifiers::NONE);
 
         let confirm = app.confirm.expect("confirm dialog should be set");
         assert!(confirm.message.contains("Upgrade 1 selected package"));
@@ -1464,7 +1452,7 @@ mod tests {
         app.filtered_packages = app.packages.clone();
         app.selected_packages = [0usize].into_iter().collect();
 
-        let _ = handle_normal_mode(&mut app, KeyCode::Char('U'), KeyModifiers::NONE);
+        handle_normal_mode(&mut app, KeyCode::Char('U'), KeyModifiers::NONE);
 
         assert!(app.confirm.is_none(), "no confirm dialog should be shown");
         assert!(app
@@ -1478,7 +1466,7 @@ mod tests {
     fn open_homepage_no_detail_shows_status() {
         let mut app = make_app();
         // no detail loaded
-        let _ = handle_normal_mode(&mut app, KeyCode::Char('o'), KeyModifiers::NONE);
+        handle_normal_mode(&mut app, KeyCode::Char('o'), KeyModifiers::NONE);
         assert_eq!(app.status_message, "No package selected");
     }
 
@@ -1489,7 +1477,7 @@ mod tests {
             homepage: String::new(),
             ..PackageDetail::default()
         });
-        let _ = handle_normal_mode(&mut app, KeyCode::Char('o'), KeyModifiers::NONE);
+        handle_normal_mode(&mut app, KeyCode::Char('o'), KeyModifiers::NONE);
         assert_eq!(
             app.status_message,
             "No homepage URL available for this package"
@@ -1499,7 +1487,7 @@ mod tests {
     #[test]
     fn open_changelog_no_detail_shows_status() {
         let mut app = make_app();
-        let _ = handle_normal_mode(&mut app, KeyCode::Char('c'), KeyModifiers::NONE);
+        handle_normal_mode(&mut app, KeyCode::Char('c'), KeyModifiers::NONE);
         assert_eq!(app.status_message, "No package selected");
     }
 
@@ -1510,7 +1498,7 @@ mod tests {
             release_notes_url: String::new(),
             ..PackageDetail::default()
         });
-        let _ = handle_normal_mode(&mut app, KeyCode::Char('c'), KeyModifiers::NONE);
+        handle_normal_mode(&mut app, KeyCode::Char('c'), KeyModifiers::NONE);
         assert_eq!(
             app.status_message,
             "No changelog URL available for this package"
@@ -1520,7 +1508,7 @@ mod tests {
     #[test]
     fn export_empty_list_shows_status() {
         let mut app = make_app();
-        let _ = handle_normal_mode(&mut app, KeyCode::Char('e'), KeyModifiers::NONE);
+        handle_normal_mode(&mut app, KeyCode::Char('e'), KeyModifiers::NONE);
         assert_eq!(app.status_message, "Nothing to export: list is empty");
     }
 
@@ -1529,21 +1517,21 @@ mod tests {
     #[test]
     fn q_key_sets_should_quit() {
         let mut app = make_app();
-        let _ = handle_normal_mode(&mut app, KeyCode::Char('q'), KeyModifiers::NONE);
+        handle_normal_mode(&mut app, KeyCode::Char('q'), KeyModifiers::NONE);
         assert!(app.should_quit);
     }
 
     #[test]
     fn esc_key_sets_should_quit() {
         let mut app = make_app();
-        let _ = handle_normal_mode(&mut app, KeyCode::Esc, KeyModifiers::NONE);
+        handle_normal_mode(&mut app, KeyCode::Esc, KeyModifiers::NONE);
         assert!(app.should_quit);
     }
 
     #[test]
     fn question_mark_enables_help_overlay() {
         let mut app = make_app();
-        let _ = handle_normal_mode(&mut app, KeyCode::Char('?'), KeyModifiers::NONE);
+        handle_normal_mode(&mut app, KeyCode::Char('?'), KeyModifiers::NONE);
         assert!(app.show_help, "? should enable the help overlay");
     }
 
@@ -1551,7 +1539,7 @@ mod tests {
     fn question_mark_disables_help_overlay_when_already_shown() {
         let mut app = make_app();
         app.show_help = true;
-        let _ = handle_normal_mode(&mut app, KeyCode::Char('?'), KeyModifiers::NONE);
+        handle_normal_mode(&mut app, KeyCode::Char('?'), KeyModifiers::NONE);
         assert!(!app.show_help, "? should toggle the help overlay off");
     }
 
@@ -1559,7 +1547,7 @@ mod tests {
     fn tab_moves_focus_to_detail_panel() {
         let mut app = make_app();
         assert_eq!(app.focus, FocusZone::PackageList);
-        let _ = handle_normal_mode(&mut app, KeyCode::Tab, KeyModifiers::NONE);
+        handle_normal_mode(&mut app, KeyCode::Tab, KeyModifiers::NONE);
         assert_eq!(app.focus, FocusZone::DetailPanel);
     }
 
@@ -1567,7 +1555,7 @@ mod tests {
     fn back_tab_moves_focus_back_to_list() {
         let mut app = make_app();
         app.focus = FocusZone::DetailPanel;
-        let _ = handle_normal_mode(&mut app, KeyCode::BackTab, KeyModifiers::NONE);
+        handle_normal_mode(&mut app, KeyCode::BackTab, KeyModifiers::NONE);
         assert_eq!(app.focus, FocusZone::PackageList);
     }
 
@@ -1575,7 +1563,7 @@ mod tests {
     fn s_key_cycles_sort_to_name_ascending() {
         use crate::models::{SortDir, SortField};
         let mut app = make_app();
-        let _ = handle_normal_mode(&mut app, KeyCode::Char('S'), KeyModifiers::NONE);
+        handle_normal_mode(&mut app, KeyCode::Char('S'), KeyModifiers::NONE);
         assert_eq!(app.sort_field, SortField::Name);
         assert_eq!(app.sort_dir, SortDir::Asc);
     }
@@ -1586,7 +1574,7 @@ mod tests {
     fn p_in_search_mode_shows_status_not_confirm() {
         let mut app = make_app();
         app.mode = AppMode::Search;
-        let _ = handle_normal_mode(&mut app, KeyCode::Char('p'), KeyModifiers::NONE);
+        handle_normal_mode(&mut app, KeyCode::Char('p'), KeyModifiers::NONE);
         assert!(
             app.status_message.contains("search results"),
             "p in Search mode should show informational status"
@@ -1598,7 +1586,7 @@ mod tests {
     fn p_on_truncated_id_shows_status() {
         let mut app = make_app_with_pkg("TruncatedPkg...", "1.0", "");
         app.mode = AppMode::Installed;
-        let _ = handle_normal_mode(&mut app, KeyCode::Char('p'), KeyModifiers::NONE);
+        handle_normal_mode(&mut app, KeyCode::Char('p'), KeyModifiers::NONE);
         assert!(app.status_message.contains("truncated"));
         assert!(app.confirm.is_none());
     }
@@ -1607,7 +1595,7 @@ mod tests {
     fn p_on_unpinned_pkg_creates_pin_confirm() {
         let mut app = make_app_with_pkg("Valid.Package", "1.0", "");
         app.mode = AppMode::Installed;
-        let _ = handle_normal_mode(&mut app, KeyCode::Char('p'), KeyModifiers::NONE);
+        handle_normal_mode(&mut app, KeyCode::Char('p'), KeyModifiers::NONE);
         assert!(
             app.confirm.is_some(),
             "p on unpinned package should open a pin confirm dialog"
@@ -1624,7 +1612,7 @@ mod tests {
         app.mode = AppMode::Installed;
         app.packages[0].pin_state = PinState::Pinned;
         app.filtered_packages[0].pin_state = PinState::Pinned;
-        let _ = handle_normal_mode(&mut app, KeyCode::Char('p'), KeyModifiers::NONE);
+        handle_normal_mode(&mut app, KeyCode::Char('p'), KeyModifiers::NONE);
         assert!(
             app.confirm.is_some(),
             "p on pinned package should open an unpin confirm dialog"
@@ -1639,7 +1627,7 @@ mod tests {
     fn capital_p_in_search_mode_shows_informational_status() {
         let mut app = make_app();
         app.mode = AppMode::Search;
-        let _ = handle_normal_mode(&mut app, KeyCode::Char('P'), KeyModifiers::NONE);
+        handle_normal_mode(&mut app, KeyCode::Char('P'), KeyModifiers::NONE);
         assert!(
             app.status_message.contains("Installed")
                 || app.status_message.contains("Upgrades")
@@ -1655,7 +1643,7 @@ mod tests {
         let mut app = make_app();
         app.mode = AppMode::Installed;
         assert_eq!(app.pin_filter, PinFilter::All);
-        let _ = handle_normal_mode(&mut app, KeyCode::Char('P'), KeyModifiers::NONE);
+        handle_normal_mode(&mut app, KeyCode::Char('P'), KeyModifiers::NONE);
         assert_eq!(app.pin_filter, PinFilter::PinnedOnly);
     }
 
@@ -1664,7 +1652,7 @@ mod tests {
     #[test]
     fn i_on_truncated_id_shows_status_not_confirm() {
         let mut app = make_app_with_pkg("Truncated…", "1.0", "");
-        let _ = handle_normal_mode(&mut app, KeyCode::Char('i'), KeyModifiers::NONE);
+        handle_normal_mode(&mut app, KeyCode::Char('i'), KeyModifiers::NONE);
         assert!(app.status_message.contains("truncated"));
         assert!(app.confirm.is_none());
     }
@@ -1672,7 +1660,7 @@ mod tests {
     #[test]
     fn i_on_valid_pkg_creates_install_confirm() {
         let mut app = make_app_with_pkg("Valid.Package", "1.0", "");
-        let _ = handle_normal_mode(&mut app, KeyCode::Char('i'), KeyModifiers::NONE);
+        handle_normal_mode(&mut app, KeyCode::Char('i'), KeyModifiers::NONE);
         assert!(app.confirm.is_some());
         assert!(matches!(
             app.confirm.unwrap().operation,
@@ -1683,7 +1671,7 @@ mod tests {
     #[test]
     fn x_on_truncated_id_shows_status_not_confirm() {
         let mut app = make_app_with_pkg("Truncated...", "1.0", "");
-        let _ = handle_normal_mode(&mut app, KeyCode::Char('x'), KeyModifiers::NONE);
+        handle_normal_mode(&mut app, KeyCode::Char('x'), KeyModifiers::NONE);
         assert!(app.status_message.contains("truncated"));
         assert!(app.confirm.is_none());
     }
@@ -1691,7 +1679,7 @@ mod tests {
     #[test]
     fn x_on_valid_pkg_creates_uninstall_confirm() {
         let mut app = make_app_with_pkg("Valid.Package", "1.0", "");
-        let _ = handle_normal_mode(&mut app, KeyCode::Char('x'), KeyModifiers::NONE);
+        handle_normal_mode(&mut app, KeyCode::Char('x'), KeyModifiers::NONE);
         assert!(app.confirm.is_some());
         assert!(matches!(
             app.confirm.unwrap().operation,
@@ -1702,7 +1690,7 @@ mod tests {
     #[test]
     fn u_on_truncated_id_uses_name_fallback_confirm() {
         let mut app = make_app_with_pkg("Truncated...", "1.0", "2.0");
-        let _ = handle_normal_mode(&mut app, KeyCode::Char('u'), KeyModifiers::NONE);
+        handle_normal_mode(&mut app, KeyCode::Char('u'), KeyModifiers::NONE);
         let confirm = app.confirm.expect("confirm dialog should be shown");
         assert!(confirm.message.contains("ID truncated"));
         assert!(matches!(
@@ -1714,7 +1702,7 @@ mod tests {
     #[test]
     fn u_on_valid_pkg_creates_upgrade_confirm() {
         let mut app = make_app_with_pkg("Valid.Package", "1.0", "2.0");
-        let _ = handle_normal_mode(&mut app, KeyCode::Char('u'), KeyModifiers::NONE);
+        handle_normal_mode(&mut app, KeyCode::Char('u'), KeyModifiers::NONE);
         assert!(app.confirm.is_some());
         assert!(matches!(
             app.confirm.unwrap().operation,
@@ -1725,7 +1713,7 @@ mod tests {
     #[test]
     fn shift_i_on_truncated_id_shows_status() {
         let mut app = make_app_with_pkg("Truncated...", "1.0", "2.0");
-        let _ = handle_normal_mode(&mut app, KeyCode::Char('I'), KeyModifiers::NONE);
+        handle_normal_mode(&mut app, KeyCode::Char('I'), KeyModifiers::NONE);
         assert!(app.status_message.contains("truncated"));
         assert_eq!(app.input_mode, InputMode::Normal);
     }
@@ -1733,7 +1721,7 @@ mod tests {
     #[test]
     fn shift_i_prefills_available_version_when_present() {
         let mut app = make_app_with_pkg("Valid.Package", "1.0", "2.0");
-        let _ = handle_normal_mode(&mut app, KeyCode::Char('I'), KeyModifiers::NONE);
+        handle_normal_mode(&mut app, KeyCode::Char('I'), KeyModifiers::NONE);
         assert_eq!(app.input_mode, InputMode::VersionInput);
         assert_eq!(app.version_input, "2.0");
     }
@@ -1741,7 +1729,7 @@ mod tests {
     #[test]
     fn shift_i_falls_back_to_current_version_when_no_available() {
         let mut app = make_app_with_pkg("Valid.Package", "3.5", "");
-        let _ = handle_normal_mode(&mut app, KeyCode::Char('I'), KeyModifiers::NONE);
+        handle_normal_mode(&mut app, KeyCode::Char('I'), KeyModifiers::NONE);
         assert_eq!(app.input_mode, InputMode::VersionInput);
         assert_eq!(app.version_input, "3.5");
     }
@@ -1752,7 +1740,7 @@ mod tests {
     fn a_key_selects_all_packages_in_upgrades_view() {
         let mut app = make_app_with_pkgs(3);
         app.mode = AppMode::Upgrades;
-        let _ = handle_normal_mode(&mut app, KeyCode::Char('a'), KeyModifiers::NONE);
+        handle_normal_mode(&mut app, KeyCode::Char('a'), KeyModifiers::NONE);
         assert_eq!(
             app.selected_packages.len(),
             3,
@@ -1765,7 +1753,7 @@ mod tests {
         let mut app = make_app_with_pkgs(3);
         app.mode = AppMode::Upgrades;
         app.selected_packages = (0..3).collect();
-        let _ = handle_normal_mode(&mut app, KeyCode::Char('a'), KeyModifiers::NONE);
+        handle_normal_mode(&mut app, KeyCode::Char('a'), KeyModifiers::NONE);
         assert!(
             app.selected_packages.is_empty(),
             "a when all selected should deselect all"
@@ -1781,7 +1769,7 @@ mod tests {
         let _guard = rt.enter();
         let mut app = make_app();
         assert_eq!(app.source_filter, SourceFilter::All);
-        let _ = handle_normal_mode(&mut app, KeyCode::Char('f'), KeyModifiers::NONE);
+        handle_normal_mode(&mut app, KeyCode::Char('f'), KeyModifiers::NONE);
         assert_eq!(app.source_filter, SourceFilter::Winget);
     }
 
@@ -1791,7 +1779,7 @@ mod tests {
         let _guard = rt.enter();
         let mut app = make_app();
         app.loading = false;
-        let _ = handle_normal_mode(&mut app, KeyCode::Char('r'), KeyModifiers::NONE);
+        handle_normal_mode(&mut app, KeyCode::Char('r'), KeyModifiers::NONE);
         assert!(app.loading, "r should set loading = true");
         assert_eq!(app.status_message, "Refreshing...");
     }
@@ -1802,7 +1790,7 @@ mod tests {
         let _guard = rt.enter();
         let mut app = make_app();
         app.mode = AppMode::Search;
-        let _ = handle_normal_mode(&mut app, KeyCode::Right, KeyModifiers::NONE);
+        handle_normal_mode(&mut app, KeyCode::Right, KeyModifiers::NONE);
         assert_eq!(app.mode, AppMode::Installed);
     }
 
@@ -1812,7 +1800,7 @@ mod tests {
         let _guard = rt.enter();
         let mut app = make_app();
         app.mode = AppMode::Installed;
-        let _ = handle_normal_mode(&mut app, KeyCode::Left, KeyModifiers::NONE);
+        handle_normal_mode(&mut app, KeyCode::Left, KeyModifiers::NONE);
         assert_eq!(app.mode, AppMode::Search);
     }
 
@@ -1824,14 +1812,14 @@ mod tests {
         app.mode = AppMode::Upgrades;
         app.selected = 1;
         // First Space selects index 1
-        let _ = handle_normal_mode(&mut app, KeyCode::Char(' '), KeyModifiers::NONE);
+        handle_normal_mode(&mut app, KeyCode::Char(' '), KeyModifiers::NONE);
         assert!(
             app.selected_packages.contains(&1),
             "index 1 should be selected after Space"
         );
         // Move selection back and press Space again to deselect
         app.selected = 1;
-        let _ = handle_normal_mode(&mut app, KeyCode::Char(' '), KeyModifiers::NONE);
+        handle_normal_mode(&mut app, KeyCode::Char(' '), KeyModifiers::NONE);
         assert!(
             !app.selected_packages.contains(&1),
             "index 1 should be deselected after second Space"
@@ -1863,7 +1851,7 @@ mod tests {
         let click_col = app.layout.package_list.x + app.layout.package_list.width - 2;
         let click_row = app.layout.list_content_y + 2;
 
-        let _ = handle_mouse(
+        handle_mouse(
             &mut app,
             MouseEvent {
                 kind: MouseEventKind::Down(MouseButton::Left),
@@ -1883,7 +1871,7 @@ mod tests {
         app.selected = 2;
         *app.table_state.offset_mut() = 5;
 
-        let _ = handle_mouse(
+        handle_mouse(
             &mut app,
             MouseEvent {
                 kind: MouseEventKind::ScrollUp,
@@ -1908,7 +1896,7 @@ mod tests {
         app.mode = AppMode::Installed;
         app.local_filter = "chromium".to_string();
         // Right arrow switches Installed → Upgrades, triggering switch_view
-        let _ = handle_normal_mode(&mut app, KeyCode::Right, KeyModifiers::NONE);
+        handle_normal_mode(&mut app, KeyCode::Right, KeyModifiers::NONE);
         assert!(
             app.local_filter.is_empty(),
             "switch_view must clear local_filter so the new view starts unfiltered"
@@ -1923,7 +1911,7 @@ mod tests {
         app.mode = AppMode::Upgrades;
         app.selected_packages = [0usize, 1, 2].iter().cloned().collect();
         // Left arrow switches Upgrades → Installed
-        let _ = handle_normal_mode(&mut app, KeyCode::Left, KeyModifiers::NONE);
+        handle_normal_mode(&mut app, KeyCode::Left, KeyModifiers::NONE);
         assert!(
             app.selected_packages.is_empty(),
             "switch_view must clear the multi-select set; stale indices are invalid in the new view"
@@ -1941,7 +1929,7 @@ mod tests {
             name: "Some Package".to_string(),
             ..crate::models::PackageDetail::default()
         });
-        let _ = handle_normal_mode(&mut app, KeyCode::Right, KeyModifiers::NONE);
+        handle_normal_mode(&mut app, KeyCode::Right, KeyModifiers::NONE);
         assert!(
             app.detail.is_none(),
             "switch_view must clear the detail panel so stale detail from the old view is not shown"
@@ -1955,7 +1943,7 @@ mod tests {
         let mut app = make_app();
         app.mode = AppMode::Installed;
         let gen_before = app.detail_generation;
-        let _ = handle_normal_mode(&mut app, KeyCode::Right, KeyModifiers::NONE);
+        handle_normal_mode(&mut app, KeyCode::Right, KeyModifiers::NONE);
         assert!(
             app.detail_generation > gen_before,
             "switch_view must bump detail_generation to discard any in-flight detail requests from the old view"
@@ -1969,7 +1957,7 @@ mod tests {
         let mut app = make_app();
         app.mode = AppMode::Installed;
         app.focus = crate::app::FocusZone::DetailPanel;
-        let _ = handle_normal_mode(&mut app, KeyCode::Right, KeyModifiers::NONE);
+        handle_normal_mode(&mut app, KeyCode::Right, KeyModifiers::NONE);
         assert_eq!(
             app.focus,
             crate::app::FocusZone::PackageList,
@@ -1991,7 +1979,7 @@ mod tests {
         // resets state.  Here we test the early-return path: switching to the *current* mode.
         // We set up the mode to match what the Right key would produce.
         app.mode = AppMode::Upgrades;
-        let _ = handle_normal_mode(&mut app, KeyCode::Right, KeyModifiers::NONE);
+        handle_normal_mode(&mut app, KeyCode::Right, KeyModifiers::NONE);
         // Right from Upgrades loops around to Search; that IS a view change, so
         // state resets.  Instead, directly invoke switch_view with the same mode
         // by pressing a key that goes to the already-active mode.

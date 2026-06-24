@@ -9,6 +9,11 @@ repository = "https://github.com/shanselman/winget-tui"
 license = "MIT"
 readme = "README.md"
 
+[lints.rust]
+# Forbid unsafe code project-wide.  The codebase has no need for unsafe
+# blocks and this lint stops them from being introduced accidentally.
+unsafe_code = "forbid"
+
 [dependencies]
 ratatui = "0.30"
 crossterm = "0.29"
