@@ -1114,6 +1114,59 @@ mod tests {
         );
     }
 
+    #[test]
+    fn handle_confirm_capital_n_cancels_dialog() {
+        let mut app = make_app();
+        app.confirm = Some(ConfirmDialog {
+            message: "Upgrade Foo?".into(),
+            operation: Operation::Upgrade { id: "Foo".into() },
+        });
+        let _ = handle_confirm(&mut app, KeyCode::Char('N'));
+        assert!(app.confirm.is_none(), "confirm should be cleared on 'N'");
+        assert_eq!(app.status_message, "Cancelled");
+    }
+
+    #[test]
+    fn handle_confirm_y_executes_operation_and_clears_dialog() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app();
+        app.confirm = Some(ConfirmDialog {
+            message: "Upgrade Foo?".into(),
+            operation: Operation::Upgrade { id: "Foo".into() },
+        });
+        let _ = handle_confirm(&mut app, KeyCode::Char('y'));
+        assert!(
+            app.confirm.is_none(),
+            "confirm dialog should be cleared on 'y'"
+        );
+        assert!(app.loading, "'y' should set loading = true");
+        assert!(
+            app.status_message.contains("Foo"),
+            "status should mention the package being upgraded"
+        );
+    }
+
+    #[test]
+    fn handle_confirm_capital_y_executes_operation_and_clears_dialog() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app();
+        app.confirm = Some(ConfirmDialog {
+            message: "Install Bar?".into(),
+            operation: Operation::Install {
+                id: "Bar".into(),
+                version: None,
+            },
+        });
+        let _ = handle_confirm(&mut app, KeyCode::Char('Y'));
+        assert!(
+            app.confirm.is_none(),
+            "confirm dialog should be cleared on 'Y'"
+        );
+        assert!(app.loading, "'Y' should set loading = true");
+    }
+
     // ── handle_search_input ──────────────────────────────────────────────────
 
     #[test]
@@ -1541,6 +1594,13 @@ mod tests {
     }
 
     #[test]
+    fn ctrl_c_sets_should_quit() {
+        let mut app = make_app();
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('c'), KeyModifiers::CONTROL);
+        assert!(app.should_quit, "Ctrl+C should set should_quit");
+    }
+
+    #[test]
     fn question_mark_enables_help_overlay() {
         let mut app = make_app();
         let _ = handle_normal_mode(&mut app, KeyCode::Char('?'), KeyModifiers::NONE);
@@ -1569,6 +1629,149 @@ mod tests {
         app.focus = FocusZone::DetailPanel;
         let _ = handle_normal_mode(&mut app, KeyCode::BackTab, KeyModifiers::NONE);
         assert_eq!(app.focus, FocusZone::PackageList);
+    }
+
+    // ── handle_normal_mode: navigation with detail panel focused ─────────────
+
+    #[test]
+    fn up_key_when_detail_focused_scrolls_detail_not_selection() {
+        let mut app = make_app_with_pkgs(5);
+        app.focus = FocusZone::DetailPanel;
+        app.layout.detail_panel.height = 10;
+        app.detail_content_lines = 20;
+        app.detail_scroll = 5;
+        app.selected = 2;
+        let _ = handle_normal_mode(&mut app, KeyCode::Up, KeyModifiers::NONE);
+        assert_eq!(app.detail_scroll, 4, "Up should scroll detail back by 1");
+        assert_eq!(
+            app.selected, 2,
+            "Up in detail mode must not change selection"
+        );
+    }
+
+    #[test]
+    fn down_key_when_detail_focused_scrolls_detail_not_selection() {
+        let mut app = make_app_with_pkgs(5);
+        app.focus = FocusZone::DetailPanel;
+        app.layout.detail_panel.height = 10;
+        app.detail_content_lines = 20;
+        app.detail_scroll = 3;
+        app.selected = 2;
+        let _ = handle_normal_mode(&mut app, KeyCode::Down, KeyModifiers::NONE);
+        assert_eq!(
+            app.detail_scroll, 4,
+            "Down should scroll detail forward by 1"
+        );
+        assert_eq!(
+            app.selected, 2,
+            "Down in detail mode must not change selection"
+        );
+    }
+
+    #[test]
+    fn k_key_when_detail_focused_scrolls_detail() {
+        let mut app = make_app_with_pkgs(3);
+        app.focus = FocusZone::DetailPanel;
+        app.layout.detail_panel.height = 10;
+        app.detail_content_lines = 20;
+        app.detail_scroll = 5;
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('k'), KeyModifiers::NONE);
+        assert_eq!(app.detail_scroll, 4, "k should scroll detail back by 1");
+    }
+
+    #[test]
+    fn j_key_when_detail_focused_scrolls_detail() {
+        let mut app = make_app_with_pkgs(3);
+        app.focus = FocusZone::DetailPanel;
+        app.layout.detail_panel.height = 10;
+        app.detail_content_lines = 20;
+        app.detail_scroll = 3;
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('j'), KeyModifiers::NONE);
+        assert_eq!(app.detail_scroll, 4, "j should scroll detail forward by 1");
+    }
+
+    #[test]
+    fn page_up_when_detail_focused_scrolls_detail_panel() {
+        let mut app = make_app_with_pkgs(3);
+        app.focus = FocusZone::DetailPanel;
+        // height=10: page = 10 - 3 = 7
+        app.layout.detail_panel.height = 10;
+        app.detail_content_lines = 30;
+        app.detail_scroll = 15;
+        let _ = handle_normal_mode(&mut app, KeyCode::PageUp, KeyModifiers::NONE);
+        assert_eq!(
+            app.detail_scroll, 8,
+            "PageUp should scroll detail back by (height - 3)"
+        );
+    }
+
+    #[test]
+    fn page_down_when_detail_focused_scrolls_detail_panel() {
+        let mut app = make_app_with_pkgs(3);
+        app.focus = FocusZone::DetailPanel;
+        // height=10: page = 10 - 3 = 7
+        app.layout.detail_panel.height = 10;
+        app.detail_content_lines = 30;
+        app.detail_scroll = 5;
+        let _ = handle_normal_mode(&mut app, KeyCode::PageDown, KeyModifiers::NONE);
+        assert_eq!(
+            app.detail_scroll, 12,
+            "PageDown should scroll detail forward by (height - 3)"
+        );
+    }
+
+    #[test]
+    fn home_key_when_detail_focused_resets_scroll_to_zero() {
+        let mut app = make_app_with_pkgs(3);
+        app.focus = FocusZone::DetailPanel;
+        app.layout.detail_panel.height = 10;
+        app.detail_content_lines = 30;
+        app.detail_scroll = 12;
+        let _ = handle_normal_mode(&mut app, KeyCode::Home, KeyModifiers::NONE);
+        assert_eq!(app.detail_scroll, 0, "Home should reset detail scroll to 0");
+    }
+
+    #[test]
+    fn end_key_when_detail_focused_jumps_to_last_visible_line() {
+        let mut app = make_app_with_pkgs(3);
+        app.focus = FocusZone::DetailPanel;
+        // height=10: viewport = 10 - 3 = 7; content=20; end = 20 - 7 = 13
+        app.layout.detail_panel.height = 10;
+        app.detail_content_lines = 20;
+        app.detail_scroll = 0;
+        let _ = handle_normal_mode(&mut app, KeyCode::End, KeyModifiers::NONE);
+        assert_eq!(
+            app.detail_scroll, 13,
+            "End should scroll to the last position where content fills the viewport"
+        );
+    }
+
+    #[test]
+    fn up_key_when_list_focused_moves_selection() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app_with_pkgs(5);
+        app.focus = FocusZone::PackageList;
+        app.selected = 3;
+        let _ = handle_normal_mode(&mut app, KeyCode::Up, KeyModifiers::NONE);
+        assert_eq!(
+            app.selected, 2,
+            "Up with list focus should move selection, not scroll detail"
+        );
+    }
+
+    #[test]
+    fn down_key_when_list_focused_moves_selection() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app_with_pkgs(5);
+        app.focus = FocusZone::PackageList;
+        app.selected = 1;
+        let _ = handle_normal_mode(&mut app, KeyCode::Down, KeyModifiers::NONE);
+        assert_eq!(
+            app.selected, 2,
+            "Down with list focus should move selection, not scroll detail"
+        );
     }
 
     #[test]
