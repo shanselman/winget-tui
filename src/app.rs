@@ -335,6 +335,12 @@ impl App {
         self.layout.package_list.height.saturating_sub(4) as usize
     }
 
+    /// Number of content lines visible in the rendered detail panel.
+    pub fn detail_viewport_rows(&self) -> usize {
+        // Border top (1) + top padding (1) + border bottom (1).
+        self.layout.detail_panel.height.saturating_sub(3) as usize
+    }
+
     /// Adjust the table viewport offset so the selected row is visible.
     pub fn ensure_selection_visible(&mut self) {
         let viewport_rows = self.package_list_viewport_rows();
@@ -351,7 +357,7 @@ impl App {
 
     /// Scroll the detail panel by `delta` lines, clamped to valid range.
     pub fn scroll_detail(&mut self, delta: isize) {
-        let viewport = self.layout.detail_panel.height.saturating_sub(3) as usize;
+        let viewport = self.detail_viewport_rows();
         let max = self.detail_content_lines.saturating_sub(viewport);
         self.detail_scroll = (self.detail_scroll as isize + delta).clamp(0, max as isize) as usize;
     }
