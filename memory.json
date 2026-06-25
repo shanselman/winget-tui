@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-06-24T13:31:12Z",
-  "last_run_id": "28102066212",
+  "last_run": "2026-06-25T00:00:00Z",
+  "last_run_id": "28140747980",
   "monthly_summary_issue": null,
   "monthly_summary_disabled": true,
   "monthly_summary_note": "Maintainer closed issue #222 on 2026-06-08 as automation noise. Do not create monthly activity summary issues.",
@@ -16,190 +16,36 @@
     "249_pr": "2026-06-22"
   },
   "open_repo_assist_prs": [
-    {
-      "branch": "repo-assist/testing-improvements-locale-edge-cases",
-      "pr": 232,
-      "task": "Task 9",
-      "files": [
-        "src/cli_backend.rs"
-      ],
-      "status": "open"
-    },
-    {
-      "branch": "repo-assist/feat-sort-available-version-upgrades",
-      "pr": 241,
-      "task": "Task 10",
-      "files": [
-        "src/app.rs",
-        "src/models.rs"
-      ],
-      "status": "open"
-    },
-    {
-      "branch": "repo-assist/improve-csv-pin-state-2026-06-12",
-      "pr": 246,
-      "task": "Task 5",
-      "files": [
-        "src/app.rs"
-      ],
-      "status": "open"
-    },
-    {
-      "branch": "repo-assist/fix-scroll-down-viewport-overflow-2026-06-13",
-      "pr": 248,
-      "task": "Task 3",
-      "files": [
-        "src/app.rs"
-      ],
-      "status": "open"
-    },
-    {
-      "branch": "repo-assist/test-nav-keys-home-end-pgup-pgdn",
-      "pr": 249,
-      "task": "Task 9",
-      "files": [
-        "src/handler.rs"
-      ],
-      "status": "open - recommend closing",
-      "note": "Duplicate ctrl_c test vs PR #259. Commented recommending close. Replacement: PR #265."
-    },
-    {
-      "branch": "repo-assist/test-detail-focus-confirm-ops-2026-06-19",
-      "pr": 259,
-      "task": "Task 9",
-      "files": [
-        "src/handler.rs",
-        "src/models.rs"
-      ],
-      "status": "open"
-    },
-    {
-      "branch": "repo-assist/test-mouse-and-op-complete-2026-06-21-46f6738c1e054c45",
-      "pr": 263,
-      "task": "Task 9+10",
-      "files": [
-        "src/handler.rs",
-        "src/app.rs"
-      ],
-      "status": "open"
-    },
-    {
-      "branch": "repo-assist/eng-deps-update-2026-06-22",
-      "pr": 264,
-      "task": "Task 4",
-      "files": [
-        "Cargo.lock"
-      ],
-      "status": "open",
-      "note": "Overlaps with Dependabot PR #268 (ratatui only). PR #264 is superset; recommend merging #264 and closing #268."
-    },
-    {
-      "branch": "repo-assist/test-list-nav-keys-2026-06-22",
-      "pr": 265,
-      "task": "Task 6",
-      "files": [
-        "src/handler.rs"
-      ],
-      "status": "open"
-    },
-    {
-      "branch": "repo-assist/improve-detail-viewport-rows-2026-06-22",
-      "pr": 266,
-      "task": "Task 5",
-      "files": [
-        "src/app.rs",
-        "src/handler.rs",
-        "src/ui.rs"
-      ],
-      "status": "open"
-    },
-    {
-      "branch": "repo-assist/test-local-filter-nav-and-key-aliases-2026-06-23",
-      "pr": 267,
-      "task": "Task 9",
-      "files": [
-        "src/handler.rs"
-      ],
-      "status": "open",
-      "note": "10 new tests: local_filter_page_up/down (6), s-key alias (2), Space+a guard (2). 371->381 tests."
-    },
-    {
-      "branch": "repo-assist/feat-local-filter-count-display-2026-06-23",
-      "pr": 271,
-      "task": "Task 10",
-      "files": [
-        "src/app.rs",
-        "src/ui.rs"
-      ],
-      "status": "open",
-      "note": "Shows 'X of Y' in package list title when local filter is active. 3 new tests."
-    },
-    {
-      "branch": "repo-assist/refactor-lints-and-handler-return-types-2026-06-24-8be9a98e1b90c420",
-      "pr": 272,
-      "task": "Task 4+5",
-      "files": [
-        "Cargo.toml",
-        "src/handler.rs"
-      ],
-      "status": "open"
-    },
-    {
-      "branch": "repo-assist/test-help-scroll-and-upgrades-sort-header-2026-06-24",
-      "pr": "TBD",
-      "task": "Task 9",
-      "files": [
-        "src/handler.rs"
-      ],
-      "status": "open",
-      "note": "12 new tests: help j/k/PgUp/PgDn/? (7), click_sort_header Upgrades mode (4), open_url data: scheme (1). 371->383 tests."
-    }
+    {"branch": "repo-assist/testing-improvements-locale-edge-cases", "pr": 232, "task": "Task 9", "files": ["src/cli_backend.rs"], "status": "open"},
+    {"branch": "repo-assist/feat-sort-available-version-upgrades", "pr": 241, "task": "Task 10", "files": ["src/app.rs", "src/models.rs"], "status": "open"},
+    {"branch": "repo-assist/improve-csv-pin-state-2026-06-12", "pr": 246, "task": "Task 5", "files": ["src/app.rs"], "status": "open"},
+    {"branch": "repo-assist/fix-scroll-down-viewport-overflow-2026-06-13", "pr": 248, "task": "Task 3", "files": ["src/app.rs"], "status": "open"},
+    {"branch": "repo-assist/test-detail-focus-confirm-ops-2026-06-19", "pr": 259, "task": "Task 9", "files": ["src/handler.rs", "src/models.rs"], "status": "open"},
+    {"branch": "repo-assist/test-mouse-and-op-complete-2026-06-21-46f6738c1e054c45", "pr": 263, "task": "Task 9+10", "files": ["src/handler.rs", "src/app.rs"], "status": "open"},
+    {"branch": "repo-assist/test-list-nav-keys-2026-06-22", "pr": 265, "task": "Task 6", "files": ["src/handler.rs"], "status": "open"},
+    {"branch": "repo-assist/improve-detail-viewport-rows-2026-06-22", "pr": 266, "task": "Task 5", "files": ["src/app.rs", "src/handler.rs", "src/ui.rs"], "status": "open"},
+    {"branch": "repo-assist/test-local-filter-nav-and-key-aliases-2026-06-23", "pr": 267, "task": "Task 9", "files": ["src/handler.rs"], "status": "open", "note": "10 new tests."},
+    {"branch": "repo-assist/feat-local-filter-count-display-2026-06-23", "pr": 271, "task": "Task 10", "files": ["src/app.rs", "src/ui.rs"], "status": "open"},
+    {"branch": "repo-assist/refactor-lints-and-handler-return-types-2026-06-24-8be9a98e1b90c420", "pr": 272, "task": "Task 4+5", "files": ["Cargo.toml", "src/handler.rs"], "status": "open"},
+    {"branch": "repo-assist/test-help-scroll-and-upgrades-sort-header-2026-06-24", "pr": 273, "task": "Task 9", "files": ["src/handler.rs"], "status": "open", "note": "12 new tests."},
+    {"branch": "repo-assist/fix-detail-scroll-stale-on-package-change-2026-06-25", "pr": "TBD", "task": "Task 3", "files": ["src/app.rs"], "status": "open", "note": "Fix: reset detail_scroll when selected package changes on refresh. 2 new tests. 373 total."}
   ],
   "open_repo_assist_issues": [
-    {
-      "number": 229,
-      "title": "[Repo Assist] docs: update AGENTS.md config keys and README mouse-sort entry",
-      "note": "AGENTS.md is a protected file."
-    },
-    {
-      "number": 233,
-      "title": "feat: sort Upgrades view by available version (PR #241 covers this)"
-    },
-    {
-      "number": 243,
-      "title": "perf: cache logo, etc."
-    },
-    {
-      "number": 253,
-      "title": "ci: add restore-keys to cargo caches (requires human to apply - workflows permission)"
-    },
-    {
-      "number": 256,
-      "title": "perf: cache logo+detail+rows + clipboard copy"
-    },
-    {
-      "number": 257,
-      "title": "docs: update AGENTS.md + README"
-    },
-    {
-      "number": 261,
-      "title": "[Repo Assist] docs(agents): document default_sort and default_pin_filter config keys",
-      "note": "Third attempt - protected files issue (AGENTS.md). Duplicates #229 and #257."
-    }
+    {"number": 229, "title": "[Repo Assist] docs: update AGENTS.md config keys and README mouse-sort entry", "note": "AGENTS.md is a protected file."},
+    {"number": 233, "title": "feat: sort Upgrades view by available version (PR #241 covers this)"},
+    {"number": 243, "title": "perf: cache logo, etc."},
+    {"number": 253, "title": "ci: add restore-keys to cargo caches (requires human to apply - workflows permission)"},
+    {"number": 256, "title": "perf: cache logo+detail+rows + clipboard copy"},
+    {"number": 257, "title": "docs: update AGENTS.md + README"},
+    {"number": 261, "title": "[Repo Assist] docs(agents): document default_sort and default_pin_filter config keys", "note": "Third attempt - protected files issue (AGENTS.md). Duplicates #229 and #257."}
   ],
   "deferred_work": [
-    {
-      "id": "eng-ci-restore-keys",
-      "description": "Add restore-keys to cargo caches in ci.yml and build.yml",
-      "priority": "low",
-      "defer_reason": "Requires workflows permission. Issue #253 open.",
-      "defer_until": "maintainer_applies_manually"
-    }
+    {"id": "eng-ci-restore-keys", "description": "Add restore-keys to cargo caches in ci.yml and build.yml", "priority": "low", "defer_reason": "Requires workflows permission. Issue #253 open.", "defer_until": "maintainer_applies_manually"}
   ],
   "backlog_cursor": {
     "issues": "no human issues open",
     "next_issue_to_process": "check for new human issues next run"
   },
-  "ci_status_note": "All Repo Assist PR branches show no CI check runs (security gate). No code conflicts. All PRs based on 35e0b34 (current main).",
-  "notes": "2026-06-24 run (28102066212): Tasks 6 (Maintain PRs) + 9 (Testing). Task 6: All 13 open PRs still on main (35e0b34), no conflicts, no CI failures (security gate). PR #272 confirmed. Task 9: Created new test PR for handler.rs - 12 new tests covering help-scroll j/k/PgUp/PgDn/? keys (7), click_sort_header in Upgrades mode (4), open_url data: scheme (1). 371->383 tests pass, clippy -D warnings clean. Monthly summary: disabled by maintainer."
+  "ci_status_note": "All Repo Assist PR branches show no CI check runs (security gate). No code conflicts.",
+  "notes": "2026-06-25 run (28140747980): Tasks 6 (Maintain PRs) + 3 (Issue Fix). Task 6: All open Repo Assist PRs audited - no conflicts, no CI failures. Main moved to aeab774 (workflow-only change). PR #264 and #249 confirmed closed. Task 3: Fixed stale detail_scroll bug in app.rs PackagesLoaded handler - borrow prev_id by ref, reset scroll if selected package changes. 2 new tests, 371+2=373 tests pass. Created draft PR on branch fix-detail-scroll-stale-on-package-change-2026-06-25. Monthly summary: disabled by maintainer."
 }
