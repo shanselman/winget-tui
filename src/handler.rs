@@ -2354,4 +2354,144 @@ mod tests {
         click_sort_header(&mut app, 0);
         assert_eq!(app.sort_field, SortField::None);
     }
+
+    // ── click_sort_header: Upgrades mode column layout ────────────────────────
+    //
+    // In Upgrades mode the columns are: Name 25%, ID 30%, Version 15%,
+    // Available 15% (unsortable), Source 15% (unsortable).
+    // With content_width = 100 - 3 = 97 and list.x = 0 (so x0 = 1):
+    //   boundary_name    = 97 * 25 / 100 = 24    → offset < 24  → Name
+    //   boundary_id      = 24 + 97*30/100 = 53   → offset < 53  → Id
+    //   boundary_version = 53 + 97*15/100 = 67   → offset < 67  → Version
+    //   offset >= 67                              → unsortable (noop)
+
+    #[test]
+    fn click_sort_header_upgrades_name_column_sets_name_sort() {
+        let mut app = make_app_with_list_layout();
+        app.mode = AppMode::Upgrades;
+        // col=5 → offset=4; 4 < 24 → Name column
+        click_sort_header(&mut app, 5);
+        assert_eq!(app.sort_field, SortField::Name);
+        assert_eq!(app.sort_dir, SortDir::Asc);
+    }
+
+    #[test]
+    fn click_sort_header_upgrades_id_column_sets_id_sort() {
+        let mut app = make_app_with_list_layout();
+        app.mode = AppMode::Upgrades;
+        // col=35 → offset=34; 24 <= 34 < 53 → Id column
+        click_sort_header(&mut app, 35);
+        assert_eq!(app.sort_field, SortField::Id);
+        assert_eq!(app.sort_dir, SortDir::Asc);
+    }
+
+    #[test]
+    fn click_sort_header_upgrades_version_column_sets_version_sort() {
+        let mut app = make_app_with_list_layout();
+        app.mode = AppMode::Upgrades;
+        // col=60 → offset=59; 53 <= 59 < 67 → Version column
+        click_sort_header(&mut app, 60);
+        assert_eq!(app.sort_field, SortField::Version);
+        assert_eq!(app.sort_dir, SortDir::Asc);
+    }
+
+    #[test]
+    fn click_sort_header_upgrades_available_column_is_noop() {
+        let mut app = make_app_with_list_layout();
+        app.mode = AppMode::Upgrades;
+        // col=76 → offset=75; 75 >= 67 → Available column (unsortable)
+        click_sort_header(&mut app, 76);
+        assert_eq!(
+            app.sort_field,
+            SortField::None,
+            "Available column must not set sort in Upgrades mode"
+        );
+    }
+
+    // ── handle_help_input: j / k / PageUp / PageDown / ? ─────────────────────
+    // Existing tests cover Down, Up, Home, End, Esc. These cover the aliases
+    // and the page-step variants.
+
+    #[test]
+    fn help_j_key_scrolls_down_one_line() {
+        let mut app = make_app();
+        app.show_help = true;
+        app.help_max_scroll = 10;
+        app.help_scroll = 3;
+        handle_help_input(&mut app, KeyCode::Char('j'));
+        assert_eq!(app.help_scroll, 4, "j should scroll down by 1");
+        assert!(app.show_help, "help should remain open");
+    }
+
+    #[test]
+    fn help_k_key_scrolls_up_one_line() {
+        let mut app = make_app();
+        app.show_help = true;
+        app.help_max_scroll = 10;
+        app.help_scroll = 5;
+        handle_help_input(&mut app, KeyCode::Char('k'));
+        assert_eq!(app.help_scroll, 4, "k should scroll up by 1");
+    }
+
+    #[test]
+    fn help_page_up_decrements_by_ten() {
+        let mut app = make_app();
+        app.show_help = true;
+        app.help_max_scroll = 20;
+        app.help_scroll = 15;
+        handle_help_input(&mut app, KeyCode::PageUp);
+        assert_eq!(app.help_scroll, 5, "PageUp should scroll up by 10");
+    }
+
+    #[test]
+    fn help_page_up_saturates_at_zero() {
+        let mut app = make_app();
+        app.show_help = true;
+        app.help_max_scroll = 20;
+        app.help_scroll = 3;
+        handle_help_input(&mut app, KeyCode::PageUp);
+        assert_eq!(app.help_scroll, 0, "PageUp at near-zero should not underflow");
+    }
+
+    #[test]
+    fn help_page_down_increments_by_ten() {
+        let mut app = make_app();
+        app.show_help = true;
+        app.help_max_scroll = 20;
+        app.help_scroll = 5;
+        handle_help_input(&mut app, KeyCode::PageDown);
+        assert_eq!(app.help_scroll, 15, "PageDown should scroll down by 10");
+    }
+
+    #[test]
+    fn help_page_down_clamped_at_max() {
+        let mut app = make_app();
+        app.show_help = true;
+        app.help_max_scroll = 12;
+        app.help_scroll = 8;
+        handle_help_input(&mut app, KeyCode::PageDown);
+        assert_eq!(
+            app.help_scroll, 12,
+            "PageDown should clamp at help_max_scroll"
+        );
+    }
+
+    #[test]
+    fn help_question_mark_closes_overlay_and_resets_scroll() {
+        let mut app = make_app();
+        app.show_help = true;
+        app.help_scroll = 7;
+        app.help_max_scroll = 10;
+        handle_help_input(&mut app, KeyCode::Char('?'));
+        assert!(!app.show_help, "? should close the help overlay");
+        assert_eq!(app.help_scroll, 0, "scroll should reset to 0 when help closes");
+    }
+
+    // ── open_url: scheme validation ───────────────────────────────────────────
+
+    #[test]
+    fn open_url_rejects_data_scheme() {
+        // data: URIs could contain executable content — must be blocked
+        assert!(!open_url("data:text/html,<script>alert(1)</script>"));
+    }
 }
