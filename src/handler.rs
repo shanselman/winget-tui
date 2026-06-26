@@ -611,7 +611,7 @@ fn load_detail_for_selected(app: &mut App) {
 /// - If it is already the active sort field, toggles Asc ↔ Desc.
 /// - Otherwise, activates that field in Asc order.
 ///
-/// Clicking an unsortable column (Source, Available) is a no-op.
+/// Clicking an unsortable column (Available in non-Upgrades views) is a no-op.
 fn click_sort_header(app: &mut App, col: u16) {
     let list = app.layout.package_list;
     // Usable content width: strip left border (1), right border/scrollbar (2)
@@ -627,20 +627,23 @@ fn click_sort_header(app: &mut App, col: u16) {
     let offset = col - x0;
 
     // Determine the sort field based on column percentages defined in ui.rs.
-    // Non-Upgrades: Name 25%, ID 35%, Version 20%, Source 20% (unsortable)
-    // Upgrades:     Name 25%, ID 30%, Version 15%, Available 15% (unsortable), Source 15% (unsortable)
+    // Non-Upgrades: Name 25%, ID 35%, Version 20%, Source 20% (sortable)
+    // Upgrades:     Name 25%, ID 30%, Version 15%, Available 15% (unsortable), Source 15% (sortable)
     let field = if app.mode == AppMode::Upgrades {
         let boundary_name = content_width * 25 / 100;
         let boundary_id = boundary_name + content_width * 30 / 100;
         let boundary_version = boundary_id + content_width * 15 / 100;
+        let boundary_available = boundary_version + content_width * 15 / 100;
         if offset < boundary_name {
             SortField::Name
         } else if offset < boundary_id {
             SortField::Id
         } else if offset < boundary_version {
             SortField::Version
+        } else if offset < boundary_available {
+            return; // Available — not sortable (use PR #241 when merged)
         } else {
-            return; // Available or Source — not sortable
+            SortField::Source
         }
     } else {
         let boundary_name = content_width * 25 / 100;
@@ -653,7 +656,7 @@ fn click_sort_header(app: &mut App, col: u16) {
         } else if offset < boundary_version {
             SortField::Version
         } else {
-            return; // Source — not sortable
+            SortField::Source
         }
     };
 
@@ -2336,14 +2339,54 @@ mod tests {
     }
 
     #[test]
-    fn click_sort_header_source_column_is_noop() {
+    fn click_sort_header_source_column_sets_source_sort() {
         let mut app = make_app_with_list_layout();
-        // Source starts at ~80 (25+35+20=80%); click at col=90
+        // Non-Upgrades: Name 25%, ID 35%, Version 20%, Source 20%.
+        // Content width=97; Source starts at 97*25/100 + 97*35/100 + 97*20/100 = 24+33+19=76.
+        // Click at col=90 (within Source column).
         click_sort_header(&mut app, 90);
+        assert_eq!(app.sort_field, SortField::Source);
+        assert_eq!(app.sort_dir, SortDir::Asc);
+    }
+
+    #[test]
+    fn click_sort_header_source_column_toggles_direction() {
+        let mut app = make_app_with_list_layout();
+        click_sort_header(&mut app, 90); // Source Asc
+        assert_eq!(app.sort_dir, SortDir::Asc);
+        click_sort_header(&mut app, 90); // Source Desc
+        assert_eq!(app.sort_dir, SortDir::Desc);
+    }
+
+    #[test]
+    fn click_sort_header_upgrades_source_column_sets_source_sort() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app_with_pkgs(3);
+        app.mode = AppMode::Upgrades;
+        app.layout.package_list = rect(0, 0, 100, 10);
+        // Upgrades: Name 25%, ID 30%, Version 15%, Available 15%, Source 15%.
+        // Content width=97; Source boundary = 97*25/100 + 97*30/100 + 97*15/100 + 97*15/100
+        //   = 24+29+14+14 = 81.
+        // Click at col=90 (within Source column 81..97).
+        click_sort_header(&mut app, 90);
+        assert_eq!(app.sort_field, SortField::Source);
+        assert_eq!(app.sort_dir, SortDir::Asc);
+    }
+
+    #[test]
+    fn click_sort_header_upgrades_available_column_is_noop() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app_with_pkgs(3);
+        app.mode = AppMode::Upgrades;
+        app.layout.package_list = rect(0, 0, 100, 10);
+        // Available column: 67..81; click at col=75.
+        click_sort_header(&mut app, 75);
         assert_eq!(
             app.sort_field,
             SortField::None,
-            "Source column must not set sort"
+            "Available column is not sortable in this build (needs PR #241)"
         );
     }
 
