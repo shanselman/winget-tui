@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-06-26T00:00:00Z",
-  "last_run_id": "28211331885",
+  "last_run": "2026-06-26T13:27:28Z",
+  "last_run_id": "28240986872",
   "monthly_summary_issue": null,
   "monthly_summary_preference": "maintainer_disabled",
   "monthly_summary_note": "2026-06-08: Maintainer closed issue #222 with comment 'monthly Repo Assist activity tracker/automation noise, no maintainer action required.' Do NOT create monthly activity summary issues.",
@@ -13,12 +13,27 @@
   },
   "fix_attempts": {},
   "open_repo_assist_prs": [
-    "repo-assist/feat-sort-by-source-2026-06-26"
+    "repo-assist/testing-improvements-locale-edge-cases",
+    "repo-assist/feat-sort-available-version-upgrades",
+    "repo-assist/improve-csv-pin-state-2026-06-12",
+    "repo-assist/fix-scroll-down-viewport-overflow-2026-06-13",
+    "repo-assist/test-detail-focus-confirm-ops-2026-06-19",
+    "repo-assist/test-mouse-and-op-complete-2026-06-21",
+    "repo-assist/test-list-nav-keys-2026-06-22",
+    "repo-assist/improve-detail-viewport-rows-2026-06-22",
+    "repo-assist/test-local-filter-nav-and-key-aliases-2026-06-23",
+    "repo-assist/feat-local-filter-count-display-2026-06-23",
+    "repo-assist/refactor-lints-and-handler-return-types-2026-06-24",
+    "repo-assist/test-help-scroll-and-upgrades-sort-header-2026-06-24",
+    "repo-assist/fix-detail-scroll-stale-on-package-change-2026-06-25",
+    "repo-assist/eng-deps-update-2026-06-25",
+    "repo-assist/feat-sort-by-source-2026-06-26",
+    "repo-assist/improve-empty-list-message-2026-06-26"
   ],
   "open_repo_assist_issues": [],
   "backlog_cursor": {
     "issues": "no human issues open",
     "next_issue_to_process": "check for new human issues next run"
   },
-  "notes": "2026-06-26 run: Tasks 6+10+11-disabled. Task 6: Verified 14 open PRs (all CI action_required = approval gate, no merge conflicts). Task 10: Created feat PR - sort by Source column. New cycle: None→Name↑→Name↓→ID↑→ID↓→Version↑→Version↓→Source↑→Source↓→None. Branch: repo-assist/feat-sort-by-source-2026-06-26. 380 tests pass. Note: Available column sort (Upgrades) still no-op - reserved for PR #241. If PR #241 merges before this PR, minor rebase of cycle_sort needed."
+  "notes": "2026-06-26 run (28240986872): Tasks 6+5. Task 6: 15 open PRs verified, no conflicts. Task 5: extracted empty_list_message() from ui.rs to app.rs; added local-filter case 'No matches for query'; 11 new unit tests; 382 total. Monthly summary disabled by maintainer."
 }

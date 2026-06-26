@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-06-25T13:29:47Z",
-  "last_run_id": "28173607098",
+  "last_run": "2026-06-26T13:27:28Z",
+  "last_run_id": "28240986872",
   "monthly_summary_issue": null,
   "monthly_summary_disabled": true,
   "monthly_summary_note": "Maintainer closed issue #222 on 2026-06-08 as automation noise. Do not create monthly activity summary issues.",
@@ -9,27 +9,26 @@
     "83": "2026-04-16",
     "88": "2026-04-16",
     "126": "2026-04-19",
-    "154_pr": "2026-04-27",
-    "230_pr": "2026-06-13",
-    "252_issue": "2026-06-17",
-    "238_pr": "2026-06-20",
-    "249_pr": "2026-06-22"
+    "154_pr": "2026-04-27"
   },
+  "fix_attempts": {},
   "open_repo_assist_prs": [
-    {"branch": "repo-assist/testing-improvements-locale-edge-cases", "pr": 232, "task": "Task 9", "files": ["src/cli_backend.rs"], "status": "open"},
-    {"branch": "repo-assist/feat-sort-available-version-upgrades", "pr": 241, "task": "Task 10", "files": ["src/app.rs", "src/models.rs"], "status": "open"},
-    {"branch": "repo-assist/improve-csv-pin-state-2026-06-12", "pr": 246, "task": "Task 5", "files": ["src/app.rs"], "status": "open"},
-    {"branch": "repo-assist/fix-scroll-down-viewport-overflow-2026-06-13", "pr": 248, "task": "Task 3", "files": ["src/app.rs"], "status": "open"},
-    {"branch": "repo-assist/test-detail-focus-confirm-ops-2026-06-19", "pr": 259, "task": "Task 9", "files": ["src/handler.rs", "src/models.rs"], "status": "open"},
-    {"branch": "repo-assist/test-mouse-and-op-complete-2026-06-21-46f6738c1e054c45", "pr": 263, "task": "Task 9+10", "files": ["src/handler.rs", "src/app.rs"], "status": "open"},
-    {"branch": "repo-assist/test-list-nav-keys-2026-06-22", "pr": 265, "task": "Task 6", "files": ["src/handler.rs"], "status": "open"},
-    {"branch": "repo-assist/improve-detail-viewport-rows-2026-06-22", "pr": 266, "task": "Task 5", "files": ["src/app.rs", "src/handler.rs", "src/ui.rs"], "status": "open"},
-    {"branch": "repo-assist/test-local-filter-nav-and-key-aliases-2026-06-23", "pr": 267, "task": "Task 9", "files": ["src/handler.rs"], "status": "open", "note": "10 new tests."},
-    {"branch": "repo-assist/feat-local-filter-count-display-2026-06-23", "pr": 271, "task": "Task 10", "files": ["src/app.rs", "src/ui.rs"], "status": "open"},
-    {"branch": "repo-assist/refactor-lints-and-handler-return-types-2026-06-24-8be9a98e1b90c420", "pr": 272, "task": "Task 4+5", "files": ["Cargo.toml", "src/handler.rs"], "status": "open"},
-    {"branch": "repo-assist/test-help-scroll-and-upgrades-sort-header-2026-06-24", "pr": 273, "task": "Task 9", "files": ["src/handler.rs"], "status": "open", "note": "12 new tests."},
-    {"branch": "repo-assist/fix-detail-scroll-stale-on-package-change-2026-06-25-005933c82a32eb0f", "pr": 274, "task": "Task 3", "files": ["src/app.rs"], "status": "open", "note": "Fix: reset detail_scroll when selected package changes on refresh. 2 new tests."},
-    {"branch": "repo-assist/eng-deps-update-2026-06-25", "pr": "TBD", "task": "Task 4", "files": ["Cargo.lock"], "status": "open", "note": "cargo update: ratatui 0.30.0->0.30.2, bytes 1.11->1.12, time 0.3.47->0.3.51, etc. 371 tests pass."}
+    {"branch": "repo-assist/testing-improvements-locale-edge-cases", "pr": 232, "task": "Task 9"},
+    {"branch": "repo-assist/feat-sort-available-version-upgrades", "pr": 241, "task": "Task 10"},
+    {"branch": "repo-assist/improve-csv-pin-state-2026-06-12", "pr": 246, "task": "Task 5"},
+    {"branch": "repo-assist/fix-scroll-down-viewport-overflow-2026-06-13", "pr": 248, "task": "Task 3"},
+    {"branch": "repo-assist/test-detail-focus-confirm-ops-2026-06-19", "pr": 259, "task": "Task 9"},
+    {"branch": "repo-assist/test-mouse-and-op-complete-2026-06-21", "pr": 263, "task": "Task 9"},
+    {"branch": "repo-assist/test-list-nav-keys-2026-06-22", "pr": 265, "task": "Task 9"},
+    {"branch": "repo-assist/improve-detail-viewport-rows-2026-06-22", "pr": 266, "task": "Task 5"},
+    {"branch": "repo-assist/test-local-filter-nav-and-key-aliases-2026-06-23", "pr": 267, "task": "Task 9"},
+    {"branch": "repo-assist/feat-local-filter-count-display-2026-06-23", "pr": 271, "task": "Task 10"},
+    {"branch": "repo-assist/refactor-lints-and-handler-return-types-2026-06-24", "pr": 272, "task": "Task 4+5"},
+    {"branch": "repo-assist/test-help-scroll-and-upgrades-sort-header-2026-06-24", "pr": 273, "task": "Task 9"},
+    {"branch": "repo-assist/fix-detail-scroll-stale-on-package-change-2026-06-25", "pr": 274, "task": "Task 3"},
+    {"branch": "repo-assist/eng-deps-update-2026-06-25", "pr": 275, "task": "Task 4"},
+    {"branch": "repo-assist/feat-sort-by-source-2026-06-26", "pr": 276, "task": "Task 10"},
+    {"branch": "repo-assist/improve-empty-list-message-2026-06-26", "pr": "TBD", "task": "Task 5", "note": "Extract empty_list_message() to App; add local-filter-aware 'No matches for query' message; 11 new tests; 382 total."}
   ],
   "open_repo_assist_issues": [
     {"number": 229, "title": "[Repo Assist] docs: update AGENTS.md config keys and README mouse-sort entry", "note": "AGENTS.md is a protected file."},
@@ -38,15 +37,11 @@
     {"number": 253, "title": "ci: add restore-keys to cargo caches (requires human to apply - workflows permission)"},
     {"number": 256, "title": "perf: cache logo+detail+rows + clipboard copy"},
     {"number": 257, "title": "docs: update AGENTS.md + README"},
-    {"number": 261, "title": "[Repo Assist] docs(agents): document default_sort and default_pin_filter config keys", "note": "Third attempt - protected files issue (AGENTS.md). Duplicates #229 and #257."}
-  ],
-  "deferred_work": [
-    {"id": "eng-ci-restore-keys", "description": "Add restore-keys to cargo caches in ci.yml and build.yml", "priority": "low", "defer_reason": "Requires workflows permission. Issue #253 open.", "defer_until": "maintainer_applies_manually"}
+    {"number": 261, "title": "[Repo Assist] docs(agents): document default_sort and default_pin_filter config keys", "note": "Protected files issue. Duplicates #229 and #257."}
   ],
   "backlog_cursor": {
     "issues": "no human issues open",
     "next_issue_to_process": "check for new human issues next run"
   },
-  "ci_status_note": "All Repo Assist PR branches show no CI check runs (security gate). No code conflicts.",
-  "notes": "2026-06-25 run (28173607098): Tasks 1+4. Task 1: 0 unlabelled issues, nothing to do. Task 4 (Engineering): ran cargo update, ratatui 0.30.0->0.30.2, bytes/time/regex/syn/wasm-bindgen and many other transitive updates, several unused crates removed from lockfile. 371 tests pass. Created deps update PR on branch eng-deps-update-2026-06-25. Task 6 (bonus): audited all 13 open Repo Assist PRs - no merge conflicts with main (152a7c5). Monthly summary: disabled by maintainer."
+  "notes": "2026-06-26 run (28240986872): Tasks 6+5+11-disabled. Task 6: Verified all 15 open PRs - no merge conflicts (all based on main at 152a7c5). Task 5: Added App::empty_list_message() refactor - moved empty state logic from ui.rs to testable method in app.rs, added local-filter-aware message 'No matches for query' when local filter is active. 11 new tests. 382 total tests pass. Monthly summary: disabled by maintainer (closed #222)."
 }
