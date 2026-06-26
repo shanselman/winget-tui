@@ -357,35 +357,7 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
     let loading_msg = if app.loading {
         Some(format!(" {} Loading...", app.spinner()))
     } else if app.filtered_packages.is_empty() {
-        Some(
-            match app.mode {
-                AppMode::Search if app.search_query.is_empty() => " Type / to search for packages",
-                AppMode::Search => " No results found",
-                AppMode::Installed
-                    if matches!(app.pin_filter, crate::models::PinFilter::PinnedOnly) =>
-                {
-                    " No pinned packages found"
-                }
-                AppMode::Installed
-                    if matches!(app.pin_filter, crate::models::PinFilter::UnpinnedOnly) =>
-                {
-                    " All visible packages are pinned"
-                }
-                AppMode::Upgrades
-                    if matches!(app.pin_filter, crate::models::PinFilter::PinnedOnly) =>
-                {
-                    " No pinned packages with upgrades found"
-                }
-                AppMode::Upgrades
-                    if matches!(app.pin_filter, crate::models::PinFilter::UnpinnedOnly) =>
-                {
-                    " No unpinned packages with upgrades found"
-                }
-                AppMode::Installed => " No packages found",
-                AppMode::Upgrades => " All packages are up to date!",
-            }
-            .to_string(),
-        )
+        Some(app.empty_list_message())
     } else {
         None
     };

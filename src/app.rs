@@ -395,6 +395,39 @@ impl App {
         FRAMES[self.tick % FRAMES.len()]
     }
 
+    /// Returns the message to display when `filtered_packages` is empty.
+    ///
+    /// Accounts for an active local filter (reports the query), pin filter
+    /// state, and mode-specific states (search prompt, all-up-to-date, etc.).
+    /// Callers should only call this when `filtered_packages.is_empty()`.
+    pub fn empty_list_message(&self) -> String {
+        // When a local filter is active and nothing matched, name the query so
+        // the user can see exactly why the list is empty.
+        if self.mode != AppMode::Search && !self.local_filter.is_empty() {
+            return format!(" No matches for '{}'", self.local_filter);
+        }
+        match self.mode {
+            AppMode::Search if self.search_query.is_empty() => {
+                " Type / to search for packages".to_string()
+            }
+            AppMode::Search => " No results found".to_string(),
+            AppMode::Installed if self.pin_filter == PinFilter::PinnedOnly => {
+                " No pinned packages found".to_string()
+            }
+            AppMode::Installed if self.pin_filter == PinFilter::UnpinnedOnly => {
+                " All visible packages are pinned".to_string()
+            }
+            AppMode::Upgrades if self.pin_filter == PinFilter::PinnedOnly => {
+                " No pinned packages with upgrades found".to_string()
+            }
+            AppMode::Upgrades if self.pin_filter == PinFilter::UnpinnedOnly => {
+                " No unpinned packages with upgrades found".to_string()
+            }
+            AppMode::Installed => " No packages found".to_string(),
+            AppMode::Upgrades => " All packages are up to date!".to_string(),
+        }
+    }
+
     fn ensure_detail_hint(detail: &mut PackageDetail) {
         if !detail.description.is_empty()
             || !detail.publisher.is_empty()
@@ -2524,5 +2557,113 @@ mod tests {
             !app.process_messages(),
             "should return false on second call when channel is now empty"
         );
+    }
+
+    // ── empty_list_message ─────────────────────────────────────────────────────
+
+    #[test]
+    fn empty_list_message_search_no_query() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.mode = AppMode::Search;
+        app.search_query.clear();
+        assert_eq!(app.empty_list_message(), " Type / to search for packages");
+    }
+
+    #[test]
+    fn empty_list_message_search_with_query() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.mode = AppMode::Search;
+        app.search_query = "firefox".to_string();
+        assert_eq!(app.empty_list_message(), " No results found");
+    }
+
+    #[test]
+    fn empty_list_message_installed_no_filter() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.mode = AppMode::Installed;
+        assert_eq!(app.empty_list_message(), " No packages found");
+    }
+
+    #[test]
+    fn empty_list_message_upgrades_no_filter() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.mode = AppMode::Upgrades;
+        assert_eq!(app.empty_list_message(), " All packages are up to date!");
+    }
+
+    #[test]
+    fn empty_list_message_installed_local_filter_active() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.mode = AppMode::Installed;
+        app.local_filter = "foo".to_string();
+        assert_eq!(app.empty_list_message(), " No matches for 'foo'");
+    }
+
+    #[test]
+    fn empty_list_message_upgrades_local_filter_active() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.mode = AppMode::Upgrades;
+        app.local_filter = "chrome".to_string();
+        assert_eq!(app.empty_list_message(), " No matches for 'chrome'");
+    }
+
+    #[test]
+    fn empty_list_message_installed_pinned_filter() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.mode = AppMode::Installed;
+        app.pin_filter = PinFilter::PinnedOnly;
+        assert_eq!(app.empty_list_message(), " No pinned packages found");
+    }
+
+    #[test]
+    fn empty_list_message_installed_unpinned_filter() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.mode = AppMode::Installed;
+        app.pin_filter = PinFilter::UnpinnedOnly;
+        assert_eq!(app.empty_list_message(), " All visible packages are pinned");
+    }
+
+    #[test]
+    fn empty_list_message_upgrades_pinned_filter() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.mode = AppMode::Upgrades;
+        app.pin_filter = PinFilter::PinnedOnly;
+        assert_eq!(
+            app.empty_list_message(),
+            " No pinned packages with upgrades found"
+        );
+    }
+
+    #[test]
+    fn empty_list_message_upgrades_unpinned_filter() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.mode = AppMode::Upgrades;
+        app.pin_filter = PinFilter::UnpinnedOnly;
+        assert_eq!(
+            app.empty_list_message(),
+            " No unpinned packages with upgrades found"
+        );
+    }
+
+    #[test]
+    fn empty_list_message_local_filter_takes_priority_over_pin_filter() {
+        // When both a local filter and pin filter are active, the local filter
+        // message takes priority so the user sees what they actually typed.
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.mode = AppMode::Installed;
+        app.pin_filter = PinFilter::PinnedOnly;
+        app.local_filter = "foo".to_string();
+        assert_eq!(app.empty_list_message(), " No matches for 'foo'");
     }
 }
