@@ -1797,6 +1797,21 @@ mod tests {
     }
 
     #[test]
+    fn enter_key_triggers_detail_load_for_selected_package() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        // A package with a real source triggers the async detail fetch path
+        // (not the local-stub path), which sets detail_loading = true.
+        let mut app = make_app_with_pkg("Google.Chrome", "132.0", "");
+        app.detail_loading = false;
+        let _ = handle_normal_mode(&mut app, KeyCode::Enter, KeyModifiers::NONE);
+        assert!(
+            app.detail_loading,
+            "Enter should trigger detail loading for a non-local package"
+        );
+    }
+
+    #[test]
     fn right_key_cycles_view_forward() {
         let rt = test_runtime();
         let _guard = rt.enter();
