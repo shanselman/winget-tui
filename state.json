@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-06-26T13:27:28Z",
-  "last_run_id": "28240986872",
+  "last_run": "2026-06-27T01:27:08Z",
+  "last_run_id": "28274371031",
   "monthly_summary_issue": null,
   "monthly_summary_preference": "maintainer_disabled",
   "monthly_summary_note": "2026-06-08: Maintainer closed issue #222 with comment 'monthly Repo Assist activity tracker/automation noise, no maintainer action required.' Do NOT create monthly activity summary issues.",
@@ -28,12 +28,13 @@
     "repo-assist/fix-detail-scroll-stale-on-package-change-2026-06-25",
     "repo-assist/eng-deps-update-2026-06-25",
     "repo-assist/feat-sort-by-source-2026-06-26",
-    "repo-assist/improve-empty-list-message-2026-06-26"
+    "repo-assist/improve-empty-list-message-2026-06-26",
+    "repo-assist/test-untested-paths-2026-06-27"
   ],
   "open_repo_assist_issues": [],
   "backlog_cursor": {
     "issues": "no human issues open",
     "next_issue_to_process": "check for new human issues next run"
   },
-  "notes": "2026-06-26 run (28240986872): Tasks 6+5. Task 6: 15 open PRs verified, no conflicts. Task 5: extracted empty_list_message() from ui.rs to app.rs; added local-filter case 'No matches for query'; 11 new unit tests; 382 total. Monthly summary disabled by maintainer."
+  "notes": "2026-06-27 run (28274371031): Tasks 6+9. Task 6: 16 open PRs clean - no conflicts (only main change was CI workflow bump 152a7c5). Task 9: 11 new tests in models.rs+app.rs for untested code paths. 382 total tests. Monthly summary disabled by maintainer."
 }
