@@ -2525,4 +2525,174 @@ mod tests {
             "should return false on second call when channel is now empty"
         );
     }
+
+    // ── csv_escape: carriage return ───────────────────────────────────────────
+
+    #[test]
+    fn csv_escape_carriage_return_triggers_quoting() {
+        assert_eq!(csv_escape("line1\rline2"), "\"line1\rline2\"");
+    }
+
+    // ── ensure_detail_hint: source variants ──────────────────────────────────
+
+    #[test]
+    fn ensure_detail_hint_empty_source_mentions_configured_sources() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.detail_generation = 1;
+        // Send a detail with no metadata and empty source; hint should reference
+        // "the configured winget sources".
+        app.message_tx
+            .send(AppMessage::DetailLoaded {
+                generation: 1,
+                detail: PackageDetail {
+                    id: "Foo.Bar".to_string(),
+                    name: "Foo".to_string(),
+                    source: String::new(),
+                    ..PackageDetail::default()
+                },
+            })
+            .unwrap();
+        app.process_messages();
+        let desc = &app.detail.as_ref().unwrap().description;
+        assert!(
+            desc.contains("the configured winget sources"),
+            "empty-source hint should reference configured winget sources; got: {desc}"
+        );
+    }
+
+    #[test]
+    fn ensure_detail_hint_non_local_source_mentions_package_manifest() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.detail_generation = 1;
+        // A real source (e.g. "winget") with no rich metadata should reference
+        // "the package manifest".
+        app.message_tx
+            .send(AppMessage::DetailLoaded {
+                generation: 1,
+                detail: PackageDetail {
+                    id: "7zip.7zip".to_string(),
+                    name: "7-Zip".to_string(),
+                    source: "winget".to_string(),
+                    ..PackageDetail::default()
+                },
+            })
+            .unwrap();
+        app.process_messages();
+        let desc = &app.detail.as_ref().unwrap().description;
+        assert!(
+            desc.contains("the package manifest"),
+            "non-local source hint should reference the package manifest; got: {desc}"
+        );
+    }
+
+    // ── process_messages: DetailLoaded merges with existing detail ─────────────
+
+    #[test]
+    fn process_messages_detail_loaded_merges_with_existing_detail() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.detail_generation = 1;
+        // Pre-populate detail with base data from the package list
+        app.detail = Some(PackageDetail {
+            id: "Google.Chrome".to_string(),
+            name: "Google Chrome".to_string(),
+            version: "132.0".to_string(),
+            source: "winget".to_string(),
+            ..PackageDetail::default()
+        });
+        // Fresh detail from winget show has description/publisher but empty name/version
+        app.message_tx
+            .send(AppMessage::DetailLoaded {
+                generation: 1,
+                detail: PackageDetail {
+                    id: "Google.Chrome".to_string(),
+                    publisher: "Google LLC".to_string(),
+                    description: "A fast browser".to_string(),
+                    homepage: "https://google.com".to_string(),
+                    ..PackageDetail::default()
+                },
+            })
+            .unwrap();
+        app.process_messages();
+        let loaded = app.detail.as_ref().expect("detail should be set");
+        // Fresh fields win
+        assert_eq!(loaded.publisher, "Google LLC");
+        assert_eq!(loaded.description, "A fast browser");
+        // Base fields survive when fresh is empty
+        assert_eq!(loaded.name, "Google Chrome");
+        assert_eq!(loaded.source, "winget");
+    }
+
+    // ── process_messages: DetailLoaded with empty id skips cache ─────────────
+
+    #[test]
+    fn process_messages_detail_loaded_empty_id_not_cached() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.detail_generation = 1;
+        app.message_tx
+            .send(AppMessage::DetailLoaded {
+                generation: 1,
+                detail: PackageDetail::default(), // id is empty
+            })
+            .unwrap();
+        app.process_messages();
+        assert!(
+            app.detail_cache.is_empty(),
+            "an empty-id detail must not be inserted into the cache"
+        );
+    }
+
+    // ── process_messages: OperationComplete empty-message shows "— done" ──────
+
+    #[tokio::test]
+    async fn process_messages_operation_complete_empty_message_shows_done() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.message_tx
+            .send(AppMessage::OperationComplete(OpResult {
+                operation: Operation::Uninstall {
+                    id: "7zip.7zip".to_string(),
+                },
+                success: true,
+                message: String::new(), // empty
+            }))
+            .unwrap();
+        app.process_messages();
+        assert!(
+            app.status_message.ends_with("— done"),
+            "empty message should produce '— done' suffix; got: {}",
+            app.status_message
+        );
+    }
+
+    // ── process_messages: BatchUpgrade failure still triggers refresh ──────────
+
+    #[tokio::test]
+    async fn process_messages_batch_upgrade_failure_still_triggers_refresh() {
+        // A failed BatchUpgrade is special: some packages may have changed state,
+        // so the app must still refresh the list even though success == false.
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.message_tx
+            .send(AppMessage::OperationComplete(OpResult {
+                operation: Operation::BatchUpgrade {
+                    ids: vec!["Pkg.A".to_string(), "Pkg.B".to_string()],
+                },
+                success: false,
+                message: "1/2 succeeded, 1 failed: Pkg.B: Access denied".to_string(),
+            }))
+            .unwrap();
+        app.process_messages();
+        assert!(
+            app.post_refresh_status.is_some(),
+            "a failed BatchUpgrade must still queue a post-refresh status to re-load the list"
+        );
+        assert!(
+            app.loading,
+            "loading flag should be set to true after a failed BatchUpgrade refresh"
+        );
+    }
 }
