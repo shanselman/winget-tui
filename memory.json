@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-06-27T01:27:08Z",
-  "last_run_id": "28274371031",
+  "last_run": "2026-06-27T02:00:00Z",
+  "last_run_id": "28290162070",
   "monthly_summary_issue": null,
   "monthly_summary_disabled": true,
   "monthly_summary_note": "Maintainer closed issue #222 on 2026-06-08 as automation noise. Do not create monthly activity summary issues.",
@@ -29,7 +29,8 @@
     {"branch": "repo-assist/eng-deps-update-2026-06-25", "pr": 275, "task": "Task 4"},
     {"branch": "repo-assist/feat-sort-by-source-2026-06-26", "pr": 276, "task": "Task 10"},
     {"branch": "repo-assist/improve-empty-list-message-2026-06-26", "pr": 277, "task": "Task 5"},
-    {"branch": "repo-assist/test-untested-paths-2026-06-27", "pr": "TBD", "task": "Task 9", "note": "11 new tests: Operation::Pin/Unpin display, PinState labels, csv_escape \\r, ensure_detail_hint variants, DetailLoaded merge+cache, OperationComplete empty msg, BatchUpgrade failure refresh. 382 total tests."}
+    {"branch": "repo-assist/test-untested-paths-2026-06-27", "pr": 278, "task": "Task 9", "note": "11 new tests: Operation::Pin/Unpin display, PinState labels, csv_escape \\r, ensure_detail_hint variants, DetailLoaded merge+cache, OperationComplete empty msg, BatchUpgrade failure refresh."},
+    {"branch": "repo-assist/test-coverage-gaps-2026-06-27", "pr": "TBD", "task": "Task 9", "note": "5 new tests: PinState::Blocking/Gating.is_pinned(), PinFilter::matches Gating, parse_show_output source field, Enter key detail load. 376 total tests."}
   ],
   "open_repo_assist_issues": [
     {"number": 229, "title": "[Repo Assist] docs: update AGENTS.md config keys and README mouse-sort entry", "note": "AGENTS.md is a protected file."},
@@ -44,5 +45,5 @@
     "issues": "no human issues open",
     "next_issue_to_process": "check for new human issues next run"
   },
-  "notes": "2026-06-27 run (28274371031): Tasks 6+9+11-disabled. Task 6: 16 open PRs, all clean - only recent main change was CI workflow bump (152a7c5) which does not conflict with any PR. Task 9: 11 new tests for previously untested paths in models.rs and app.rs. Monthly summary disabled by maintainer."
+  "notes": "2026-06-27 run (28290162070): Tasks 6+9+11-disabled. Task 6: 18 open PRs, all clean - CI needs maintainer approval (fork protection). Task 9: 5 new tests covering PinState::Blocking/Gating is_pinned, PinFilter::matches with Gating, parse_show_output source field, Enter key in handle_normal_mode. 376 tests total (up from 371)."
 }
