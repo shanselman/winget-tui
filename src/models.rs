@@ -379,6 +379,24 @@ mod tests {
         assert!(!PinFilter::UnpinnedOnly.matches(&PinState::Blocking));
     }
 
+    #[test]
+    fn pin_state_blocking_is_pinned() {
+        assert!(PinState::Blocking.is_pinned());
+    }
+
+    #[test]
+    fn pin_state_gating_is_pinned() {
+        assert!(PinState::Gating("1.2.*".to_string()).is_pinned());
+    }
+
+    #[test]
+    fn pin_filter_matches_gating_state() {
+        let gating = PinState::Gating("2.*".to_string());
+        assert!(PinFilter::All.matches(&gating));
+        assert!(PinFilter::PinnedOnly.matches(&gating));
+        assert!(!PinFilter::UnpinnedOnly.matches(&gating));
+    }
+
     // ── Package::is_truncated ─────────────────────────────────────────────────
 
     #[test]

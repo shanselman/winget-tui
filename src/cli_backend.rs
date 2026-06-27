@@ -2055,4 +2055,21 @@ Node.js                    OpenJS.NodeJS              20.*            Gating
         assert_eq!(pins[1].id, "OpenJS.NodeJS");
         assert_eq!(pins[1].pin_state, PinState::Gating("20.*".to_string()));
     }
+
+    #[test]
+    fn parse_show_output_source_field_is_populated() {
+        let backend = make_backend();
+        let output = "\
+Found Neovim [Neovim.Neovim]
+Version: 0.10.0
+Publisher: The Neovim Project
+Source: winget
+";
+        let detail = backend.parse_show_output(output);
+        assert_eq!(detail.id, "Neovim.Neovim");
+        assert_eq!(
+            detail.source, "winget",
+            "Source: field in winget show output should populate detail.source"
+        );
+    }
 }
