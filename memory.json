@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-06-28T01:32:10Z",
-  "last_run_id": "28307629175",
+  "last_run": "2026-06-28T13:11:27Z",
+  "last_run_id": "28323294225",
   "monthly_summary_issue": null,
   "monthly_summary_disabled": true,
   "monthly_summary_note": "Maintainer closed issue #222 on 2026-06-08 as automation noise. Do not create monthly activity summary issues.",
@@ -14,6 +14,7 @@
   "fix_attempts": {},
   "open_repo_assist_prs": [
     {"branch": "repo-assist/testing-improvements-locale-edge-cases", "pr": 232, "task": "Task 9"},
+    {"branch": "repo-assist/feat-sort-available-version-upgrades", "pr": 233, "task": "Task 10 (issue #233)"},
     {"branch": "repo-assist/feat-sort-available-version-upgrades", "pr": 241, "task": "Task 10"},
     {"branch": "repo-assist/improve-csv-pin-state-2026-06-12", "pr": 246, "task": "Task 5"},
     {"branch": "repo-assist/fix-scroll-down-viewport-overflow-2026-06-13", "pr": 248, "task": "Task 3"},
@@ -31,7 +32,7 @@
     {"branch": "repo-assist/improve-empty-list-message-2026-06-26", "pr": 277, "task": "Task 5"},
     {"branch": "repo-assist/test-untested-paths-2026-06-27", "pr": 278, "task": "Task 9"},
     {"branch": "repo-assist/test-coverage-gaps-2026-06-27", "pr": 279, "task": "Task 9"},
-    {"branch": "repo-assist/fix-readme-filter-click-doc", "pr": "TBD", "task": "Task 2-alt"}
+    {"branch": "repo-assist/eng-tokio-feature-trim-2026-06-28", "pr": "TBD", "task": "Task 4"}
   ],
   "open_repo_assist_issues": [
     {"number": 229, "title": "[Repo Assist] docs: update AGENTS.md config keys and README mouse-sort entry", "note": "AGENTS.md is a protected file."},
@@ -40,11 +41,12 @@
     {"number": 253, "title": "ci: add restore-keys to cargo caches (requires human to apply - workflows permission)"},
     {"number": 256, "title": "perf: cache logo+detail+rows + clipboard copy"},
     {"number": 257, "title": "docs: update AGENTS.md + README"},
-    {"number": 261, "title": "[Repo Assist] docs(agents): document default_sort and default_pin_filter config keys", "note": "Protected files issue. Duplicates #229 and #257."}
+    {"number": 261, "title": "[Repo Assist] docs(agents): document default_sort and default_pin_filter config keys", "note": "Protected files issue. Duplicates #229 and #257."},
+    {"number": 280, "title": "[Repo Assist] docs: remove inaccurate filter-click-doc entry (README protected - needs human PR)"}
   ],
   "backlog_cursor": {
     "issues": "no human issues open",
     "next_issue_to_process": "check for new human issues next run"
   },
-  "notes": "2026-06-28 run (28307629175): Tasks 6+2-alt+11-disabled. Task 6: 19 open PRs, all clean - CI needs maintainer approval (fork protection). All PRs based on main SHA 152a7c5. Main has only had CI workflow bump since last run - no code conflicts. Task 2-alt: No human issues open. Created PR for README fix: removed inaccurate 'Click on filter bar to cycle source filters' line - no click handler exists for source filter cycling (f-key only). 371 baseline tests."
+  "notes": "2026-06-28 run (28323294225): Tasks 6+4+11-disabled. Task 6: 18 open PRs, all clean - CI needs maintainer approval (fork protection). No code conflicts (main unchanged since 152a7c5 CI bump). Task 4: trimmed tokio features from 'full' to [macros, process, rt-multi-thread, sync] - removes socket2 and parking_lot from lockfile. 371 baseline tests. Monthly summary disabled by maintainer. NOTE: 19 open Repo Assist PRs is very high backlog - maintainer review needed. Additional cargo updates available (PR #275 may be slightly stale by ~3 days)."
 }
