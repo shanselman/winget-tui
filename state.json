@@ -1,40 +1,14 @@
 {
-  "last_run": "2026-06-27T01:27:08Z",
-  "last_run_id": "28274371031",
-  "monthly_summary_issue": null,
+  "last_run": "2026-06-29T14:09:06Z",
+  "last_run_id": "28378073083",
   "monthly_summary_preference": "maintainer_disabled",
   "monthly_summary_note": "2026-06-08: Maintainer closed issue #222 with comment 'monthly Repo Assist activity tracker/automation noise, no maintainer action required.' Do NOT create monthly activity summary issues.",
-  "comments_made": {
-    "80": "2026-04-16",
-    "83": "2026-04-16",
-    "88": "2026-04-16",
-    "126": "2026-04-19",
-    "154_pr": "2026-04-27"
-  },
-  "fix_attempts": {},
-  "open_repo_assist_prs": [
-    "repo-assist/testing-improvements-locale-edge-cases",
-    "repo-assist/feat-sort-available-version-upgrades",
-    "repo-assist/improve-csv-pin-state-2026-06-12",
-    "repo-assist/fix-scroll-down-viewport-overflow-2026-06-13",
-    "repo-assist/test-detail-focus-confirm-ops-2026-06-19",
-    "repo-assist/test-mouse-and-op-complete-2026-06-21",
-    "repo-assist/test-list-nav-keys-2026-06-22",
-    "repo-assist/improve-detail-viewport-rows-2026-06-22",
-    "repo-assist/test-local-filter-nav-and-key-aliases-2026-06-23",
-    "repo-assist/feat-local-filter-count-display-2026-06-23",
-    "repo-assist/refactor-lints-and-handler-return-types-2026-06-24",
-    "repo-assist/test-help-scroll-and-upgrades-sort-header-2026-06-24",
-    "repo-assist/fix-detail-scroll-stale-on-package-change-2026-06-25",
-    "repo-assist/eng-deps-update-2026-06-25",
-    "repo-assist/feat-sort-by-source-2026-06-26",
-    "repo-assist/improve-empty-list-message-2026-06-26",
-    "repo-assist/test-untested-paths-2026-06-27"
-  ],
-  "open_repo_assist_issues": [],
-  "backlog_cursor": {
-    "issues": "no human issues open",
-    "next_issue_to_process": "check for new human issues next run"
-  },
-  "notes": "2026-06-27 run (28274371031): Tasks 6+9. Task 6: 16 open PRs clean - no conflicts (only main change was CI workflow bump 152a7c5). Task 9: 11 new tests in models.rs+app.rs for untested code paths. 382 total tests. Monthly summary disabled by maintainer."
+  "pr_count": 20,
+  "main_sha": "152a7c5c1d3455a2bc90028df7320728a74cbda3",
+  "cargo_lock_hash": "01f654422dbf756d17ffb39d72697e4d2fb042e5",
+  "test_baseline": 371,
+  "cargo_versions": {
+    "ratatui": "0.30.2",
+    "tokio": "1.52.3"
+  }
 }

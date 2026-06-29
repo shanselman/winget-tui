@@ -1,7 +1,6 @@
 {
-  "last_run": "2025-07-02T00:00:00Z",
-  "last_run_id": "28343079118",
-  "monthly_summary_issue": null,
+  "last_run": "2026-06-29T14:09:06Z",
+  "last_run_id": "28378073083",
   "monthly_summary_disabled": true,
   "monthly_summary_note": "Maintainer closed issue #222 on 2026-06-08 as automation noise. Do not create monthly activity summary issues.",
   "comments_made": {
@@ -11,160 +10,36 @@
     "126": "2026-04-19",
     "154_pr": "2026-04-27"
   },
-  "fix_attempts": {
-    "proactive-c1-sanitize": {
-      "branch": "repo-assist/fix-sanitize-c1-controls",
-      "date": "2025-07-02",
-      "status": "open"
-    }
-  },
   "open_repo_assist_prs": [
-    {
-      "branch": "repo-assist/testing-improvements-locale-edge-cases",
-      "pr": 232,
-      "task": "Task 9"
-    },
-    {
-      "branch": "repo-assist/feat-sort-available-version-upgrades",
-      "pr": 233,
-      "task": "Task 10 (issue #233)"
-    },
-    {
-      "branch": "repo-assist/feat-sort-available-version-upgrades",
-      "pr": 241,
-      "task": "Task 10"
-    },
-    {
-      "branch": "repo-assist/improve-csv-pin-state-2026-06-12",
-      "pr": 246,
-      "task": "Task 5"
-    },
-    {
-      "branch": "repo-assist/fix-scroll-down-viewport-overflow-2026-06-13",
-      "pr": 248,
-      "task": "Task 3"
-    },
-    {
-      "branch": "repo-assist/test-detail-focus-confirm-ops-2026-06-19",
-      "pr": 259,
-      "task": "Task 9"
-    },
-    {
-      "branch": "repo-assist/test-mouse-and-op-complete-2026-06-21",
-      "pr": 263,
-      "task": "Task 9"
-    },
-    {
-      "branch": "repo-assist/test-list-nav-keys-2026-06-22",
-      "pr": 265,
-      "task": "Task 9"
-    },
-    {
-      "branch": "repo-assist/improve-detail-viewport-rows-2026-06-22",
-      "pr": 266,
-      "task": "Task 5"
-    },
-    {
-      "branch": "repo-assist/test-local-filter-nav-and-key-aliases-2026-06-23",
-      "pr": 267,
-      "task": "Task 9"
-    },
-    {
-      "branch": "repo-assist/feat-local-filter-count-display-2026-06-23",
-      "pr": 271,
-      "task": "Task 10"
-    },
-    {
-      "branch": "repo-assist/refactor-lints-and-handler-return-types-2026-06-24",
-      "pr": 272,
-      "task": "Task 4+5"
-    },
-    {
-      "branch": "repo-assist/test-help-scroll-and-upgrades-sort-header-2026-06-24",
-      "pr": 273,
-      "task": "Task 9"
-    },
-    {
-      "branch": "repo-assist/fix-detail-scroll-stale-on-package-change-2026-06-25",
-      "pr": 274,
-      "task": "Task 3"
-    },
-    {
-      "branch": "repo-assist/eng-deps-update-2026-06-25",
-      "pr": 275,
-      "task": "Task 4"
-    },
-    {
-      "branch": "repo-assist/feat-sort-by-source-2026-06-26",
-      "pr": 276,
-      "task": "Task 10"
-    },
-    {
-      "branch": "repo-assist/improve-empty-list-message-2026-06-26",
-      "pr": 277,
-      "task": "Task 5"
-    },
-    {
-      "branch": "repo-assist/test-untested-paths-2026-06-27",
-      "pr": 278,
-      "task": "Task 9"
-    },
-    {
-      "branch": "repo-assist/test-coverage-gaps-2026-06-27",
-      "pr": 279,
-      "task": "Task 9"
-    },
-    {
-      "branch": "repo-assist/eng-tokio-feature-trim-2026-06-28",
-      "pr": "TBD",
-      "task": "Task 4"
-    },
-    {
-      "branch": "repo-assist/fix-sanitize-c1-controls",
-      "title": "fix: strip C1 control characters from package metadata",
-      "created": "2025-07-02",
-      "status": "open"
-    }
+    {"pr": 232, "branch": "repo-assist/testing-improvements-locale-edge-cases", "title": "test(cli_backend): add locale, edge-case, and CJK column-detection tests"},
+    {"pr": 233, "branch": "repo-assist/feat-sort-available-version-upgrades", "title": "feat: sort Upgrades view by available version (protected-files issue)"},
+    {"pr": 241, "branch": "repo-assist/feat-sort-available-version-upgrades", "title": "feat: sort Upgrades view by available version"},
+    {"pr": 246, "branch": "repo-assist/improve-csv-pin-state-2026-06-12", "title": "feat(csv): add PinState column to exported package list"},
+    {"pr": 248, "branch": "repo-assist/fix-scroll-down-viewport-overflow-2026-06-13", "title": "fix: clamp mouse scroll-down offset to last full viewport page"},
+    {"pr": 259, "branch": "repo-assist/test-detail-focus-confirm-ops-2026-06-19", "title": "test: detail-panel focus nav, confirm y/Y/N, ctrl+c"},
+    {"pr": 263, "branch": "repo-assist/test-mouse-and-op-complete-2026-06-21", "title": "test: mouse interaction, viewport-rows, and OperationComplete"},
+    {"pr": 265, "branch": "repo-assist/test-list-nav-keys-2026-06-22", "title": "test(handler): Home/End/PgUp/PgDn and k/j list-focus navigation"},
+    {"pr": 266, "branch": "repo-assist/improve-detail-viewport-rows-2026-06-22", "title": "refactor: add detail_viewport_rows() to eliminate repeated magic number"},
+    {"pr": 267, "branch": "repo-assist/test-local-filter-nav-and-key-aliases-2026-06-23", "title": "test(handler): local-filter PageUp/PageDown and s-key alias"},
+    {"pr": 271, "branch": "repo-assist/feat-local-filter-count-display-2026-06-23", "title": "feat: show X of Y in package list title when local filter active"},
+    {"pr": 272, "branch": "repo-assist/refactor-lints-and-handler-return-types-2026-06-24", "title": "refactor: forbid unsafe code and simplify handler return types"},
+    {"pr": 273, "branch": "repo-assist/test-help-scroll-and-upgrades-sort-header-2026-06-24", "title": "test(handler): help-scroll, upgrades-sort-header, and data-url"},
+    {"pr": 274, "branch": "repo-assist/fix-detail-scroll-stale-on-package-change-2026-06-25", "title": "fix: reset detail_scroll when selected package changes after refresh"},
+    {"pr": 275, "branch": "repo-assist/eng-deps-update-2026-06-25", "title": "chore: cargo update - ratatui 0.30.2 and transitive dep updates"},
+    {"pr": 276, "branch": "repo-assist/feat-sort-by-source-2026-06-26", "title": "feat: sort package list by Source column"},
+    {"pr": 277, "branch": "repo-assist/improve-empty-list-message-2026-06-26", "title": "refactor: extract empty-list message into App::empty_list_message()"},
+    {"pr": 278, "branch": "repo-assist/test-untested-paths-2026-06-27", "title": "test: cover untested Operation::Pin/Unpin display, PinState labels"},
+    {"pr": 279, "branch": "repo-assist/test-coverage-gaps-2026-06-27", "title": "test: fill coverage gaps in PinState/PinFilter, show-source, Enter key"},
+    {"pr": 281, "branch": "repo-assist/eng-tokio-feature-trim-2026-06-28", "title": "chore: trim tokio features from full to minimum needed"},
+    {"pr": 282, "branch": "repo-assist/fix-sanitize-c1-controls", "title": "fix: strip C1 control characters from package metadata"}
   ],
   "open_repo_assist_issues": [
-    {
-      "number": 229,
-      "title": "[Repo Assist] docs: update AGENTS.md config keys and README mouse-sort entry",
-      "note": "AGENTS.md is a protected file."
-    },
-    {
-      "number": 233,
-      "title": "feat: sort Upgrades view by available version (PR #241 covers this)"
-    },
-    {
-      "number": 243,
-      "title": "perf: cache logo, etc."
-    },
-    {
-      "number": 253,
-      "title": "ci: add restore-keys to cargo caches (requires human to apply - workflows permission)"
-    },
-    {
-      "number": 256,
-      "title": "perf: cache logo+detail+rows + clipboard copy"
-    },
-    {
-      "number": 257,
-      "title": "docs: update AGENTS.md + README"
-    },
-    {
-      "number": 261,
-      "title": "[Repo Assist] docs(agents): document default_sort and default_pin_filter config keys",
-      "note": "Protected files issue. Duplicates #229 and #257."
-    },
-    {
-      "number": 280,
-      "title": "[Repo Assist] docs: remove inaccurate filter-click-doc entry (README protected - needs human PR)"
-    }
+    {"number": 233, "title": "feat: sort Upgrades view by available version (protected files - AGENTS.md)", "note": "PR #241 is the code-only version"},
+    {"number": 280, "title": "docs: remove inaccurate filter-click-doc entry (README protected - needs human PR)"}
   ],
   "backlog_cursor": {
     "issues": "no human issues open",
     "next_issue_to_process": "check for new human issues next run"
   },
-  "notes": "2026-06-28 run (28323294225): Tasks 6+4+11-disabled. Task 6: 18 open PRs, all clean - CI needs maintainer approval (fork protection). No code conflicts (main unchanged since 152a7c5 CI bump). Task 4: trimmed tokio features from 'full' to [macros, process, rt-multi-thread, sync] - removes socket2 and parking_lot from lockfile. 371 baseline tests. Monthly summary disabled by maintainer. NOTE: 19 open Repo Assist PRs is very high backlog - maintainer review needed. Additional cargo updates available (PR #275 may be slightly stale by ~3 days).\n2025-07-02: Fixed C1 control char sanitization gap in sanitize_text. PR branch repo-assist/fix-sanitize-c1-controls. Monthly summary DISABLED."
+  "notes": "2026-06-29 run (28378073083): Tasks 6+2, both no-op. Task 6: 20 open PRs all clean - main unchanged at 152a7c5. No code failures, no merge conflicts. CI blocked by fork protection (infrastructure). Task 2: No human issues open (only 2 Repo Assist issues: #233 and #280). NOTE: 20 open Repo Assist PRs is extremely high backlog - maintainer review needed. PRs #275 and #281 both modify Cargo.lock from same base (01f6544) and will conflict if merged sequentially. Monthly summary DISABLED per maintainer request."
 }
