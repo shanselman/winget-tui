@@ -24,23 +24,32 @@ fn is_winget_footer_line(line: &str) -> bool {
     d > 0 && d < bytes.len() && bytes[d] == b' '
 }
 
-/// Strip ASCII control characters (0x00–0x1F, 0x7F) except tab and newline.
+/// Strip ASCII control characters (0x00–0x1F, 0x7F) and C1 controls
+/// (U+0080–U+009F) except tab and newline.
 /// Prevents ANSI escape injection from malicious package metadata.
 ///
-/// Fast path: scans bytes first; if none are control characters the string is
-/// returned as-is via `to_string()` (a single memcpy), avoiding the
-/// char-decode + filter + collect pipeline. This pays off because the
-/// overwhelming majority of real package names and IDs contain only printable
-/// ASCII.
+/// Fast path: scans bytes first for C0 controls and DEL; multi-byte UTF-8
+/// leading bytes are all ≥ 0x80 so they never match the byte check.  A
+/// secondary char scan then catches C1 controls (U+0080–U+009F), which are
+/// encoded as the two-byte sequence 0xC2 0x80–0x9F and invisible to the byte
+/// scan.  C1 controls include CSI (U+009B) and OSC (U+009D), which some
+/// terminals interpret as escape-sequence introducers.
+///
+/// For the common case of plain ASCII names and IDs the byte scan short-circuits
+/// and the char scan is skipped, returning `s.to_string()` (a single memcpy).
 fn sanitize_text(s: &str) -> String {
-    let needs_sanitize = s
+    let has_c0_del = s
         .bytes()
         .any(|b| b < 0x20 && b != b'\t' && b != b'\n' || b == 0x7F);
-    if !needs_sanitize {
+    if !has_c0_del && !s.chars().any(|c| ('\u{0080}'..='\u{009F}').contains(&c)) {
         return s.to_string();
     }
     s.chars()
-        .filter(|&c| c == '\t' || c == '\n' || (c >= ' ' && c != '\x7F'))
+        .filter(|&c| {
+            c == '\t'
+                || c == '\n'
+                || (c >= ' ' && c != '\x7F' && !('\u{0080}'..='\u{009F}').contains(&c))
+        })
         .collect()
 }
 
@@ -1555,6 +1564,46 @@ Google\x1b[2JChrome            Google.Chrome               131.0     winget
         assert!(
             !packages[0].name.contains('\x1b'),
             "ANSI escape must be stripped from parsed package name"
+        );
+    }
+
+    #[test]
+    fn sanitize_strips_c1_control_characters() {
+        // U+009B = CSI (Control Sequence Introducer) — equivalent to ESC [ on many terminals.
+        // Embedding it in a package name could inject ANSI colour/cursor sequences.
+        let csi_dirty = "Evil\u{009B}41mRedApp";
+        let csi_clean = super::sanitize_text(csi_dirty);
+        assert!(
+            !csi_clean.contains('\u{009B}'),
+            "CSI (U+009B) must be stripped"
+        );
+        assert_eq!(csi_clean, "Evil41mRedApp");
+
+        // U+009D = OSC (Operating System Command) / U+009C = ST (String Terminator)
+        let osc_dirty = "Bad\u{009D}payload\u{009C}Name";
+        let osc_clean = super::sanitize_text(osc_dirty);
+        assert!(
+            !osc_clean.contains('\u{009D}'),
+            "OSC (U+009D) must be stripped"
+        );
+        assert!(
+            !osc_clean.contains('\u{009C}'),
+            "ST (U+009C) must be stripped"
+        );
+        assert_eq!(osc_clean, "BadpayloadName");
+
+        // Normal Unicode ABOVE U+009F must be preserved (not affected by the fix)
+        assert_eq!(super::sanitize_text("日本語パッケージ"), "日本語パッケージ");
+        // Mixed: C1 control embedded in otherwise-valid Unicode
+        let mixed = "App\u{009B}name日本語";
+        let mixed_clean = super::sanitize_text(mixed);
+        assert!(
+            !mixed_clean.contains('\u{009B}'),
+            "C1 must be stripped in mixed string"
+        );
+        assert!(
+            mixed_clean.contains("日本語"),
+            "Normal Unicode must be preserved"
         );
     }
 
