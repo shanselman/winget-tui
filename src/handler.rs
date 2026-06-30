@@ -1174,6 +1174,59 @@ mod tests {
     }
 
     #[test]
+    fn s_key_in_installed_view_enters_local_filter_mode() {
+        // 's' is an alias for '/' in normal mode
+        let mut app = make_app();
+        app.mode = AppMode::Installed;
+
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('s'), KeyModifiers::NONE);
+
+        assert_eq!(app.input_mode, InputMode::LocalFilter);
+    }
+
+    #[test]
+    fn s_key_in_search_view_enters_search_input_mode() {
+        let mut app = make_app();
+        app.mode = AppMode::Search;
+
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('s'), KeyModifiers::NONE);
+
+        assert_eq!(app.input_mode, InputMode::Search);
+    }
+
+    #[test]
+    fn space_key_in_installed_mode_is_noop() {
+        // Space is only active in Upgrades view; elsewhere it should not modify state
+        let mut app = make_app_with_pkgs(3);
+        app.mode = AppMode::Installed;
+
+        let _ = handle_normal_mode(&mut app, KeyCode::Char(' '), KeyModifiers::NONE);
+
+        assert!(
+            app.selected_packages.is_empty(),
+            "Space outside Upgrades must not select packages"
+        );
+        assert_eq!(
+            app.selected, 0,
+            "Space outside Upgrades must not move selection"
+        );
+    }
+
+    #[test]
+    fn a_key_in_installed_mode_is_noop() {
+        // 'a' (select-all) is only active in Upgrades view
+        let mut app = make_app_with_pkgs(3);
+        app.mode = AppMode::Installed;
+
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('a'), KeyModifiers::NONE);
+
+        assert!(
+            app.selected_packages.is_empty(),
+            "'a' outside Upgrades must not select any packages"
+        );
+    }
+
+    #[test]
     fn local_filter_char_input_updates_filter_and_narrows_list() {
         let mut app = make_app_with_pkgs(3);
         app.mode = AppMode::Installed;
@@ -1281,6 +1334,100 @@ mod tests {
 
         let _ = handle_local_filter_input(&mut app, KeyCode::End);
         assert_eq!(app.selected, 4, "End should jump to last item");
+        assert_eq!(app.input_mode, InputMode::LocalFilter);
+    }
+
+    #[test]
+    fn local_filter_page_down_advances_selection() {
+        // list_page_size() falls back to 20 when no layout has been rendered,
+        // so with 5 items PageDown from index 0 lands at min(0+20, 4) = 4.
+        let mut app = make_app_with_pkgs(5);
+        app.mode = AppMode::Installed;
+        app.input_mode = InputMode::LocalFilter;
+        let rt = test_runtime();
+        let _guard = rt.enter();
+
+        app.selected = 0;
+        let _ = handle_local_filter_input(&mut app, KeyCode::PageDown);
+        assert_eq!(
+            app.selected, 4,
+            "PageDown should jump to last item when page > list"
+        );
+        assert_eq!(
+            app.input_mode,
+            InputMode::LocalFilter,
+            "must stay in LocalFilter"
+        );
+    }
+
+    #[test]
+    fn local_filter_page_down_clamps_at_last_item() {
+        let mut app = make_app_with_pkgs(50);
+        app.mode = AppMode::Installed;
+        app.input_mode = InputMode::LocalFilter;
+        let rt = test_runtime();
+        let _guard = rt.enter();
+
+        app.selected = 45;
+        let _ = handle_local_filter_input(&mut app, KeyCode::PageDown);
+        assert_eq!(app.selected, 49, "PageDown must clamp at last index");
+    }
+
+    #[test]
+    fn local_filter_page_up_moves_selection_back() {
+        let mut app = make_app_with_pkgs(50);
+        app.mode = AppMode::Installed;
+        app.input_mode = InputMode::LocalFilter;
+        let rt = test_runtime();
+        let _guard = rt.enter();
+
+        app.selected = 40;
+        let _ = handle_local_filter_input(&mut app, KeyCode::PageUp);
+        // page = 20, so 40 - 20 = 20
+        assert_eq!(app.selected, 20, "PageUp should move back by one page");
+        assert_eq!(
+            app.input_mode,
+            InputMode::LocalFilter,
+            "must stay in LocalFilter"
+        );
+    }
+
+    #[test]
+    fn local_filter_page_up_clamps_at_first_item() {
+        let mut app = make_app_with_pkgs(5);
+        app.mode = AppMode::Installed;
+        app.input_mode = InputMode::LocalFilter;
+        let rt = test_runtime();
+        let _guard = rt.enter();
+
+        app.selected = 2;
+        let _ = handle_local_filter_input(&mut app, KeyCode::PageUp);
+        assert_eq!(app.selected, 0, "PageUp must clamp at index 0");
+    }
+
+    #[test]
+    fn local_filter_page_up_on_empty_list_is_noop() {
+        let mut app = make_app();
+        app.mode = AppMode::Installed;
+        app.input_mode = InputMode::LocalFilter;
+        let rt = test_runtime();
+        let _guard = rt.enter();
+
+        let _ = handle_local_filter_input(&mut app, KeyCode::PageUp);
+        assert_eq!(app.selected, 0);
+        assert_eq!(app.input_mode, InputMode::LocalFilter);
+    }
+
+    #[test]
+    fn local_filter_page_down_on_empty_list_is_noop() {
+        let mut app = make_app();
+        app.mode = AppMode::Installed;
+        app.input_mode = InputMode::LocalFilter;
+        let rt = test_runtime();
+        let _guard = rt.enter();
+
+        let _ = handle_local_filter_input(&mut app, KeyCode::PageDown);
+        assert_eq!(app.selected, 0);
         assert_eq!(app.input_mode, InputMode::LocalFilter);
     }
 
