@@ -11,6 +11,9 @@ pub enum SortField {
     Name,
     Id,
     Version,
+    /// Sort by the package source (e.g. "winget", "msstore").
+    /// Useful for grouping packages by their registry when multiple sources are enabled.
+    Source,
 }
 
 impl SortField {
@@ -24,6 +27,7 @@ impl fmt::Display for SortField {
             Self::Name => write!(f, "Name"),
             Self::Id => write!(f, "ID"),
             Self::Version => write!(f, "Version"),
+            Self::Source => write!(f, "Source"),
         }
     }
 }
@@ -599,6 +603,7 @@ mod tests {
         assert_eq!(SortField::Name.to_string(), "Name");
         assert_eq!(SortField::Id.to_string(), "ID");
         assert_eq!(SortField::Version.to_string(), "Version");
+        assert_eq!(SortField::Source.to_string(), "Source");
     }
 
     #[test]

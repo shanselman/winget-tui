@@ -8,7 +8,7 @@
 /// ```toml
 /// default_view       = "installed"   # "installed" | "search" | "upgrades"
 /// default_source     = "all"         # "all" | "winget" | "msstore"
-/// default_sort       = "name"        # name | name_desc | id | id_desc | version | version_desc | none
+/// default_sort       = "name"        # name | name_desc | id | id_desc | version | version_desc | source | source_desc | none
 /// default_pin_filter = "all"         # "all" | "pinned" | "hide_pinned"
 /// ```
 use crate::app::AppMode;
@@ -109,6 +109,8 @@ impl Config {
                         "id_desc" => (SortField::Id, SortDir::Desc),
                         "version" => (SortField::Version, SortDir::Asc),
                         "version_desc" => (SortField::Version, SortDir::Desc),
+                        "source" => (SortField::Source, SortDir::Asc),
+                        "source_desc" => (SortField::Source, SortDir::Desc),
                         _ => (SortField::None, SortDir::Asc),
                     };
                     cfg.default_sort_field = field;
@@ -243,6 +245,20 @@ default_source = \"msstore\"
     fn parse_default_sort_version_desc() {
         let cfg = Config::parse(r#"default_sort = "version_desc""#);
         assert_eq!(cfg.default_sort_field, SortField::Version);
+        assert_eq!(cfg.default_sort_dir, SortDir::Desc);
+    }
+
+    #[test]
+    fn parse_default_sort_source_asc() {
+        let cfg = Config::parse(r#"default_sort = "source""#);
+        assert_eq!(cfg.default_sort_field, SortField::Source);
+        assert_eq!(cfg.default_sort_dir, SortDir::Asc);
+    }
+
+    #[test]
+    fn parse_default_sort_source_desc() {
+        let cfg = Config::parse(r#"default_sort = "source_desc""#);
+        assert_eq!(cfg.default_sort_field, SortField::Source);
         assert_eq!(cfg.default_sort_dir, SortDir::Desc);
     }
 
