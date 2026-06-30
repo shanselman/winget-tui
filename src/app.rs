@@ -7,8 +7,8 @@ use ratatui::widgets::TableState;
 use crate::backend::WingetBackend;
 use crate::config::Config;
 use crate::models::{
-    OpResult, Operation, Package, PackageDetail, PackagePin, PinFilter, SortDir, SortField,
-    SourceFilter,
+    is_id_truncated, OpResult, Operation, Package, PackageDetail, PackagePin, PinFilter, SortDir,
+    SortField, SourceFilter,
 };
 
 /// Stores UI layout regions for mouse hit-testing
@@ -477,7 +477,7 @@ impl App {
         // Determine if this package can be looked up via `winget show --exact`.
         // Truncated IDs, ARP entries, and MSIX sideloads have no manifest so the
         // call would always fail. Show a local detail stub instead.
-        let is_truncated = id.ends_with('…') || id.ends_with("...");
+        let is_truncated = is_id_truncated(id);
         let is_local = id.starts_with("ARP\\") || id.starts_with("MSIX\\");
         let pkg_source_empty = self
             .filtered_packages
