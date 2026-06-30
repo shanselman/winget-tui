@@ -336,6 +336,11 @@ mod tests {
     }
 
     #[test]
+    fn pin_state_none_label() {
+        assert_eq!(PinState::None.label(), "Not pinned");
+    }
+
+    #[test]
     fn pin_state_helpers() {
         assert!(!PinState::None.is_pinned());
         assert!(PinState::Pinned.is_pinned());
@@ -459,6 +464,22 @@ mod tests {
     fn operation_display_batch_upgrade_zero() {
         let op = Operation::BatchUpgrade { ids: vec![] };
         assert_eq!(op.to_string(), "Batch upgrading 0 packages");
+    }
+
+    #[test]
+    fn operation_display_pin() {
+        let op = Operation::Pin {
+            id: "Microsoft.Teams".to_string(),
+        };
+        assert_eq!(op.to_string(), "Pinning Microsoft.Teams");
+    }
+
+    #[test]
+    fn operation_display_unpin() {
+        let op = Operation::Unpin {
+            id: "Microsoft.Teams".to_string(),
+        };
+        assert_eq!(op.to_string(), "Unpinning Microsoft.Teams");
     }
 
     // ── PackageDetail::merge_over ─────────────────────────────────────────────
