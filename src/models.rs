@@ -2,6 +2,16 @@ use std::fmt;
 
 use serde::Deserialize;
 
+/// Returns `true` if a package ID was truncated by winget.
+///
+/// winget truncates long IDs with either a Unicode ellipsis (`…`) or three
+/// ASCII dots (`...`), depending on the terminal and locale. Either form
+/// must be treated as truncated; using such an ID with `winget show --exact`
+/// or any mutating command will always fail.
+pub fn is_id_truncated(id: &str) -> bool {
+    id.ends_with('…') || id.ends_with("...")
+}
+
 /// Column to sort the package list by.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum SortField {
@@ -169,13 +179,8 @@ pub struct Package {
 
 impl Package {
     /// Returns true if the package ID was truncated by winget.
-    ///
-    /// winget truncates long IDs with either a Unicode ellipsis (`…`) or three
-    /// ASCII dots (`...`), depending on the terminal and locale. Either form
-    /// must be treated as truncated; using such an ID with `winget show --exact`
-    /// or any mutating command will always fail.
     pub fn is_truncated(&self) -> bool {
-        self.id.ends_with('…') || self.id.ends_with("...")
+        is_id_truncated(&self.id)
     }
 }
 
@@ -380,6 +385,26 @@ mod tests {
     }
 
     // ── Package::is_truncated ─────────────────────────────────────────────────
+
+    #[test]
+    fn is_id_truncated_normal_id() {
+        assert!(!is_id_truncated("Google.Chrome"));
+    }
+
+    #[test]
+    fn is_id_truncated_unicode_ellipsis() {
+        assert!(is_id_truncated("Long.Package.Id\u{2026}"));
+    }
+
+    #[test]
+    fn is_id_truncated_ascii_dots() {
+        assert!(is_id_truncated("Some.Package..."));
+    }
+
+    #[test]
+    fn is_id_truncated_two_dots_not_truncated() {
+        assert!(!is_id_truncated("Some.Package.."));
+    }
 
     #[test]
     fn is_truncated_normal_id() {
