@@ -272,7 +272,7 @@ fn handle_normal_mode(
         }
         KeyCode::PageUp => {
             if app.focus == FocusZone::DetailPanel {
-                let page = app.layout.detail_panel.height.saturating_sub(3) as isize;
+                let page = app.detail_viewport_rows() as isize;
                 app.scroll_detail(-page);
             } else if !app.filtered_packages.is_empty() {
                 let page = list_page_size(app);
@@ -283,7 +283,7 @@ fn handle_normal_mode(
         }
         KeyCode::PageDown => {
             if app.focus == FocusZone::DetailPanel {
-                let page = app.layout.detail_panel.height.saturating_sub(3) as isize;
+                let page = app.detail_viewport_rows() as isize;
                 app.scroll_detail(page);
             } else if !app.filtered_packages.is_empty() {
                 let page = list_page_size(app);
@@ -304,8 +304,9 @@ fn handle_normal_mode(
         }
         KeyCode::End => {
             if app.focus == FocusZone::DetailPanel {
-                let viewport = app.layout.detail_panel.height.saturating_sub(3) as usize;
-                app.detail_scroll = app.detail_content_lines.saturating_sub(viewport);
+                app.detail_scroll = app
+                    .detail_content_lines
+                    .saturating_sub(app.detail_viewport_rows());
             } else if !app.filtered_packages.is_empty() {
                 app.selected = app.filtered_packages.len() - 1;
                 app.ensure_selection_visible();

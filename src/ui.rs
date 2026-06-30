@@ -665,7 +665,7 @@ fn draw_detail_panel(f: &mut Frame, app: &mut App, area: Rect) {
         f.render_widget(p, area);
 
         // Scrollbar for detail panel (shown when content overflows)
-        let viewport_height = area.height.saturating_sub(3) as usize;
+        let viewport_height = app.detail_viewport_rows();
         if app.detail_content_lines > viewport_height {
             let mut scrollbar_state =
                 ScrollbarState::new(app.detail_content_lines).position(app.detail_scroll);
