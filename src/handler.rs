@@ -1898,6 +1898,252 @@ mod tests {
         assert_eq!(app.table_state.offset(), 2); // scrolled up by 3
     }
 
+    // ── additional mouse interaction tests ───────────────────────────────────
+
+    #[test]
+    fn mouse_scroll_down_in_package_list_advances_viewport() {
+        let mut app = make_app_with_pkgs(20);
+        app.layout.package_list = rect(0, 10, 40, 12);
+        *app.table_state.offset_mut() = 0;
+        app.selected = 0;
+
+        let _ = handle_mouse(
+            &mut app,
+            MouseEvent {
+                kind: MouseEventKind::ScrollDown,
+                column: 5,
+                row: 12,
+                modifiers: KeyModifiers::NONE,
+            },
+        );
+
+        assert_eq!(
+            app.table_state.offset(),
+            3,
+            "ScrollDown should advance the viewport offset by 3"
+        );
+        // Selection must not move; scroll only moves the viewport
+        assert_eq!(app.selected, 0);
+    }
+
+    #[test]
+    fn mouse_scroll_down_in_package_list_clamped_at_last_item() {
+        let mut app = make_app_with_pkgs(5);
+        app.layout.package_list = rect(0, 10, 40, 12);
+        *app.table_state.offset_mut() = 3; // 5 items; max index = 4
+
+        let _ = handle_mouse(
+            &mut app,
+            MouseEvent {
+                kind: MouseEventKind::ScrollDown,
+                column: 5,
+                row: 12,
+                modifiers: KeyModifiers::NONE,
+            },
+        );
+
+        // 3 + 3 = 6, but max is len-1 = 4
+        assert_eq!(
+            app.table_state.offset(),
+            4,
+            "ScrollDown offset must not exceed len-1"
+        );
+    }
+
+    #[tokio::test]
+    async fn mouse_scroll_up_in_detail_panel_decrements_scroll() {
+        let mut app = make_app();
+        app.layout.detail_panel = rect(40, 10, 40, 20);
+        app.detail_scroll = 6;
+        app.detail_content_lines = 50;
+
+        let _ = handle_mouse(
+            &mut app,
+            MouseEvent {
+                kind: MouseEventKind::ScrollUp,
+                column: 50,
+                row: 15,
+                modifiers: KeyModifiers::NONE,
+            },
+        );
+
+        assert_eq!(
+            app.detail_scroll, 3,
+            "ScrollUp in the detail panel should decrease scroll by 3"
+        );
+    }
+
+    #[tokio::test]
+    async fn mouse_scroll_down_in_detail_panel_increments_scroll() {
+        let mut app = make_app();
+        app.layout.detail_panel = rect(40, 10, 40, 20);
+        app.detail_scroll = 0;
+        app.detail_content_lines = 50;
+
+        let _ = handle_mouse(
+            &mut app,
+            MouseEvent {
+                kind: MouseEventKind::ScrollDown,
+                column: 50,
+                row: 15,
+                modifiers: KeyModifiers::NONE,
+            },
+        );
+
+        assert!(
+            app.detail_scroll > 0,
+            "ScrollDown in the detail panel should increase scroll"
+        );
+    }
+
+    #[test]
+    fn mouse_left_click_dismisses_help_overlay() {
+        let mut app = make_app();
+        app.show_help = true;
+
+        let _ = handle_mouse(
+            &mut app,
+            MouseEvent {
+                kind: MouseEventKind::Down(MouseButton::Left),
+                column: 0,
+                row: 0,
+                modifiers: KeyModifiers::NONE,
+            },
+        );
+
+        assert!(!app.show_help, "left-click should dismiss the help overlay");
+    }
+
+    #[test]
+    fn mouse_left_click_dismisses_confirm_dialog() {
+        let mut app = make_app_with_pkg("Valid.Package", "1.0", "");
+        app.confirm = Some(ConfirmDialog {
+            message: "Upgrade Valid.Package?".to_string(),
+            operation: Operation::Upgrade {
+                id: "Valid.Package".to_string(),
+            },
+        });
+
+        let _ = handle_mouse(
+            &mut app,
+            MouseEvent {
+                kind: MouseEventKind::Down(MouseButton::Left),
+                column: 0,
+                row: 0,
+                modifiers: KeyModifiers::NONE,
+            },
+        );
+
+        assert!(
+            app.confirm.is_none(),
+            "left-click should dismiss the confirm dialog"
+        );
+        assert!(
+            app.status_message.contains("Cancelled"),
+            "status should say Cancelled after dismiss"
+        );
+    }
+
+    #[test]
+    fn mouse_left_click_on_search_bar_in_search_mode_enters_search_input() {
+        let mut app = make_app();
+        app.mode = AppMode::Search;
+        app.layout.search_bar = rect(0, 2, 40, 1);
+        assert_eq!(app.input_mode, InputMode::Normal);
+
+        let _ = handle_mouse(
+            &mut app,
+            MouseEvent {
+                kind: MouseEventKind::Down(MouseButton::Left),
+                column: 5,
+                row: 2,
+                modifiers: KeyModifiers::NONE,
+            },
+        );
+
+        assert_eq!(
+            app.input_mode,
+            InputMode::Search,
+            "clicking the search bar in Search mode should activate Search input"
+        );
+    }
+
+    #[test]
+    fn mouse_left_click_on_search_bar_in_installed_mode_enters_local_filter() {
+        let mut app = make_app();
+        app.mode = AppMode::Installed;
+        app.layout.search_bar = rect(0, 2, 40, 1);
+        assert_eq!(app.input_mode, InputMode::Normal);
+
+        let _ = handle_mouse(
+            &mut app,
+            MouseEvent {
+                kind: MouseEventKind::Down(MouseButton::Left),
+                column: 5,
+                row: 2,
+                modifiers: KeyModifiers::NONE,
+            },
+        );
+
+        assert_eq!(
+            app.input_mode,
+            InputMode::LocalFilter,
+            "clicking the search bar in Installed mode should activate LocalFilter"
+        );
+    }
+
+    #[tokio::test]
+    async fn mouse_right_click_selects_package_at_row() {
+        let mut app = make_app_with_pkgs(5);
+        app.layout.package_list = rect(0, 10, 40, 12);
+        app.layout.list_content_y = 13;
+        *app.table_state.offset_mut() = 0;
+        app.selected = 0;
+
+        // Right-click on row 14 = content_y + 1 → item at index 1
+        let _ = handle_mouse(
+            &mut app,
+            MouseEvent {
+                kind: MouseEventKind::Down(MouseButton::Right),
+                column: 10,
+                row: 14,
+                modifiers: KeyModifiers::NONE,
+            },
+        );
+
+        assert_eq!(
+            app.selected, 1,
+            "right-click should select the package at that row"
+        );
+    }
+
+    #[test]
+    fn mouse_drag_on_scrollbar_jumps_to_item() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app_with_pkgs(10);
+        // Rect: x=0 y=5 w=30 h=12; track_top=6, track_bottom=16, height=10
+        app.layout.package_list = rect(0, 5, 30, 12);
+        app.selected = 0;
+        let scrollbar_col = app.layout.package_list.x + app.layout.package_list.width - 1;
+
+        // Drag to the middle of the scrollbar track
+        let _ = handle_mouse(
+            &mut app,
+            MouseEvent {
+                kind: MouseEventKind::Drag(MouseButton::Left),
+                column: scrollbar_col,
+                row: 11, // mid-track row
+                modifiers: KeyModifiers::NONE,
+            },
+        );
+
+        assert!(
+            app.selected > 0,
+            "dragging on the scrollbar should move the selection away from item 0"
+        );
+    }
+
     // ── switch_view state reset ───────────────────────────────────────────────
 
     #[test]

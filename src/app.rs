@@ -1182,6 +1182,26 @@ mod tests {
         assert_eq!(app.table_state.offset(), 2);
     }
 
+    // ── package_list_viewport_rows ────────────────────────────────────────────
+
+    #[test]
+    fn package_list_viewport_rows_normal_layout() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        // height=10: subtract 4 (top border + padding + header row + bottom border) → 6
+        app.layout.package_list.height = 10;
+        assert_eq!(app.package_list_viewport_rows(), 6);
+    }
+
+    #[test]
+    fn package_list_viewport_rows_height_less_than_four_returns_zero() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        // Default height is 0; saturating_sub(4) → 0
+        app.layout.package_list.height = 3;
+        assert_eq!(app.package_list_viewport_rows(), 0);
+    }
+
     // ── selected_package ──────────────────────────────────────────────────────
 
     #[test]
@@ -1848,6 +1868,54 @@ mod tests {
 
         assert!(app.selected_packages.is_empty());
         assert!(app.status_message.contains("done"));
+    }
+
+    #[tokio::test]
+    async fn process_messages_batch_upgrade_failure_still_triggers_refresh() {
+        // Per the OperationComplete handler: refresh fires for BatchUpgrade regardless of
+        // success — `result.success || matches!(result.operation, Operation::BatchUpgrade { .. })`
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.loading = false;
+        app.message_tx
+            .send(AppMessage::OperationComplete(OpResult {
+                operation: Operation::BatchUpgrade {
+                    ids: vec!["Pkg.One".into()],
+                },
+                success: false,
+                message: "1 of 1 failed: access denied".into(),
+            }))
+            .unwrap();
+        app.process_messages();
+        assert!(
+            app.loading,
+            "a failed BatchUpgrade should still trigger a refresh (loading=true)"
+        );
+        assert!(
+            app.post_refresh_status.is_some(),
+            "post_refresh_status should be set even when BatchUpgrade fails"
+        );
+    }
+
+    #[tokio::test]
+    async fn process_messages_operation_complete_success_empty_message_uses_done_suffix() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.message_tx
+            .send(AppMessage::OperationComplete(OpResult {
+                operation: Operation::Pin {
+                    id: "Microsoft.VSCode".to_string(),
+                },
+                success: true,
+                message: String::new(), // empty message should produce "— done"
+            }))
+            .unwrap();
+        app.process_messages();
+        assert!(
+            app.status_message.ends_with("— done"),
+            "empty success message should use '— done' suffix, got: {:?}",
+            app.status_message
+        );
     }
 
     #[tokio::test]
