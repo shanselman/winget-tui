@@ -685,11 +685,18 @@ impl App {
                     self.apply_filter();
                     // Restore cursor to the same package (if it is still present)
                     // so that pressing 'r' to refresh does not jump the cursor.
-                    if let Some(id) = prev_id {
-                        if let Some(idx) = self.filtered_packages.iter().position(|p| p.id == id) {
+                    if let Some(ref id) = prev_id {
+                        if let Some(idx) = self.filtered_packages.iter().position(|p| p.id == *id) {
                             self.selected = idx;
                             self.ensure_selection_visible();
                         }
+                    }
+                    // If the selection now points to a different package (e.g. the
+                    // previous package was uninstalled and the cursor moved), reset
+                    // the detail-panel scroll so the new package's detail starts at
+                    // the top rather than an arbitrary stale offset.
+                    if self.selected_package().map(|p| p.id.as_str()) != prev_id.as_deref() {
+                        self.detail_scroll = 0;
                     }
                     self.loading = false;
                     let count = self.filtered_packages.len();
@@ -2523,6 +2530,91 @@ mod tests {
         assert!(
             !app.process_messages(),
             "should return false on second call when channel is now empty"
+        );
+    }
+
+    // ── detail_scroll reset on selection change ───────────────────────────────
+
+    #[tokio::test]
+    async fn packages_loaded_resets_detail_scroll_when_selected_package_disappears() {
+        // Regression: when the previously-selected package is removed from the list
+        // (e.g. after a successful uninstall), the cursor moves to a different package
+        // but detail_scroll was left at the old value.  The new package's detail
+        // would appear blank/clipped if its content is shorter.
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+
+        // Load initial list and select the last package.
+        app.view_generation = 1;
+        deliver_packages(
+            &mut app,
+            vec![
+                pkg("Google.Chrome"),
+                pkg("Microsoft.VisualStudioCode"),
+                pkg("7zip.7zip"),
+            ],
+        );
+        app.selected = 2; // 7zip.7zip
+
+        // Simulate user scrolling deep in the detail panel.
+        app.detail_scroll = 12;
+
+        // The package is uninstalled: next refresh returns a shorter list without 7zip.
+        app.view_generation = 2;
+        deliver_packages(
+            &mut app,
+            vec![pkg("Google.Chrome"), pkg("Microsoft.VisualStudioCode")],
+        );
+
+        // The selected package changed (7zip is gone), so detail_scroll must be reset.
+        assert_eq!(
+            app.detail_scroll, 0,
+            "detail_scroll must be reset when the selected package changes"
+        );
+    }
+
+    #[tokio::test]
+    async fn packages_loaded_preserves_detail_scroll_when_same_package_stays() {
+        // When the same package is still present after a refresh, detail_scroll
+        // should be preserved so the user stays at their reading position.
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+
+        app.view_generation = 1;
+        deliver_packages(
+            &mut app,
+            vec![
+                pkg("Google.Chrome"),
+                pkg("Microsoft.VisualStudioCode"),
+                pkg("7zip.7zip"),
+            ],
+        );
+        app.selected = 1; // VS Code
+
+        // User has scrolled down in the detail panel.
+        app.detail_scroll = 7;
+
+        // Refresh: VS Code still present (list just re-ordered).
+        app.view_generation = 2;
+        deliver_packages(
+            &mut app,
+            vec![
+                pkg("7zip.7zip"),
+                pkg("Google.Chrome"),
+                pkg("Microsoft.VisualStudioCode"),
+            ],
+        );
+
+        // Cursor should follow VS Code to its new position.
+        assert_eq!(
+            app.selected_package().unwrap().id,
+            "Microsoft.VisualStudioCode"
+        );
+
+        // detail_scroll must NOT be reset — the same package is still shown.
+        assert_eq!(
+            app.detail_scroll, 7,
+            "detail_scroll must be preserved when the same package is still selected"
         );
     }
 }
