@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-06-30T13:24:19Z",
-  "last_run_id": "28447582054",
+  "last_run": "2026-07-01T00:00:00Z",
+  "last_run_id": "28487307794",
   "monthly_summary_disabled": true,
   "monthly_summary_note": "Maintainer closed issue #222 on 2026-06-08 as automation noise. Do not create monthly activity summary issues.",
   "comments_made": {
@@ -11,10 +11,10 @@
     "154_pr": "2026-04-27"
   },
   "open_repo_assist_prs": [
-    {"pr": 232, "branch": "repo-assist/testing-improvements-locale-edge-cases-08c11e16e8917456", "title": "test(cli_backend): add locale, edge-case, and CJK column-detection tests", "mergeable": "clean"},
-    {"pr": 241, "branch": "repo-assist/feat-sort-available-version-upgrades-10a8b7970e09f64f", "title": "feat: sort Upgrades view by available version", "mergeable": "clean"},
-    {"pr": 246, "branch": "repo-assist/improve-csv-pin-state-2026-06-12-f3777c4f95d41f15", "title": "feat(csv): add PinState column to exported package list", "mergeable": "unstable"},
-    {"pr": 248, "branch": "repo-assist/fix-scroll-down-viewport-overflow-2026-06-13-e985ec171af4d076", "title": "fix: clamp mouse scroll-down offset to last full viewport page", "mergeable": "unstable"},
+    {"pr": 232, "branch": "repo-assist/testing-improvements-locale-edge-cases-08c11e16e8917456", "title": "test(cli_backend): add locale, edge-case, and CJK column-detection tests"},
+    {"pr": 241, "branch": "repo-assist/feat-sort-available-version-upgrades-10a8b7970e09f64f", "title": "feat: sort Upgrades view by available version"},
+    {"pr": 246, "branch": "repo-assist/improve-csv-pin-state-2026-06-12-f3777c4f95d41f15", "title": "feat(csv): add PinState column to exported package list"},
+    {"pr": 248, "branch": "repo-assist/fix-scroll-down-viewport-overflow-2026-06-13-e985ec171af4d076", "title": "fix: clamp mouse scroll-down offset to last full viewport page"},
     {"pr": 259, "branch": "repo-assist/test-detail-focus-confirm-ops-2026-06-19-f09d556ecc955d80", "title": "test: detail-panel focus nav, confirm y/Y/N, ctrl+c"},
     {"pr": 263, "branch": "repo-assist/test-mouse-and-op-complete-2026-06-21-46f6738c1e054c45", "title": "test: mouse interaction, viewport-rows, and OperationComplete"},
     {"pr": 265, "branch": "repo-assist/test-list-nav-keys-2026-06-22-696862ca3e53527e", "title": "test(handler): Home/End/PgUp/PgDn and k/j list-focus navigation"},
@@ -31,7 +31,9 @@
     {"pr": 279, "branch": "repo-assist/test-coverage-gaps-2026-06-27-d765c3b4072db3eb", "title": "test: fill coverage gaps in PinState/PinFilter, show-source, Enter key"},
     {"pr": 281, "branch": "repo-assist/eng-tokio-feature-trim-2026-06-28-67cef7a5cd310e04", "title": "chore: trim tokio features from full to minimum needed"},
     {"pr": 282, "branch": "repo-assist/fix-sanitize-c1-controls-ea90bf47ffc653ec", "title": "fix: strip C1 control characters from package metadata"},
-    {"pr": 284, "branch": "repo-assist/improve-is-id-truncated-dedup-c70fda91921292ae", "title": "refactor: extract is_id_truncated() free function to eliminate duplication"}
+    {"pr": 284, "branch": "repo-assist/improve-is-id-truncated-dedup-c70fda91921292ae", "title": "refactor: extract is_id_truncated() free function to eliminate duplication"},
+    {"pr": "aw_view_sel", "branch": "repo-assist/feat-persist-view-selection-2026-07-01", "title": "feat: restore per-view cursor position when switching views"},
+    {"pr": "aw_ci_cache", "branch": "repo-assist/eng-ci-cache-restore-keys-2026-07-01", "title": "ci: add restore-keys to cargo cache and bump actions/cache to v6"}
   ],
   "open_repo_assist_issues": [
     {"number": 233, "title": "feat: sort Upgrades view by available version (protected files - AGENTS.md)", "note": "PR #241 is the code-only version"},
@@ -41,5 +43,5 @@
     "issues": "no human issues open",
     "next_issue_to_process": "check for new human issues next run"
   },
-  "notes": "2026-06-30 run 2 (28447582054): Tasks 6+2. Task 6: Verified all 21 open PRs - all code-clean. CI shows action_required (infrastructure fork protection). PRs #232 and #241 confirmed mergeable_state=clean; #246 and #248 show unstable (CI infrastructure only). Main unchanged at 152a7c5. Task 2: No human issues - only #283 (automated no-op tracker), #280 and #233 (Repo Assist info issues). No action taken. 4 Dependabot PRs open (#285-#288) with passing CI, awaiting maintainer merge. NOTE: 21 open Repo Assist PRs - maintainer review urgently needed. Monthly summary DISABLED per maintainer request."
+  "notes": "2026-07-01 run (28487307794): Tasks 10+4. Task 10: Implemented per-view cursor persistence (saved_selections HashMap + view_switch_generation). 374 tests pass (+3 new). PR aw_view_sel created. Task 4: Added restore-keys + bumped actions/cache v5->v6 in CI. PR aw_ci_cache created (supersedes Dependabot #285). Monthly summary DISABLED per maintainer. 23 open Repo Assist PRs - urgent maintainer review needed. Dependabot PRs #285-288 still open."
 }
