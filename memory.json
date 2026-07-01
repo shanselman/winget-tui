@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-07-01T00:00:00Z",
-  "last_run_id": "28487307794",
+  "last_run": "2026-07-01T13:38:06Z",
+  "last_run_id": "28521620476",
   "monthly_summary_disabled": true,
   "monthly_summary_note": "Maintainer closed issue #222 on 2026-06-08 as automation noise. Do not create monthly activity summary issues.",
   "comments_made": {
@@ -24,7 +24,7 @@
     {"pr": 272, "branch": "repo-assist/refactor-lints-and-handler-return-types-2026-06-24-8be9a98e1b90c420", "title": "refactor: forbid unsafe code and simplify handler return types"},
     {"pr": 273, "branch": "repo-assist/test-help-scroll-and-upgrades-sort-header-2026-06-24-8fd8895c0a81344d", "title": "test(handler): help-scroll, upgrades-sort-header, and data-url"},
     {"pr": 274, "branch": "repo-assist/fix-detail-scroll-stale-on-package-change-2026-06-25-005933c82a32eb0f", "title": "fix: reset detail_scroll when selected package changes after refresh"},
-    {"pr": 275, "branch": "repo-assist/eng-deps-update-2026-06-25-083903026c55fe9a", "title": "chore: cargo update - ratatui 0.30.2 and transitive dep updates"},
+    {"pr": 275, "branch": "repo-assist/eng-deps-update-2026-06-25-083903026c55fe9a", "title": "chore: cargo update - ratatui 0.30.2 and transitive dep updates", "note": "mergeable_state: unstable - may conflict with anyhow 1.0.103 bump on main"},
     {"pr": 276, "branch": "repo-assist/feat-sort-by-source-2026-06-26-66e40a6ff69604c1", "title": "feat: sort package list by Source column"},
     {"pr": 277, "branch": "repo-assist/improve-empty-list-message-2026-06-26-45b58972adbac5f6", "title": "refactor: extract empty-list message into App::empty_list_message()"},
     {"pr": 278, "branch": "repo-assist/test-untested-paths-2026-06-27-21355c034b762de2", "title": "test: cover untested Operation::Pin/Unpin display, PinState labels"},
@@ -32,8 +32,8 @@
     {"pr": 281, "branch": "repo-assist/eng-tokio-feature-trim-2026-06-28-67cef7a5cd310e04", "title": "chore: trim tokio features from full to minimum needed"},
     {"pr": 282, "branch": "repo-assist/fix-sanitize-c1-controls-ea90bf47ffc653ec", "title": "fix: strip C1 control characters from package metadata"},
     {"pr": 284, "branch": "repo-assist/improve-is-id-truncated-dedup-c70fda91921292ae", "title": "refactor: extract is_id_truncated() free function to eliminate duplication"},
-    {"pr": "aw_view_sel", "branch": "repo-assist/feat-persist-view-selection-2026-07-01", "title": "feat: restore per-view cursor position when switching views"},
-    {"pr": "aw_ci_cache", "branch": "repo-assist/eng-ci-cache-restore-keys-2026-07-01", "title": "ci: add restore-keys to cargo cache and bump actions/cache to v6"}
+    {"pr": 290, "branch": "repo-assist/feat-persist-view-selection-2026-07-01", "title": "feat: restore per-view cursor position when switching views"},
+    {"pr": "aw_perf_alloc", "branch": "repo-assist/perf-alloc-reductions-2026-07-01", "title": "perf: eliminate heap allocations in version sort and local filter"}
   ],
   "open_repo_assist_issues": [
     {"number": 233, "title": "feat: sort Upgrades view by available version (protected files - AGENTS.md)", "note": "PR #241 is the code-only version"},
@@ -43,5 +43,5 @@
     "issues": "no human issues open",
     "next_issue_to_process": "check for new human issues next run"
   },
-  "notes": "2026-07-01 run (28487307794): Tasks 10+4. Task 10: Implemented per-view cursor persistence (saved_selections HashMap + view_switch_generation). 374 tests pass (+3 new). PR aw_view_sel created. Task 4: Added restore-keys + bumped actions/cache v5->v6 in CI. PR aw_ci_cache created (supersedes Dependabot #285). Monthly summary DISABLED per maintainer. 23 open Repo Assist PRs - urgent maintainer review needed. Dependabot PRs #285-288 still open."
+  "notes": "2026-07-01 run (28521620476): Tasks 6+8. Task 6: All CI failures infrastructure-only (fork protection, no check_runs returned). PR #275 mergeable_state unstable (Cargo.lock conflict with anyhow 1.0.103 main bump). No code fixes possible without remote fetch. Task 8: Implemented VersionPart struct->enum (zero allocs for numeric versions) and contains_ignore_case helper (zero allocs for ASCII local filter). 378 tests pass (+7 new). PR aw_perf_alloc created. Monthly summary DISABLED. ~24 open Repo Assist PRs urgent maintainer review. Dependabot #285-288 still open. aw_ci_cache not visible in PR list (may not have been created)."
 }
