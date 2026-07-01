@@ -566,6 +566,11 @@ fn switch_view(app: &mut App, new_mode: AppMode) {
     if new_mode == app.mode {
         return;
     }
+    // Persist the current selection so it can be restored when the user returns
+    // to this view.  The ID is keyed by mode so each view has its own cursor.
+    if let Some(pkg) = app.selected_package() {
+        app.saved_selections.insert(app.mode, pkg.id.clone());
+    }
     app.mode = new_mode;
     app.input_mode = InputMode::Normal;
     app.local_filter.clear();
@@ -579,6 +584,9 @@ fn switch_view(app: &mut App, new_mode: AppMode) {
     app.loading = true;
     app.set_status("Loading...");
     app.refresh_view();
+    // Tag this generation as a view-switch load so process_messages uses the
+    // saved selection (saved_selections[new_mode]) instead of prev_id.
+    app.view_switch_generation = app.view_generation;
 }
 
 /// Returns the number of visible data rows in the package list, based on the

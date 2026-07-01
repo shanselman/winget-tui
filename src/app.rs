@@ -56,7 +56,7 @@ pub enum AppMessage {
     Error(String),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum AppMode {
     Search,
     Installed,
@@ -157,6 +157,13 @@ pub struct App {
     pub backend: Arc<dyn WingetBackend>,
     pub message_tx: tokio::sync::mpsc::UnboundedSender<AppMessage>,
     pub message_rx: tokio::sync::mpsc::UnboundedReceiver<AppMessage>,
+    /// Last selected package ID per view mode, saved on view switches so the
+    /// cursor can be restored when the user returns to a previously visited mode.
+    pub saved_selections: HashMap<AppMode, String>,
+    /// The view_generation value that corresponds to the most recent view switch.
+    /// When PackagesLoaded arrives with this generation, we restore from
+    /// saved_selections instead of using the prev_id fallback.
+    pub view_switch_generation: u64,
 }
 
 /// Compare two package version strings numerically, component by component.
@@ -250,6 +257,8 @@ impl App {
             backend,
             message_tx,
             message_rx,
+            saved_selections: HashMap::new(),
+            view_switch_generation: 0,
         }
     }
 
@@ -678,14 +687,26 @@ impl App {
                     if generation < self.view_generation {
                         continue;
                     }
-                    // Remember the currently selected package so we can
-                    // re-anchor the cursor after the list is replaced.
+                    // Decide which package ID to restore the cursor to:
+                    //
+                    // - View switch (generation == view_switch_generation): restore
+                    //   from saved_selections[mode], which holds the last position the
+                    //   user was at on that view.  Falling back to index 0 is correct
+                    //   for first visits.
+                    //
+                    // - Same-view refresh (r, f, post-operation): restore to the
+                    //   package the cursor was on before the list was replaced
+                    //   (prev_id), keeping the cursor stable across reloads.
+                    let is_view_switch = generation == self.view_switch_generation;
                     let prev_id = self.selected_package().map(|p| p.id.clone());
+                    let restore_id: Option<String> = if is_view_switch {
+                        self.saved_selections.get(&self.mode).cloned()
+                    } else {
+                        prev_id
+                    };
                     self.packages = packages;
                     self.apply_filter();
-                    // Restore cursor to the same package (if it is still present)
-                    // so that pressing 'r' to refresh does not jump the cursor.
-                    if let Some(id) = prev_id {
+                    if let Some(id) = restore_id {
                         if let Some(idx) = self.filtered_packages.iter().position(|p| p.id == id) {
                             self.selected = idx;
                             self.ensure_selection_visible();
@@ -2524,5 +2545,133 @@ mod tests {
             !app.process_messages(),
             "should return false on second call when channel is now empty"
         );
+    }
+
+    // ── Per-view selection persistence ────────────────────────────────────────
+
+    /// When a PackagesLoaded message arrives for a view switch (generation ==
+    /// view_switch_generation), the cursor is restored from saved_selections
+    /// rather than from prev_id, so returning to a view puts the user back on
+    /// the package they were viewing before they left.
+    #[tokio::test]
+    async fn view_switch_restores_saved_selection_on_return() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+
+        // Load Installed packages and select VS Code (index 2)
+        deliver_packages(
+            &mut app,
+            vec![
+                pkg("7zip.7zip"),
+                pkg("Google.Chrome"),
+                pkg("Microsoft.VisualStudioCode"),
+            ],
+        );
+        app.selected = 2;
+
+        // --- Simulate switch_view(Upgrades) ---
+        app.saved_selections
+            .insert(AppMode::Installed, "Microsoft.VisualStudioCode".to_string());
+        app.mode = AppMode::Upgrades;
+        app.selected = 0;
+        app.view_generation += 1;
+        app.view_switch_generation = app.view_generation;
+
+        // Upgrades has no saved selection (first visit) → cursor stays at 0
+        deliver_packages(&mut app, vec![pkg("Google.Chrome")]);
+        assert_eq!(app.selected, 0, "first visit to Upgrades should start at 0");
+
+        // --- Simulate switch_view back to Installed ---
+        app.saved_selections
+            .insert(AppMode::Upgrades, "Google.Chrome".to_string());
+        app.mode = AppMode::Installed;
+        app.selected = 0;
+        app.view_generation += 1;
+        app.view_switch_generation = app.view_generation;
+
+        // Installed has a saved selection (VS Code) → cursor restored
+        deliver_packages(
+            &mut app,
+            vec![
+                pkg("7zip.7zip"),
+                pkg("Google.Chrome"),
+                pkg("Microsoft.VisualStudioCode"),
+            ],
+        );
+        assert_eq!(
+            app.selected, 2,
+            "returning to Installed should restore saved position"
+        );
+        assert_eq!(
+            app.selected_package().unwrap().id,
+            "Microsoft.VisualStudioCode"
+        );
+    }
+
+    /// On a same-view refresh (view_generation advances but view_switch_generation
+    /// does not), the existing prev_id mechanism keeps the cursor on the same
+    /// package even if the list order changes.
+    #[tokio::test]
+    async fn same_view_refresh_still_preserves_selection_by_id() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+
+        // Load initial list
+        deliver_packages(
+            &mut app,
+            vec![
+                pkg("7zip.7zip"),
+                pkg("Google.Chrome"),
+                pkg("Microsoft.VisualStudioCode"),
+            ],
+        );
+        app.selected = 2; // VS Code
+
+        // Refresh without switching view: view_generation advances but
+        // view_switch_generation stays at 0 (its initial value).
+        app.view_generation += 1;
+        // view_switch_generation stays at 0 → not a view switch
+
+        // Deliver reordered list
+        deliver_packages(
+            &mut app,
+            vec![
+                pkg("Google.Chrome"),
+                pkg("Microsoft.VisualStudioCode"),
+                pkg("7zip.7zip"),
+            ],
+        );
+
+        // VS Code moved from index 2 to index 1; cursor must follow
+        assert_eq!(
+            app.selected_package().unwrap().id,
+            "Microsoft.VisualStudioCode",
+            "prev_id restore must still work for same-view refresh"
+        );
+        assert_eq!(app.selected, 1);
+    }
+
+    /// When switching to a view that was never visited, the cursor starts at 0
+    /// (saved_selections has no entry for that mode yet).
+    #[tokio::test]
+    async fn view_switch_to_unvisited_mode_starts_at_zero() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+
+        // Pre-populate some packages so selected_package() is non-None
+        deliver_packages(&mut app, vec![pkg("A.App"), pkg("B.App"), pkg("C.App")]);
+        app.selected = 1; // B.App
+
+        // Simulate switch to Search (never visited before)
+        app.saved_selections
+            .insert(AppMode::Installed, "B.App".to_string());
+        app.mode = AppMode::Search;
+        app.selected = 0;
+        app.view_generation += 1;
+        app.view_switch_generation = app.view_generation;
+
+        // Search results arrive — no saved selection for Search → stay at 0
+        deliver_packages(&mut app, vec![pkg("B.App"), pkg("D.App")]);
+        assert_eq!(app.selected, 0, "first visit to Search should start at 0");
     }
 }
