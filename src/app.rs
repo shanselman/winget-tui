@@ -159,22 +159,36 @@ pub struct App {
     pub message_rx: tokio::sync::mpsc::UnboundedReceiver<AppMessage>,
 }
 
-/// Compare two package version strings numerically, component by component.
+/// A single component of a parsed version string.
 ///
-/// Version strings are split on `.`, `-`, and `+`. Each component is compared
-/// numerically when both sides parse as `u64`; otherwise lexicographically.
-/// This avoids the lexicographic pitfall where `"10.0"` sorts before `"2.0"`.
+/// `Num` stores the component as a bare integer — the common case for `X.Y.Z`
+/// style versions — avoiding **all** heap allocation. `Text` uses `Box<str>` (a
+/// 16-byte fat pointer) instead of `String` (24 bytes) to keep each component
+/// one word smaller.
+///
+/// Comparison follows the same rules as before:
+/// * Both `Num`: numeric order (so `"10.0"` beats `"2.0"`).
+/// * Both `Text`: lexicographic order.
+/// * Mixed (e.g. `"1.0"` vs `"1.alpha"`): lexicographic on the numeric
+///   component's decimal string form (rare in practice; preserved for
+///   backwards compatibility).
 #[derive(Debug, Clone, Eq, PartialEq)]
-struct VersionPart {
-    num: Option<u64>,
-    src: String,
+enum VersionPart {
+    Num(u64),
+    Text(Box<str>),
 }
 
 impl Ord for VersionPart {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        match (self.num, other.num) {
-            (Some(left), Some(right)) => left.cmp(&right),
-            _ => self.src.cmp(&other.src),
+        match (self, other) {
+            (Self::Num(a), Self::Num(b)) => a.cmp(b),
+            (Self::Text(a), Self::Text(b)) => a.cmp(b),
+            // Mixed: preserve original behaviour (numeric decimal string vs text).
+            // Allocates a temporary String, but this case is extremely rare in
+            // practice (only occurs when the same version-field position is
+            // numeric in one string and non-numeric in the other).
+            (Self::Num(n), Self::Text(t)) => n.to_string().as_str().cmp(t.as_ref()),
+            (Self::Text(t), Self::Num(n)) => t.as_ref().cmp(n.to_string().as_str()),
         }
     }
 }
@@ -185,11 +199,17 @@ impl PartialOrd for VersionPart {
     }
 }
 
+/// Build a sort key for a version string.
+///
+/// Splits on `.`, `-`, and `+`, and stores each component as `VersionPart::Num`
+/// when it parses as a `u64` (no heap allocation) or `VersionPart::Text`
+/// otherwise. Used with `sort_by_cached_key` so the key is computed once per
+/// element.
 fn version_key(v: &str) -> Vec<VersionPart> {
     v.split(['.', '-', '+'])
-        .map(|part| VersionPart {
-            num: part.parse::<u64>().ok(),
-            src: part.to_string(),
+        .map(|part| match part.parse::<u64>() {
+            Ok(n) => VersionPart::Num(n),
+            Err(_) => VersionPart::Text(part.into()),
         })
         .collect()
 }
@@ -197,6 +217,30 @@ fn version_key(v: &str) -> Vec<VersionPart> {
 #[cfg(test)]
 fn compare_versions(a: &str, b: &str) -> std::cmp::Ordering {
     version_key(a).cmp(&version_key(b))
+}
+
+/// Case-insensitive substring search that avoids heap allocation for
+/// purely ASCII inputs (the common case for winget package names and IDs).
+///
+/// `needle` must already be lowercased by the caller.  For ASCII needles the
+/// function scans the haystack byte-by-byte (O(N × M) but allocation-free).
+/// For Unicode needles it falls back to the allocating
+/// `haystack.to_lowercase().contains(needle)` path.
+fn contains_ignore_case(haystack: &str, needle: &str) -> bool {
+    if needle.is_empty() {
+        return true;
+    }
+    if needle.is_ascii() {
+        let nbytes = needle.as_bytes();
+        haystack.as_bytes().windows(nbytes.len()).any(|window| {
+            window
+                .iter()
+                .zip(nbytes)
+                .all(|(h, n)| h.to_ascii_lowercase() == *n)
+        })
+    } else {
+        haystack.to_lowercase().contains(needle)
+    }
 }
 
 impl App {
@@ -268,7 +312,7 @@ impl App {
         if self.mode != AppMode::Search && !self.local_filter.is_empty() {
             let query = self.local_filter.to_lowercase();
             self.filtered_packages.retain(|pkg| {
-                pkg.name.to_lowercase().contains(&query) || pkg.id.to_lowercase().contains(&query)
+                contains_ignore_case(&pkg.name, &query) || contains_ignore_case(&pkg.id, &query)
             });
         }
         if self.mode != AppMode::Search {
@@ -1640,6 +1684,59 @@ mod tests {
             compare_versions("1.0+20240101", "1.0+20230101"),
             std::cmp::Ordering::Greater
         );
+    }
+
+    #[test]
+    fn compare_versions_mixed_numeric_and_text_at_same_position() {
+        // When one component is numeric and the other is text at the same
+        // position the comparison falls back to lexicographic on the decimal
+        // string of the number (e.g. "0" vs "alpha" → "0" < "alpha").
+        assert_eq!(compare_versions("1.0", "1.alpha"), std::cmp::Ordering::Less);
+        assert_eq!(
+            compare_versions("1.alpha", "1.0"),
+            std::cmp::Ordering::Greater
+        );
+    }
+
+    // ── contains_ignore_case ─────────────────────────────────────────────────
+
+    #[test]
+    fn contains_ignore_case_basic_ascii_match() {
+        assert!(contains_ignore_case("Hello World", "hello"));
+        assert!(contains_ignore_case("HELLO", "hello"));
+        // needle is expected to be pre-lowercased by the caller
+        assert!(!contains_ignore_case("hello", "HELLO"));
+    }
+
+    #[test]
+    fn contains_ignore_case_no_match() {
+        assert!(!contains_ignore_case("Hello World", "xyz"));
+    }
+
+    #[test]
+    fn contains_ignore_case_empty_needle_always_matches() {
+        assert!(contains_ignore_case("anything", ""));
+        assert!(contains_ignore_case("", ""));
+    }
+
+    #[test]
+    fn contains_ignore_case_needle_longer_than_haystack() {
+        assert!(!contains_ignore_case("hi", "hello"));
+    }
+
+    #[test]
+    fn contains_ignore_case_mixed_case_id() {
+        assert!(contains_ignore_case(
+            "Microsoft.VisualStudioCode",
+            "visualstudiocode"
+        ));
+        assert!(contains_ignore_case("Google.Chrome", "google"));
+    }
+
+    #[test]
+    fn contains_ignore_case_unicode_fallback() {
+        // Non-ASCII needle triggers the Unicode fallback path.
+        assert!(contains_ignore_case("café", "caf\u{00e9}"));
     }
 
     #[test]
