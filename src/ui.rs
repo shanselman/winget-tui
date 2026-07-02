@@ -6,7 +6,7 @@ use ratatui::{
     text::{Line, Span},
     widgets::{
         Block, BorderType, Borders, Cell, Clear, Paragraph, Row, Scrollbar, ScrollbarOrientation,
-        ScrollbarState, Table, Wrap,
+        ScrollbarState, Table, TableState, Wrap,
     },
     Frame,
 };
@@ -257,11 +257,101 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
     )
     .height(1);
 
-    let rows: Vec<Row> = app
-        .filtered_packages
+    let widths = if app.mode == AppMode::Upgrades {
+        vec![
+            Constraint::Percentage(25),
+            Constraint::Percentage(30),
+            Constraint::Percentage(15),
+            Constraint::Percentage(15),
+            Constraint::Percentage(15),
+        ]
+    } else {
+        vec![
+            Constraint::Percentage(25),
+            Constraint::Percentage(35),
+            Constraint::Percentage(20),
+            Constraint::Percentage(20),
+        ]
+    };
+
+    let border_style = if is_focused {
+        theme::border_focused()
+    } else {
+        theme::border_unfocused()
+    };
+
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .border_style(border_style)
+        .title(format!(" {} ({}) ", title, app.filtered_packages.len()))
+        .title_style(theme::title())
+        .padding(ratatui::widgets::Padding::top(1));
+
+    // Loading / empty state — check before building rows to avoid unnecessary work.
+    let loading_msg = if app.loading {
+        Some(format!(" {} Loading...", app.spinner()))
+    } else if app.filtered_packages.is_empty() {
+        Some(
+            match app.mode {
+                AppMode::Search if app.search_query.is_empty() => " Type / to search for packages",
+                AppMode::Search => " No results found",
+                AppMode::Installed
+                    if matches!(app.pin_filter, crate::models::PinFilter::PinnedOnly) =>
+                {
+                    " No pinned packages found"
+                }
+                AppMode::Installed
+                    if matches!(app.pin_filter, crate::models::PinFilter::UnpinnedOnly) =>
+                {
+                    " All visible packages are pinned"
+                }
+                AppMode::Upgrades
+                    if matches!(app.pin_filter, crate::models::PinFilter::PinnedOnly) =>
+                {
+                    " No pinned packages with upgrades found"
+                }
+                AppMode::Upgrades
+                    if matches!(app.pin_filter, crate::models::PinFilter::UnpinnedOnly) =>
+                {
+                    " No unpinned packages with upgrades found"
+                }
+                AppMode::Installed => " No packages found",
+                AppMode::Upgrades => " All packages are up to date!",
+            }
+            .to_string(),
+        )
+    } else {
+        None
+    };
+
+    if let Some(msg) = loading_msg {
+        let p = Paragraph::new(msg)
+            .block(block)
+            .style(Style::default().fg(theme::TEXT_SECONDARY));
+        f.render_widget(p, area);
+        return;
+    }
+
+    // Only materialise Row objects for the visible viewport window rather than
+    // the entire filtered list.  For a 200-package list with a 25-row viewport
+    // this reduces per-render Row+Cell allocations by ~8x.
+    //
+    // The viewport offset is managed externally by ensure_selection_visible().
+    // We render with a local TableState (offset = 0) since the rows slice
+    // already starts at visible_start; we never store the selection index in
+    // app.table_state (row highlighting is applied via Row::style instead).
+    let offset = app.table_state.offset();
+    let viewport = app.package_list_viewport_rows();
+    let total = app.filtered_packages.len();
+    let visible_start = offset.min(total);
+    let visible_end = (visible_start + viewport).min(total);
+
+    let rows: Vec<Row> = app.filtered_packages[visible_start..visible_end]
         .iter()
         .enumerate()
-        .map(|(i, pkg)| {
+        .map(|(vis_i, pkg)| {
+            let i = visible_start + vis_i;
             let is_selected = i == app.selected;
             let is_marked = app.mode == AppMode::Upgrades && app.selected_packages.contains(&i);
             let style = if is_selected {
@@ -322,85 +412,10 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
         })
         .collect();
 
-    let widths = if app.mode == AppMode::Upgrades {
-        vec![
-            Constraint::Percentage(25),
-            Constraint::Percentage(30),
-            Constraint::Percentage(15),
-            Constraint::Percentage(15),
-            Constraint::Percentage(15),
-        ]
-    } else {
-        vec![
-            Constraint::Percentage(25),
-            Constraint::Percentage(35),
-            Constraint::Percentage(20),
-            Constraint::Percentage(20),
-        ]
-    };
-
-    let border_style = if is_focused {
-        theme::border_focused()
-    } else {
-        theme::border_unfocused()
-    };
-
-    let block = Block::default()
-        .borders(Borders::ALL)
-        .border_type(BorderType::Rounded)
-        .border_style(border_style)
-        .title(format!(" {} ({}) ", title, app.filtered_packages.len()))
-        .title_style(theme::title())
-        .padding(ratatui::widgets::Padding::top(1));
-
-    // Loading / empty state
-    let loading_msg = if app.loading {
-        Some(format!(" {} Loading...", app.spinner()))
-    } else if app.filtered_packages.is_empty() {
-        Some(
-            match app.mode {
-                AppMode::Search if app.search_query.is_empty() => " Type / to search for packages",
-                AppMode::Search => " No results found",
-                AppMode::Installed
-                    if matches!(app.pin_filter, crate::models::PinFilter::PinnedOnly) =>
-                {
-                    " No pinned packages found"
-                }
-                AppMode::Installed
-                    if matches!(app.pin_filter, crate::models::PinFilter::UnpinnedOnly) =>
-                {
-                    " All visible packages are pinned"
-                }
-                AppMode::Upgrades
-                    if matches!(app.pin_filter, crate::models::PinFilter::PinnedOnly) =>
-                {
-                    " No pinned packages with upgrades found"
-                }
-                AppMode::Upgrades
-                    if matches!(app.pin_filter, crate::models::PinFilter::UnpinnedOnly) =>
-                {
-                    " No unpinned packages with upgrades found"
-                }
-                AppMode::Installed => " No packages found",
-                AppMode::Upgrades => " All packages are up to date!",
-            }
-            .to_string(),
-        )
-    } else {
-        None
-    };
-
-    if let Some(msg) = loading_msg {
-        let p = Paragraph::new(msg)
-            .block(block)
-            .style(Style::default().fg(theme::TEXT_SECONDARY));
-        f.render_widget(p, area);
-        return;
-    }
-
     let table = Table::new(rows, &widths).header(header).block(block);
 
-    f.render_stateful_widget(table, area, &mut app.table_state);
+    let mut render_state = TableState::default();
+    f.render_stateful_widget(table, area, &mut render_state);
 
     // Scrollbar
     if app.filtered_packages.len() > app.package_list_viewport_rows() {
