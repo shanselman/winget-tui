@@ -1,15 +1,15 @@
 {
-  "last_run": "2026-06-30T13:24:19Z",
-  "last_run_id": "28447582054",
+  "last_run": "2026-07-02T01:29:07Z",
+  "last_run_id": "28558970835",
   "monthly_summary_preference": "maintainer_disabled",
-  "monthly_summary_note": "2026-06-08: Maintainer closed issue #222 with comment 'monthly Repo Assist activity tracker/automation noise, no maintainer action required.' Do NOT create monthly activity summary issues.",
-  "pr_count": 21,
-  "main_sha": "152a7c5c1d3455a2bc90028df7320728a74cbda3",
-  "test_baseline": 371,
+  "monthly_summary_note": "2026-06-08: Maintainer closed issue #222. Do NOT create monthly activity summary issues.",
+  "pr_count": 24,
+  "main_sha": "72a6163da8e4809714449f56c17cbd70409baca9",
+  "test_baseline": 381,
   "cargo_versions": {
     "ratatui": "0.30.2",
     "tokio": "1.52.3",
-    "anyhow": "1.0.102"
+    "anyhow": "1.0.103"
   },
   "pending_dependabot_prs": [285, 286, 287, 288],
   "ci_infrastructure_note": "All repo-assist branch PRs show action_required CI (fork protection). This is infrastructure, not code failures."
