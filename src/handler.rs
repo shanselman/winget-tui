@@ -2150,6 +2150,172 @@ mod tests {
         assert_eq!(app.help_scroll, 0, "scroll should reset when help closes");
     }
 
+    // ── handle_normal_mode: detail-panel keyboard navigation ─────────────────
+
+    #[test]
+    fn up_key_in_detail_focus_scrolls_detail_backward() {
+        let mut app = make_app();
+        app.focus = FocusZone::DetailPanel;
+        app.layout.detail_panel = rect(0, 0, 40, 20);
+        app.detail_content_lines = 30;
+        app.detail_scroll = 5;
+
+        let _ = handle_normal_mode(&mut app, KeyCode::Up, KeyModifiers::NONE);
+
+        assert_eq!(
+            app.detail_scroll, 4,
+            "Up in detail focus must decrement scroll by 1"
+        );
+    }
+
+    #[test]
+    fn down_key_in_detail_focus_scrolls_detail_forward() {
+        let mut app = make_app();
+        app.focus = FocusZone::DetailPanel;
+        app.layout.detail_panel = rect(0, 0, 40, 20);
+        app.detail_content_lines = 30;
+        app.detail_scroll = 5;
+
+        let _ = handle_normal_mode(&mut app, KeyCode::Down, KeyModifiers::NONE);
+
+        assert_eq!(
+            app.detail_scroll, 6,
+            "Down in detail focus must increment scroll by 1"
+        );
+    }
+
+    #[test]
+    fn k_key_in_detail_focus_scrolls_backward() {
+        let mut app = make_app();
+        app.focus = FocusZone::DetailPanel;
+        app.layout.detail_panel = rect(0, 0, 40, 20);
+        app.detail_content_lines = 30;
+        app.detail_scroll = 3;
+
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('k'), KeyModifiers::NONE);
+
+        assert_eq!(
+            app.detail_scroll, 2,
+            "k is the Up alias; must scroll detail backward"
+        );
+    }
+
+    #[test]
+    fn j_key_in_detail_focus_scrolls_forward() {
+        let mut app = make_app();
+        app.focus = FocusZone::DetailPanel;
+        app.layout.detail_panel = rect(0, 0, 40, 20);
+        app.detail_content_lines = 30;
+        app.detail_scroll = 3;
+
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('j'), KeyModifiers::NONE);
+
+        assert_eq!(
+            app.detail_scroll, 4,
+            "j is the Down alias; must scroll detail forward"
+        );
+    }
+
+    #[test]
+    fn pageup_in_detail_focus_scrolls_by_panel_height() {
+        let mut app = make_app();
+        app.focus = FocusZone::DetailPanel;
+        // panel height = 10 → page = 10 - 3 = 7
+        app.layout.detail_panel = rect(0, 0, 40, 10);
+        app.detail_content_lines = 50;
+        app.detail_scroll = 15;
+
+        let _ = handle_normal_mode(&mut app, KeyCode::PageUp, KeyModifiers::NONE);
+
+        // scroll_detail(-7): viewport=7, max=50-7=43, result=15-7=8
+        assert_eq!(
+            app.detail_scroll, 8,
+            "PageUp in detail focus must scroll back by panel_height - 3"
+        );
+    }
+
+    #[test]
+    fn pagedown_in_detail_focus_scrolls_by_panel_height() {
+        let mut app = make_app();
+        app.focus = FocusZone::DetailPanel;
+        // panel height = 10 → page = 10 - 3 = 7
+        app.layout.detail_panel = rect(0, 0, 40, 10);
+        app.detail_content_lines = 50;
+        app.detail_scroll = 5;
+
+        let _ = handle_normal_mode(&mut app, KeyCode::PageDown, KeyModifiers::NONE);
+
+        // scroll_detail(7): viewport=7, max=43, result=5+7=12
+        assert_eq!(
+            app.detail_scroll, 12,
+            "PageDown in detail focus must scroll forward by panel_height - 3"
+        );
+    }
+
+    #[test]
+    fn home_key_in_detail_focus_resets_scroll_to_zero() {
+        let mut app = make_app();
+        app.focus = FocusZone::DetailPanel;
+        app.layout.detail_panel = rect(0, 0, 40, 10);
+        app.detail_content_lines = 30;
+        app.detail_scroll = 8;
+
+        let _ = handle_normal_mode(&mut app, KeyCode::Home, KeyModifiers::NONE);
+
+        assert_eq!(
+            app.detail_scroll, 0,
+            "Home in detail focus must reset scroll to zero"
+        );
+    }
+
+    #[test]
+    fn end_key_in_detail_focus_jumps_to_last_page() {
+        let mut app = make_app();
+        app.focus = FocusZone::DetailPanel;
+        // panel height = 10 → viewport = 10 - 3 = 7
+        app.layout.detail_panel = rect(0, 0, 40, 10);
+        app.detail_content_lines = 30;
+        app.detail_scroll = 0;
+
+        let _ = handle_normal_mode(&mut app, KeyCode::End, KeyModifiers::NONE);
+
+        // detail_scroll = 30 - 7 = 23
+        assert_eq!(
+            app.detail_scroll, 23,
+            "End in detail focus must jump to last displayable page"
+        );
+    }
+
+    #[test]
+    fn up_key_in_detail_focus_clamps_at_zero() {
+        let mut app = make_app();
+        app.focus = FocusZone::DetailPanel;
+        app.layout.detail_panel = rect(0, 0, 40, 20);
+        app.detail_content_lines = 10;
+        app.detail_scroll = 0;
+
+        let _ = handle_normal_mode(&mut app, KeyCode::Up, KeyModifiers::NONE);
+
+        assert_eq!(app.detail_scroll, 0, "scroll must not underflow below zero");
+    }
+
+    #[test]
+    fn down_key_in_detail_focus_clamps_at_max() {
+        let mut app = make_app();
+        app.focus = FocusZone::DetailPanel;
+        // panel height = 10 → viewport = 7; max = 20 - 7 = 13
+        app.layout.detail_panel = rect(0, 0, 40, 10);
+        app.detail_content_lines = 20;
+        app.detail_scroll = 13; // already at max
+
+        let _ = handle_normal_mode(&mut app, KeyCode::Down, KeyModifiers::NONE);
+
+        assert_eq!(
+            app.detail_scroll, 13,
+            "scroll must not exceed content - viewport"
+        );
+    }
+
     // ── handle_tab_click ─────────────────────────────────────────────────────
 
     #[test]
