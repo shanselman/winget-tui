@@ -659,11 +659,7 @@ fn click_sort_header(app: &mut App, col: u16) {
 
     if app.sort_field == field {
         // Same column: toggle direction
-        app.sort_dir = if app.sort_dir == SortDir::Asc {
-            SortDir::Desc
-        } else {
-            SortDir::Asc
-        };
+        app.sort_dir = app.sort_dir.toggle();
     } else {
         app.sort_field = field;
         app.sort_dir = SortDir::Asc;

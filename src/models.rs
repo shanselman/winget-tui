@@ -43,6 +43,13 @@ impl SortDir {
             Self::Desc => " ↓",
         }
     }
+
+    pub fn toggle(self) -> Self {
+        match self {
+            Self::Asc => Self::Desc,
+            Self::Desc => Self::Asc,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
@@ -605,5 +612,11 @@ mod tests {
     fn sort_dir_indicator() {
         assert_eq!(SortDir::Asc.indicator(), " ↑");
         assert_eq!(SortDir::Desc.indicator(), " ↓");
+    }
+
+    #[test]
+    fn sort_dir_toggle() {
+        assert_eq!(SortDir::Asc.toggle(), SortDir::Desc);
+        assert_eq!(SortDir::Desc.toggle(), SortDir::Asc);
     }
 }
