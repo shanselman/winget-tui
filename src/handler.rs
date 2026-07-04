@@ -1114,6 +1114,46 @@ mod tests {
         );
     }
 
+    #[test]
+    fn handle_confirm_lowercase_y_clears_dialog_and_sets_loading() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app();
+        app.confirm = Some(ConfirmDialog {
+            message: "Upgrade Foo?".into(),
+            operation: Operation::Upgrade { id: "Foo".into() },
+        });
+        let _ = handle_confirm(&mut app, KeyCode::Char('y'));
+        assert!(app.confirm.is_none(), "'y' must consume the confirm dialog");
+        assert!(app.loading, "'y' must set loading");
+    }
+
+    #[test]
+    fn handle_confirm_uppercase_y_clears_dialog_and_sets_loading() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app();
+        app.confirm = Some(ConfirmDialog {
+            message: "Upgrade Foo?".into(),
+            operation: Operation::Upgrade { id: "Foo".into() },
+        });
+        let _ = handle_confirm(&mut app, KeyCode::Char('Y'));
+        assert!(app.confirm.is_none(), "'Y' must consume the confirm dialog");
+        assert!(app.loading, "'Y' must set loading");
+    }
+
+    #[test]
+    fn handle_confirm_uppercase_n_cancels_dialog() {
+        let mut app = make_app();
+        app.confirm = Some(ConfirmDialog {
+            message: "Upgrade Foo?".into(),
+            operation: Operation::Upgrade { id: "Foo".into() },
+        });
+        let _ = handle_confirm(&mut app, KeyCode::Char('N'));
+        assert!(app.confirm.is_none(), "'N' must cancel the dialog");
+        assert_eq!(app.status_message, "Cancelled");
+    }
+
     // ── handle_search_input ──────────────────────────────────────────────────
 
     #[test]
@@ -2016,6 +2056,140 @@ mod tests {
 
     // ── scrollbar_jump ────────────────────────────────────────────────────────
 
+    // ── detail-panel focus navigation ────────────────────────────────────────
+
+    #[test]
+    fn up_key_with_detail_focus_scrolls_detail_up() {
+        let mut app = make_app_with_pkgs(3);
+        app.focus = crate::app::FocusZone::DetailPanel;
+        app.detail_scroll = 5;
+        app.detail_content_lines = 20;
+        app.selected = 1; // selection should not change
+        let _ = handle_normal_mode(&mut app, KeyCode::Up, KeyModifiers::NONE);
+        assert!(
+            app.detail_scroll < 5,
+            "Up with detail focus should scroll detail up"
+        );
+        assert_eq!(
+            app.selected, 1,
+            "Up with detail focus must not change list selection"
+        );
+    }
+
+    #[test]
+    fn down_key_with_detail_focus_scrolls_detail_down() {
+        let mut app = make_app_with_pkgs(3);
+        app.focus = crate::app::FocusZone::DetailPanel;
+        app.detail_scroll = 0;
+        app.detail_content_lines = 20;
+        app.layout.detail_panel = rect(0, 0, 40, 10);
+        app.selected = 1;
+        let _ = handle_normal_mode(&mut app, KeyCode::Down, KeyModifiers::NONE);
+        assert!(
+            app.detail_scroll > 0,
+            "Down with detail focus should scroll detail down"
+        );
+        assert_eq!(
+            app.selected, 1,
+            "Down with detail focus must not change list selection"
+        );
+    }
+
+    #[test]
+    fn j_key_with_detail_focus_scrolls_detail_down() {
+        let mut app = make_app_with_pkgs(3);
+        app.focus = crate::app::FocusZone::DetailPanel;
+        app.detail_scroll = 0;
+        app.detail_content_lines = 20;
+        app.layout.detail_panel = rect(0, 0, 40, 10);
+        app.selected = 1;
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('j'), KeyModifiers::NONE);
+        assert!(
+            app.detail_scroll > 0,
+            "'j' with detail focus should scroll detail down"
+        );
+        assert_eq!(
+            app.selected, 1,
+            "'j' with detail focus must not change list selection"
+        );
+    }
+
+    #[test]
+    fn k_key_with_detail_focus_scrolls_detail_up() {
+        let mut app = make_app_with_pkgs(3);
+        app.focus = crate::app::FocusZone::DetailPanel;
+        app.detail_scroll = 5;
+        app.detail_content_lines = 20;
+        app.selected = 1;
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('k'), KeyModifiers::NONE);
+        assert!(
+            app.detail_scroll < 5,
+            "'k' with detail focus should scroll detail up"
+        );
+        assert_eq!(
+            app.selected, 1,
+            "'k' with detail focus must not change list selection"
+        );
+    }
+
+    #[test]
+    fn home_key_with_detail_focus_resets_detail_scroll_to_zero() {
+        let mut app = make_app_with_pkgs(3);
+        app.focus = crate::app::FocusZone::DetailPanel;
+        app.detail_scroll = 12;
+        app.detail_content_lines = 30;
+        let _ = handle_normal_mode(&mut app, KeyCode::Home, KeyModifiers::NONE);
+        assert_eq!(
+            app.detail_scroll, 0,
+            "Home with detail focus must reset detail_scroll to 0"
+        );
+    }
+
+    #[test]
+    fn end_key_with_detail_focus_jumps_detail_scroll_to_end() {
+        let mut app = make_app_with_pkgs(3);
+        app.focus = crate::app::FocusZone::DetailPanel;
+        app.detail_scroll = 0;
+        app.detail_content_lines = 30;
+        app.layout.detail_panel = rect(0, 0, 40, 10); // viewport height = 7 (10-3)
+        let _ = handle_normal_mode(&mut app, KeyCode::End, KeyModifiers::NONE);
+        // detail_scroll = content_lines - viewport = 30 - 7 = 23
+        assert!(
+            app.detail_scroll > 0,
+            "End with detail focus must jump detail_scroll toward the end"
+        );
+    }
+
+    #[test]
+    fn page_up_key_with_detail_focus_scrolls_detail_by_page() {
+        let mut app = make_app_with_pkgs(3);
+        app.focus = crate::app::FocusZone::DetailPanel;
+        app.detail_scroll = 20;
+        app.detail_content_lines = 50;
+        app.layout.detail_panel = rect(0, 0, 40, 13); // page = 13-3 = 10
+        let _ = handle_normal_mode(&mut app, KeyCode::PageUp, KeyModifiers::NONE);
+        assert!(
+            app.detail_scroll < 20,
+            "PageUp with detail focus should scroll detail up by page"
+        );
+    }
+
+    #[test]
+    fn page_down_key_with_detail_focus_scrolls_detail_by_page() {
+        let mut app = make_app_with_pkgs(3);
+        app.focus = crate::app::FocusZone::DetailPanel;
+        app.detail_scroll = 0;
+        app.detail_content_lines = 50;
+        app.layout.detail_panel = rect(0, 0, 40, 13); // page = 13-3 = 10
+        let _ = handle_normal_mode(&mut app, KeyCode::PageDown, KeyModifiers::NONE);
+        assert!(
+            app.detail_scroll > 0,
+            "PageDown with detail focus should scroll detail down by page"
+        );
+    }
+
+    // ── scrollbar_jump ────────────────────────────────────────────────────────
+
     #[test]
     fn scrollbar_jump_selects_first_item_when_clicking_track_top() {
         let rt = test_runtime();
@@ -2148,6 +2322,75 @@ mod tests {
         handle_help_input(&mut app, KeyCode::Esc);
         assert!(!app.show_help);
         assert_eq!(app.help_scroll, 0, "scroll should reset when help closes");
+    }
+
+    #[test]
+    fn help_page_up_decrements_by_ten() {
+        let mut app = make_app();
+        app.show_help = true;
+        app.help_scroll = 15;
+        app.help_max_scroll = 20;
+
+        handle_help_input(&mut app, KeyCode::PageUp);
+        assert_eq!(app.help_scroll, 5);
+    }
+
+    #[test]
+    fn help_page_up_saturates_at_zero() {
+        let mut app = make_app();
+        app.show_help = true;
+        app.help_scroll = 3;
+        app.help_max_scroll = 20;
+
+        handle_help_input(&mut app, KeyCode::PageUp);
+        assert_eq!(
+            app.help_scroll, 0,
+            "PageUp below 10 lines from top should clamp to 0"
+        );
+    }
+
+    #[test]
+    fn help_page_down_increments_by_ten() {
+        let mut app = make_app();
+        app.show_help = true;
+        app.help_scroll = 0;
+        app.help_max_scroll = 20;
+
+        handle_help_input(&mut app, KeyCode::PageDown);
+        assert_eq!(app.help_scroll, 10);
+    }
+
+    #[test]
+    fn help_page_down_clamped_at_max() {
+        let mut app = make_app();
+        app.show_help = true;
+        app.help_scroll = 15;
+        app.help_max_scroll = 20;
+
+        handle_help_input(&mut app, KeyCode::PageDown);
+        assert_eq!(app.help_scroll, 20, "PageDown should not exceed max");
+    }
+
+    #[test]
+    fn help_j_key_scrolls_down() {
+        let mut app = make_app();
+        app.show_help = true;
+        app.help_scroll = 2;
+        app.help_max_scroll = 10;
+
+        handle_help_input(&mut app, KeyCode::Char('j'));
+        assert_eq!(app.help_scroll, 3);
+    }
+
+    #[test]
+    fn help_k_key_scrolls_up() {
+        let mut app = make_app();
+        app.show_help = true;
+        app.help_scroll = 5;
+        app.help_max_scroll = 10;
+
+        handle_help_input(&mut app, KeyCode::Char('k'));
+        assert_eq!(app.help_scroll, 4);
     }
 
     // ── handle_tab_click ─────────────────────────────────────────────────────
