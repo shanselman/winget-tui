@@ -2480,6 +2480,11 @@ mod tests {
         assert_eq!(csv_escape("line1\nline2"), "\"line1\nline2\"");
     }
 
+    #[test]
+    fn csv_escape_carriage_return_triggers_quoting() {
+        assert_eq!(csv_escape("line1\rline2"), "\"line1\rline2\"");
+    }
+
     // ── process_messages return value ─────────────────────────────────────────
 
     #[test]
