@@ -1,8 +1,8 @@
 {
-  "last_run": "2026-07-05T01:20:00Z",
-  "last_run_id": "28725485097",
+  "last_run": "2026-07-05T13:10:24Z",
+  "last_run_id": "28741858094",
   "monthly_summary_disabled": true,
-  "monthly_summary_note": "Maintainer closed issue #222 on 2026-06-08 as automation noise. Do not create monthly activity summary issues.",
+  "monthly_summary_note": "Maintainer closed issue #222 on 2026-06-08. Do not create monthly activity summary issues.",
   "comments_made": {
     "80": "2026-04-16",
     "83": "2026-04-16",
@@ -22,7 +22,7 @@
     {"pr": 272, "title": "refactor: forbid unsafe code and simplify handler return types"},
     {"pr": 273, "title": "test(handler): add help-scroll, upgrades-sort-header, and data-url"},
     {"pr": 274, "title": "fix: reset detail_scroll when selected package changes after refresh"},
-    {"pr": 275, "title": "chore: cargo update - ratatui 0.30.2"},
+    {"pr": 275, "title": "chore: cargo update - ratatui 0.30.2 (SUPERSEDED by #298)"},
     {"pr": 276, "title": "feat: sort package list by Source column"},
     {"pr": 277, "title": "refactor: extract empty-list message into App::empty_list_message()"},
     {"pr": 278, "title": "test: cover untested Operation::Pin/Unpin display, PinState labels"},
@@ -37,17 +37,19 @@
     {"pr": 294, "title": "refactor: add SortDir::toggle() following FocusZone::toggle() pattern"},
     {"pr": 295, "title": "fix: discard stale detail errors to prevent post_refresh_status clobber"},
     {"pr": 296, "title": "test: cover csv_escape \\r and blocked-URL status paths"},
-    {"pr": 297, "title": "test: fill coverage gaps for help PageUp/Down, confirm Y/N, detail-panel nav, csv \\r"}
+    {"pr": 297, "title": "test: fill coverage gaps for help PageUp/Down, confirm Y/N, detail-panel nav, csv \\r"},
+    {"pr": "aw_dep_update", "title": "chore: cargo update — pick up latest compatible transitive deps (July 2026)", "supersedes": 275}
   ],
   "open_repo_assist_issues": [
     {"number": 233, "title": "feat: sort Upgrades view by available version (AGENTS.md protected)"},
     {"number": 280, "title": "docs: remove inaccurate filter-click-doc entry (README protected)"},
     {"number": 289, "title": "ci: add restore-keys to cargo cache (ci.yml protected)"}
   ],
-  "pr_overlap_note": "PR #296 and #297 both add test 'csv_escape_carriage_return_triggers_quoting' in src/app.rs. Merging one before the other will require conflict resolution. PR #297 is a superset for csv_escape area. #296 uniquely adds blocked-URL tests.",
+  "pr_overlap_note": "PR #296 and #297 both add test 'csv_escape_carriage_return_triggers_quoting' in src/app.rs. Merging one before the other will require conflict resolution.",
+  "ci_note": "All repo-assist branch PRs show action_required CI (fork protection). Infrastructure-only, not code failures. Dependabot PRs #285/#286/#288 have passing CI.",
   "backlog_cursor": {
     "issues": "no human issues open",
     "next_issue_to_process": "check for new human issues next run"
   },
-  "notes": "2026-07-05 run 28725485097: Tasks 6+7. Task 6: All 29 RA PRs have infra-only CI (fork protection). Main unchanged (72a6163). Found overlap: PR #296 and #297 both add csv_escape_carriage_return test - cannot be fixed without branch access. Task 7: No non-RA PRs older than 14 days (Dependabot PRs #285/#286/#288 created 2026-06-30, only 5 days old). Monthly summary DISABLED."
+  "notes": "2026-07-05 run 28741858094: Tasks 4+6. Task 4: ran cargo update from current main (72a6163), created PR #aw_dep_update superseding PR #275. Updates: time 0.3.47->0.3.53, wasm-bindgen 0.2.121->0.2.126, log/memchr/regex/syn/quote/etc. 371 tests pass. Task 6: all 30 RA PRs verified: action_required CI (infra), no merge conflicts (mergeable_state=unstable, not dirty). PR #275 superseded by new cargo update PR."
 }
