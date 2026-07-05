@@ -1,16 +1,17 @@
 {
-  "last_run": "2026-07-03T01:16:58Z",
-  "last_run_id": "28631957643",
+  "last_run": "2026-07-05T01:20:00Z",
+  "last_run_id": "28725485097",
   "monthly_summary_preference": "maintainer_disabled",
   "monthly_summary_note": "2026-06-08: Maintainer closed issue #222. Do NOT create monthly activity summary issues.",
-  "pr_count": 26,
+  "pr_count": 29,
   "main_sha": "72a6163da8e4809714449f56c17cbd70409baca9",
-  "test_baseline": 372,
+  "test_baseline": 371,
   "cargo_versions": {
     "ratatui": "0.30.2",
     "tokio": "1.52.3",
     "anyhow": "1.0.103"
   },
   "pending_dependabot_prs": [285, 286, 288],
-  "ci_infrastructure_note": "All repo-assist branch PRs show action_required CI (fork protection). This is infrastructure, not code failures."
+  "ci_infrastructure_note": "All repo-assist branch PRs show action_required CI (fork protection). This is infrastructure, not code failures.",
+  "pr_overlap_warning": "PR #296 and #297 share test name csv_escape_carriage_return_triggers_quoting - merging both requires conflict resolution"
 }
