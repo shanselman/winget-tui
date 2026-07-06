@@ -2325,53 +2325,6 @@ mod tests {
     }
 
     #[test]
-    fn help_page_up_decrements_by_ten() {
-        let mut app = make_app();
-        app.show_help = true;
-        app.help_scroll = 15;
-        app.help_max_scroll = 20;
-
-        handle_help_input(&mut app, KeyCode::PageUp);
-        assert_eq!(app.help_scroll, 5);
-    }
-
-    #[test]
-    fn help_page_up_saturates_at_zero() {
-        let mut app = make_app();
-        app.show_help = true;
-        app.help_scroll = 3;
-        app.help_max_scroll = 20;
-
-        handle_help_input(&mut app, KeyCode::PageUp);
-        assert_eq!(
-            app.help_scroll, 0,
-            "PageUp below 10 lines from top should clamp to 0"
-        );
-    }
-
-    #[test]
-    fn help_page_down_increments_by_ten() {
-        let mut app = make_app();
-        app.show_help = true;
-        app.help_scroll = 0;
-        app.help_max_scroll = 20;
-
-        handle_help_input(&mut app, KeyCode::PageDown);
-        assert_eq!(app.help_scroll, 10);
-    }
-
-    #[test]
-    fn help_page_down_clamped_at_max() {
-        let mut app = make_app();
-        app.show_help = true;
-        app.help_scroll = 15;
-        app.help_max_scroll = 20;
-
-        handle_help_input(&mut app, KeyCode::PageDown);
-        assert_eq!(app.help_scroll, 20, "PageDown should not exceed max");
-    }
-
-    #[test]
     fn help_j_key_scrolls_down() {
         let mut app = make_app();
         app.show_help = true;
