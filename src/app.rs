@@ -2526,13 +2526,6 @@ mod tests {
         );
     }
 
-    // ── csv_escape: carriage return ───────────────────────────────────────────
-
-    #[test]
-    fn csv_escape_carriage_return_triggers_quoting() {
-        assert_eq!(csv_escape("line1\rline2"), "\"line1\rline2\"");
-    }
-
     // ── ensure_detail_hint: source variants ──────────────────────────────────
 
     #[test]

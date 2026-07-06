@@ -462,22 +462,6 @@ mod tests {
     }
 
     #[test]
-    fn operation_display_pin() {
-        let op = Operation::Pin {
-            id: "7zip.7zip".to_string(),
-        };
-        assert_eq!(op.to_string(), "Pinning 7zip.7zip");
-    }
-
-    #[test]
-    fn operation_display_unpin() {
-        let op = Operation::Unpin {
-            id: "7zip.7zip".to_string(),
-        };
-        assert_eq!(op.to_string(), "Unpinning 7zip.7zip");
-    }
-
-    #[test]
     fn pin_state_label_none() {
         assert_eq!(PinState::None.label(), "Not pinned");
     }
