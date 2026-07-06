@@ -554,6 +554,7 @@ fn handle_normal_mode(
         // Sort: cycle through Name↑ → Name↓ → ID↑ → ID↓ → Version↑ → Version↓ → None
         KeyCode::Char('S') => {
             app.cycle_sort();
+            load_detail_for_selected(app);
         }
 
         _ => {}
@@ -671,6 +672,7 @@ fn click_sort_header(app: &mut App, col: u16) {
     app.apply_filter();
     let label = format!("Sort: {}{}", app.sort_field, app.sort_dir.indicator());
     app.set_status(&label);
+    load_detail_for_selected(app);
 }
 
 /// Select the package row at the given terminal row coordinate and load its detail.
@@ -1580,6 +1582,44 @@ mod tests {
         assert_eq!(app.sort_dir, SortDir::Asc);
     }
 
+    #[test]
+    fn s_key_sort_resets_detail_scroll_for_new_selection() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        // Set up two packages so sorting changes which package is at index 0.
+        let mut app = make_app();
+        app.packages = vec![
+            Package {
+                id: "Z.Package".to_string(),
+                name: "Z Package".to_string(),
+                version: "1.0.0".to_string(),
+                source: "winget".to_string(),
+                available_version: String::new(),
+                pin_state: PinState::None,
+            },
+            Package {
+                id: "A.Package".to_string(),
+                name: "A Package".to_string(),
+                version: "1.0.0".to_string(),
+                source: "winget".to_string(),
+                available_version: String::new(),
+                pin_state: PinState::None,
+            },
+        ];
+        app.filtered_packages = app.packages.clone();
+        app.selected = 0; // "Z Package" is selected
+        app.detail_scroll = 10; // simulate stale scroll
+
+        // Sort Name ascending: "A Package" moves to index 0, "Z Package" to 1.
+        // selected stays 0 but now points to "A Package".
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('S'), KeyModifiers::NONE);
+
+        assert_eq!(
+            app.detail_scroll, 0,
+            "detail_scroll must reset when sort changes the package at the selected index"
+        );
+    }
+
     // ── handle_normal_mode: pin (p / P) ──────────────────────────────────────
 
     #[test]
@@ -2287,6 +2327,8 @@ mod tests {
 
     #[test]
     fn click_sort_header_name_column_sets_name_sort() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
         let mut app = make_app_with_list_layout();
         // Content width = 100 - 3 = 97; Name occupies 0..24 (25%)
         // Click at col=5 (within Name column), row=2 (header row)
@@ -2297,6 +2339,8 @@ mod tests {
 
     #[test]
     fn click_sort_header_id_column_sets_id_sort() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
         let mut app = make_app_with_list_layout();
         // Content width=97; ID starts at 24 (25%), width 34 (35%); click at col=30
         click_sort_header(&mut app, 30);
@@ -2306,6 +2350,8 @@ mod tests {
 
     #[test]
     fn click_sort_header_version_column_sets_version_sort() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
         let mut app = make_app_with_list_layout();
         // Version starts at ~58 (25+34=59 rounded); click at col=65
         click_sort_header(&mut app, 65);
@@ -2315,6 +2361,8 @@ mod tests {
 
     #[test]
     fn click_sort_header_same_column_toggles_direction() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
         let mut app = make_app_with_list_layout();
         click_sort_header(&mut app, 5); // Name Asc
         assert_eq!(app.sort_dir, SortDir::Asc);
@@ -2326,6 +2374,8 @@ mod tests {
 
     #[test]
     fn click_sort_header_different_column_resets_to_asc() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
         let mut app = make_app_with_list_layout();
         click_sort_header(&mut app, 5); // Name Asc
         click_sort_header(&mut app, 5); // Name Desc
@@ -2353,5 +2403,43 @@ mod tests {
         app.layout.package_list = rect(0, 0, 2, 10); // content_width = 2-3 = underflows to 0
         click_sort_header(&mut app, 0);
         assert_eq!(app.sort_field, SortField::None);
+    }
+
+    #[test]
+    fn click_sort_header_resets_detail_scroll_for_new_selection() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        // Build two packages in reverse-name order so clicking Name sort changes
+        // which package lands at index 0.
+        let mut app = make_app_with_list_layout();
+        app.packages = vec![
+            Package {
+                id: "Z.Package".to_string(),
+                name: "Z Package".to_string(),
+                version: "1.0.0".to_string(),
+                source: "winget".to_string(),
+                available_version: String::new(),
+                pin_state: PinState::None,
+            },
+            Package {
+                id: "A.Package".to_string(),
+                name: "A Package".to_string(),
+                version: "1.0.0".to_string(),
+                source: "winget".to_string(),
+                available_version: String::new(),
+                pin_state: PinState::None,
+            },
+        ];
+        app.filtered_packages = app.packages.clone();
+        app.selected = 0;
+        app.detail_scroll = 7; // simulate stale scroll
+
+        // Click Name column header → sort by Name asc
+        click_sort_header(&mut app, 5);
+
+        assert_eq!(
+            app.detail_scroll, 0,
+            "detail_scroll must reset after click-sort changes the package at the selected index"
+        );
     }
 }
