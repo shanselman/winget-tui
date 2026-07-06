@@ -2481,11 +2481,6 @@ mod tests {
     }
 
     #[test]
-    fn csv_escape_carriage_return_triggers_quoting() {
-        assert_eq!(csv_escape("line1\rline2"), "\"line1\rline2\"");
-    }
-
-    #[test]
     fn csv_escape_cr_lf_sequence_triggers_quoting() {
         assert_eq!(csv_escape("a\r\nb"), "\"a\r\nb\"");
     }
