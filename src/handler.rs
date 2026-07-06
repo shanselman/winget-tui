@@ -342,10 +342,11 @@ fn handle_normal_mode(
                 app.set_status("Pinned filter is available in Installed and Upgrades");
             } else {
                 app.cycle_pin_filter();
-                if let Some(pkg) = app.selected_package() {
-                    let id = pkg.id.clone();
-                    app.load_detail(&id);
-                }
+                // Always reset detail scroll when filter changes: the selected
+                // package (and therefore detail content) has changed or the list
+                // is now empty; either way the old scroll position is stale.
+                app.detail_scroll = 0;
+                load_detail_for_selected(app);
             }
         }
 
@@ -1657,6 +1658,21 @@ mod tests {
         assert_eq!(app.pin_filter, PinFilter::All);
         let _ = handle_normal_mode(&mut app, KeyCode::Char('P'), KeyModifiers::NONE);
         assert_eq!(app.pin_filter, PinFilter::PinnedOnly);
+    }
+
+    #[test]
+    fn capital_p_resets_detail_scroll_to_zero() {
+        // When the user cycles the pin filter, the detail panel should scroll
+        // back to the top for the newly-selected package.
+        let mut app = make_app_with_pkg("Valid.Package", "1.0", "");
+        app.mode = AppMode::Installed;
+        // Simulate the user having scrolled down in the detail panel.
+        app.detail_scroll = 42;
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('P'), KeyModifiers::NONE);
+        assert_eq!(
+            app.detail_scroll, 0,
+            "cycling pin filter must reset detail_scroll to 0"
+        );
     }
 
     // ── handle_normal_mode: install (i / I) / uninstall (x) / upgrade (u) ───
