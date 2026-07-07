@@ -1143,6 +1143,23 @@ mod tests {
     }
 
     #[test]
+    fn search_input_backspace_on_empty_stays_empty() {
+        let mut app = make_app();
+        app.input_mode = InputMode::Search;
+        app.search_query = String::new();
+        let _ = handle_search_input(&mut app, KeyCode::Backspace);
+        assert!(
+            app.search_query.is_empty(),
+            "Backspace on empty search query must leave it empty"
+        );
+        assert_eq!(
+            app.input_mode,
+            InputMode::Search,
+            "must stay in Search mode"
+        );
+    }
+
+    #[test]
     fn search_input_enter_with_empty_query_stays_in_search_mode() {
         let mut app = make_app();
         app.input_mode = InputMode::Search;
@@ -1240,6 +1257,53 @@ mod tests {
         assert_eq!(app.input_mode, InputMode::Normal);
         assert_eq!(app.local_filter, "pkg1");
         assert_eq!(app.filtered_packages.len(), 1);
+    }
+
+    #[test]
+    fn local_filter_backspace_removes_last_char() {
+        let mut app = make_app_with_pkgs(3);
+        app.mode = AppMode::Installed;
+        app.packages = app.filtered_packages.clone();
+        app.local_filter = "ch".to_string();
+        app.input_mode = InputMode::LocalFilter;
+        let rt = test_runtime();
+        let _guard = rt.enter();
+
+        let _ = handle_local_filter_input(&mut app, KeyCode::Backspace);
+
+        assert_eq!(
+            app.local_filter, "c",
+            "Backspace should remove the last character"
+        );
+        assert_eq!(
+            app.input_mode,
+            InputMode::LocalFilter,
+            "must stay in LocalFilter"
+        );
+    }
+
+    #[test]
+    fn local_filter_backspace_on_empty_is_noop() {
+        let mut app = make_app_with_pkgs(3);
+        app.mode = AppMode::Installed;
+        app.packages = app.filtered_packages.clone();
+        app.local_filter = String::new();
+        app.input_mode = InputMode::LocalFilter;
+        let rt = test_runtime();
+        let _guard = rt.enter();
+
+        let _ = handle_local_filter_input(&mut app, KeyCode::Backspace);
+
+        assert!(
+            app.local_filter.is_empty(),
+            "Backspace on empty filter must leave it empty"
+        );
+        assert_eq!(
+            app.input_mode,
+            InputMode::LocalFilter,
+            "must stay in LocalFilter"
+        );
+        assert_eq!(app.filtered_packages.len(), 3, "all packages still shown");
     }
 
     #[test]
