@@ -573,6 +573,8 @@ fn switch_view(app: &mut App, new_mode: AppMode) {
     app.selected_packages.clear();
     app.detail = None;
     app.detail_loading = false;
+    // New view will show a different package; stale scroll position is meaningless.
+    app.detail_scroll = 0;
     // Invalidate any in-flight detail requests from the previous view
     app.detail_generation += 1;
     app.focus = FocusZone::PackageList;
@@ -2012,6 +2014,22 @@ mod tests {
             "switch_view with the same mode must not bump detail_generation"
         );
         let _ = gen_before; // suppress unused warning
+    }
+
+    #[test]
+    fn switch_view_resets_detail_scroll_to_zero() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app();
+        app.mode = AppMode::Installed;
+        // Simulate the user having scrolled deep in the detail panel of the current view.
+        app.detail_scroll = 15;
+        // Right arrow: Installed → Upgrades
+        let _ = handle_normal_mode(&mut app, KeyCode::Right, KeyModifiers::NONE);
+        assert_eq!(
+            app.detail_scroll, 0,
+            "switch_view must reset detail_scroll so the new view's detail panel starts at the top"
+        );
     }
 
     // ── scrollbar_jump ────────────────────────────────────────────────────────
