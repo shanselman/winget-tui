@@ -51,8 +51,16 @@ pub enum AppMessage {
         generation: u64,
         detail: PackageDetail,
     },
+    /// A `winget show` call failed. Carries the generation so stale errors from
+    /// a previous selection can be discarded without touching `loading` or
+    /// `post_refresh_status`, which belong to the view-refresh lifecycle.
+    DetailError {
+        generation: u64,
+        message: String,
+    },
     OperationComplete(OpResult),
     StatusUpdate(String),
+    /// A view-refresh (list/search/upgrades) failed.
     Error(String),
 }
 
@@ -547,7 +555,10 @@ impl App {
                     let _ = tx.send(AppMessage::DetailLoaded { generation, detail });
                 }
                 Err(e) => {
-                    let _ = tx.send(AppMessage::Error(e.to_string()));
+                    let _ = tx.send(AppMessage::DetailError {
+                        generation,
+                        message: e.to_string(),
+                    });
                 }
             }
         });
@@ -776,6 +787,22 @@ impl App {
                     self.post_refresh_status = None;
                     self.set_status(format!("Error: {msg}"));
                     self.loading = false;
+                    self.detail_loading = false;
+                    if let Some(detail) = &mut self.detail {
+                        Self::ensure_detail_hint(detail);
+                    }
+                }
+                AppMessage::DetailError {
+                    generation,
+                    message,
+                } => {
+                    // Discard errors from superseded detail requests so they do not
+                    // overwrite the status bar or clear `post_refresh_status` after the
+                    // user has already navigated to a different package.
+                    if generation < self.detail_generation {
+                        continue;
+                    }
+                    self.set_status(format!("Error: {message}"));
                     self.detail_loading = false;
                     if let Some(detail) = &mut self.detail {
                         Self::ensure_detail_hint(detail);
@@ -1815,6 +1842,82 @@ mod tests {
         assert!(
             !app.detail_loading,
             "detail loading should stop after an error"
+        );
+    }
+
+    // ── DetailError ───────────────────────────────────────────────────────────
+
+    #[test]
+    fn detail_error_clears_detail_loading_and_sets_status() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.detail_generation = 3;
+        app.detail_loading = true;
+        app.message_tx
+            .send(AppMessage::DetailError {
+                generation: 3,
+                message: "winget show failed".to_string(),
+            })
+            .unwrap();
+        app.process_messages();
+        assert!(
+            !app.detail_loading,
+            "detail_loading should be cleared by DetailError"
+        );
+        assert!(
+            app.status_message.contains("winget show failed"),
+            "status should contain the error text"
+        );
+    }
+
+    #[test]
+    fn detail_error_does_not_clear_post_refresh_status() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.detail_generation = 5;
+        app.detail_loading = true;
+        app.loading = true;
+        app.post_refresh_status = Some("Upgrading Foo — done".to_string());
+        app.message_tx
+            .send(AppMessage::DetailError {
+                generation: 5,
+                message: "show error".to_string(),
+            })
+            .unwrap();
+        app.process_messages();
+        assert!(
+            app.post_refresh_status.is_some(),
+            "DetailError must not clear post_refresh_status"
+        );
+        assert!(
+            app.loading,
+            "DetailError must not clear the view-refresh loading flag"
+        );
+    }
+
+    #[test]
+    fn stale_detail_error_is_discarded() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        // Simulate: user navigated away, generation bumped to 10
+        app.detail_generation = 10;
+        app.detail_loading = false;
+        app.set_status("Ready".to_string());
+        // Error from an old request (generation 7) should be silently dropped
+        app.message_tx
+            .send(AppMessage::DetailError {
+                generation: 7,
+                message: "stale error from old selection".to_string(),
+            })
+            .unwrap();
+        app.process_messages();
+        assert_eq!(
+            app.status_message, "Ready",
+            "stale DetailError should not overwrite status"
+        );
+        assert!(
+            !app.detail_loading,
+            "stale DetailError should not affect detail_loading"
         );
     }
 
