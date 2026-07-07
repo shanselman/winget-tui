@@ -1,15 +1,10 @@
 {
-  "last_run": "2026-07-06T02:30:00Z",
-  "last_run_id": "28797243564",
+  "last_run": "2026-07-09",
+  "last_run_id": "28834678054",
   "monthly_summary_disabled": true,
-  "monthly_summary_note": "Maintainer closed issue #222 on 2026-06-08. Do not create monthly activity summary issues.",
+  "monthly_summary_note": "2026-06-08: Maintainer closed issue #222. Do NOT create monthly activity summary issues.",
   "comments_made": {
-    "80": "2026-04-16",
-    "83": "2026-04-16",
-    "88": "2026-04-16",
-    "126": "2026-04-19",
-    "154_pr": "2026-04-27",
-    "275_pr": "2026-07-06"
+    "275": "2026-07-06: Commented that PR #275 is superseded by #298"
   },
   "open_repo_assist_prs": [
     {
@@ -86,7 +81,7 @@
     },
     {
       "pr": 284,
-      "title": "refactor: extract is_id_truncated() free function to eliminate duplication"
+      "title": "refactor: extract is_id_truncated() free function to eliminate duplicate"
     },
     {
       "pr": 290,
@@ -118,40 +113,28 @@
     },
     {
       "pr": 297,
-      "title": "test: fill coverage gaps for help PageUp/Down, confirm Y/N, detail-panel nav, csv \\r"
+      "title": "test: fill coverage gaps for help PageUp/Down, confirm Y/N, detail-panel scrollbar"
     },
     {
       "pr": 298,
-      "title": "chore: cargo update \u2014 pick up latest compatible transitive deps (July 2026)"
+      "title": "chore: cargo update - latest compatible transitive deps (July 2026)"
     },
     {
-      "pr": "aw_fix_scroll",
-      "title": "fix: reset detail_scroll when cycling pin filter ('P')"
+      "pr": 299,
+      "title": "fix: reset detail_scroll when cycling pin filter (P key)"
     },
     {
-      "pr": "aw_sort_detail",
+      "pr": 300,
       "title": "fix: reload detail panel when sort changes the selected package"
-    }
-  ],
-  "open_repo_assist_issues": [
-    {
-      "number": 233,
-      "title": "feat: sort Upgrades view by available version (AGENTS.md protected)"
     },
     {
-      "number": 280,
-      "title": "docs: remove inaccurate filter-click-doc entry (README protected)"
-    },
-    {
-      "number": 289,
-      "title": "ci: add restore-keys to cargo cache (ci.yml protected)"
+      "pr": "aw_backspace",
+      "title": "test: add missing backspace tests for search and local-filter inputs (2026-07-09)"
     }
   ],
-  "pr_overlap_note": "All duplicate test name conflicts resolved: csv_escape_carriage_return removed from #278 and #297 (only stays in #296); operation_display_pin/unpin removed from #278 (only stays in #259); help_page_* tests removed from #297 (only stay in #273). All conflict-prone PRs have been updated.",
-  "ci_note": "All repo-assist branch PRs show action_required CI (fork protection). Infrastructure-only, not code failures. Dependabot PRs #285/#286/#288 have passing CI.",
-  "backlog_cursor": {
-    "issues": "no human issues open",
-    "next_issue_to_process": "check for new human issues next run"
-  },
-  "notes": "2026-07-06 run 28797243564: Tasks 6+2(alt). Task 6: fixed duplicate test names in PRs #278 and #297 (csv_escape, operation_display_pin/unpin from #278; help_page_* from #297). Task 2 alt (no human issues): found + fixed stale detail panel after sort bug, created PR aw_sort_detail. Monthly summary disabled by maintainer."
+  "open_repo_assist_issues": [],
+  "pr_overlap_note": "PR #296 and #297 share test name csv_escape_carriage_return_triggers_quoting - merging both requires conflict resolution. PRs #259/#292/#297 add overlapping detail-panel nav tests - redundant but not conflicting.",
+  "ci_note": "All repo-assist branch PRs show action_required CI (fork protection). This is infrastructure, not code failures.",
+  "backlog_cursor": 0,
+  "notes": "Run 28834678054 (2026-07-09): Task6+Task2alt. Verified all open Repo Assist PRs - no code conflicts, source tree SHA a32b44d unchanged across all PR bases. Created PR for missing backspace tests (search_input empty backspace + local_filter backspace, 3 new tests, 374 total). Monthly summary disabled by maintainer."
 }
