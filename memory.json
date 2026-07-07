@@ -1,140 +1,51 @@
 {
-  "last_run": "2026-07-09",
-  "last_run_id": "28834678054",
+  "last_run": "2026-07-07",
+  "last_run_id": "28869852770",
   "monthly_summary_disabled": true,
   "monthly_summary_note": "2026-06-08: Maintainer closed issue #222. Do NOT create monthly activity summary issues.",
   "comments_made": {
-    "275": "2026-07-06: Commented that PR #275 is superseded by #298"
+    "275": "2026-07-06: Commented that PR #275 is superseded by #298",
+    "233": "2026-07-07: Commented that PR #241 already implements the available-version sort feature"
   },
   "open_repo_assist_prs": [
-    {
-      "pr": 246,
-      "title": "feat(csv): add PinState column to exported package list"
-    },
-    {
-      "pr": 248,
-      "title": "fix: clamp mouse scroll-down offset to last full viewport page"
-    },
-    {
-      "pr": 259,
-      "title": "test: add tests for detail-panel focus nav, confirm y/Y/N, ctrl+c"
-    },
-    {
-      "pr": 263,
-      "title": "test: add mouse interaction, viewport-rows, and OperationComplete"
-    },
-    {
-      "pr": 265,
-      "title": "test(handler): add Home/End/PgUp/PgDn and k/j list-focus navigation"
-    },
-    {
-      "pr": 266,
-      "title": "refactor: add detail_viewport_rows() to eliminate repeated magic number"
-    },
-    {
-      "pr": 267,
-      "title": "test(handler): add local-filter PageUp/PageDown and s-key alias"
-    },
-    {
-      "pr": 271,
-      "title": "feat: show X of Y in package list title when local filter active"
-    },
-    {
-      "pr": 272,
-      "title": "refactor: forbid unsafe code and simplify handler return types"
-    },
-    {
-      "pr": 273,
-      "title": "test(handler): add help-scroll, upgrades-sort-header, and data-url"
-    },
-    {
-      "pr": 274,
-      "title": "fix: reset detail_scroll when selected package changes after refresh"
-    },
-    {
-      "pr": 275,
-      "title": "chore: cargo update - ratatui 0.30.2 (SUPERSEDED by #298, commented)"
-    },
-    {
-      "pr": 276,
-      "title": "feat: sort package list by Source column"
-    },
-    {
-      "pr": 277,
-      "title": "refactor: extract empty-list message into App::empty_list_message()"
-    },
-    {
-      "pr": 278,
-      "title": "test: cover untested Operation::Pin/Unpin display, PinState labels"
-    },
-    {
-      "pr": 279,
-      "title": "test: fill coverage gaps in PinState/PinFilter, show-source, Enter key"
-    },
-    {
-      "pr": 281,
-      "title": "chore: trim tokio features from full to minimum needed"
-    },
-    {
-      "pr": 282,
-      "title": "fix: strip C1 control characters from package metadata"
-    },
-    {
-      "pr": 284,
-      "title": "refactor: extract is_id_truncated() free function to eliminate duplicate"
-    },
-    {
-      "pr": 290,
-      "title": "feat: restore per-view cursor position when switching views"
-    },
-    {
-      "pr": 291,
-      "title": "perf: eliminate heap allocations in version sort and local filter"
-    },
-    {
-      "pr": 292,
-      "title": "test(handler): add detail-panel keyboard navigation tests"
-    },
-    {
-      "pr": 293,
-      "title": "perf: only render visible rows in package list table"
-    },
-    {
-      "pr": 294,
-      "title": "refactor: add SortDir::toggle() following FocusZone::toggle() pattern"
-    },
-    {
-      "pr": 295,
-      "title": "fix: discard stale detail errors to prevent post_refresh_status clobber"
-    },
-    {
-      "pr": 296,
-      "title": "test: cover csv_escape \\r and blocked-URL status paths"
-    },
-    {
-      "pr": 297,
-      "title": "test: fill coverage gaps for help PageUp/Down, confirm Y/N, detail-panel scrollbar"
-    },
-    {
-      "pr": 298,
-      "title": "chore: cargo update - latest compatible transitive deps (July 2026)"
-    },
-    {
-      "pr": 299,
-      "title": "fix: reset detail_scroll when cycling pin filter (P key)"
-    },
-    {
-      "pr": 300,
-      "title": "fix: reload detail panel when sort changes the selected package"
-    },
-    {
-      "pr": "aw_backspace",
-      "title": "test: add missing backspace tests for search and local-filter inputs (2026-07-09)"
-    }
+    {"pr": 232, "title": "test(cli_backend): add locale, edge-case, and parse tests"},
+    {"pr": 241, "title": "feat: sort Upgrades view by available version (CLEAN - closes #233)"},
+    {"pr": 246, "title": "feat(csv): add PinState column to exported package list"},
+    {"pr": 248, "title": "fix: clamp mouse scroll-down offset to last full viewport page"},
+    {"pr": 259, "title": "test: add tests for detail-panel focus nav, confirm y/Y/N, ctrl+c"},
+    {"pr": 263, "title": "test: add mouse interaction, viewport-rows, and OperationComplete"},
+    {"pr": 265, "title": "test(handler): add Home/End/PgUp/PgDn and k/j list-focus navigation"},
+    {"pr": 266, "title": "refactor: add detail_viewport_rows() to eliminate repeated magic number"},
+    {"pr": 267, "title": "test(handler): add local-filter PageUp/PageDown and s-key alias"},
+    {"pr": 271, "title": "feat: show X of Y in package list title when local filter active"},
+    {"pr": 272, "title": "refactor: forbid unsafe code and simplify handler return types"},
+    {"pr": 273, "title": "test(handler): add help-scroll, upgrades-sort-header, and data-url"},
+    {"pr": 274, "title": "fix: reset detail_scroll when selected package changes after refresh"},
+    {"pr": 275, "title": "chore: cargo update - ratatui 0.30.2 (SUPERSEDED by #298, commented)"},
+    {"pr": 276, "title": "feat: sort package list by Source column"},
+    {"pr": 277, "title": "refactor: extract empty-list message into App::empty_list_message()"},
+    {"pr": 278, "title": "test: cover untested Operation::Pin/Unpin display, PinState labels"},
+    {"pr": 279, "title": "test: fill coverage gaps in PinState/PinFilter, show-source, Enter key"},
+    {"pr": 281, "title": "chore: trim tokio features from full to minimum needed"},
+    {"pr": 282, "title": "fix: strip C1 control characters from package metadata"},
+    {"pr": 284, "title": "refactor: extract is_id_truncated() free function to eliminate duplicate"},
+    {"pr": 290, "title": "feat: restore per-view cursor position when switching views"},
+    {"pr": 291, "title": "perf: eliminate heap allocations in version sort and local filter"},
+    {"pr": 292, "title": "test(handler): add detail-panel keyboard navigation tests"},
+    {"pr": 293, "title": "perf: only render visible rows in package list table"},
+    {"pr": 294, "title": "refactor: add SortDir::toggle() following FocusZone::toggle() pattern"},
+    {"pr": 295, "title": "fix: discard stale detail errors to prevent post_refresh_status clobber"},
+    {"pr": 296, "title": "test: cover csv_escape \\r and blocked-URL status paths"},
+    {"pr": 297, "title": "test: fill coverage gaps for help PageUp/Down, confirm Y/N, detail-panel scrollbar"},
+    {"pr": 298, "title": "chore: cargo update - latest compatible transitive deps (July 2026)"},
+    {"pr": 299, "title": "fix: reset detail_scroll when cycling pin filter (P key)"},
+    {"pr": 300, "title": "fix: reload detail panel when sort changes the selected package"},
+    {"pr": 301, "title": "test: add missing backspace tests for search and local-filter inputs"},
+    {"pr": "aw_fix_view_scroll", "title": "fix: reset detail_scroll when switching views (2026-07-07)"}
   ],
   "open_repo_assist_issues": [],
-  "pr_overlap_note": "PR #296 and #297 share test name csv_escape_carriage_return_triggers_quoting - merging both requires conflict resolution. PRs #259/#292/#297 add overlapping detail-panel nav tests - redundant but not conflicting.",
+  "pr_overlap_note": "PR #296+#297 share test name csv_escape_carriage_return_triggers_quoting. PRs #241+issue#233 are duplicate available-version sort impls - commented on #233.",
   "ci_note": "All repo-assist branch PRs show action_required CI (fork protection). This is infrastructure, not code failures.",
   "backlog_cursor": 0,
-  "notes": "Run 28834678054 (2026-07-09): Task6+Task2alt. Verified all open Repo Assist PRs - no code conflicts, source tree SHA a32b44d unchanged across all PR bases. Created PR for missing backspace tests (search_input empty backspace + local_filter backspace, 3 new tests, 374 total). Monthly summary disabled by maintainer."
+  "notes": "Run 28869852770 (2026-07-07): Task6+Task2alt. No CI code failures to fix. Created PR for detail_scroll reset on view switch (1 new test, branch: repo-assist/fix-detail-scroll-on-view-switch). Commented on issue #233 noting PR #241 already implements the feature. Monthly summary disabled by maintainer."
 }
