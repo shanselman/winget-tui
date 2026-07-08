@@ -238,7 +238,7 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
             sort_header("ID", SortField::Id, app.sort_field, dir),
             sort_header("Version", SortField::Version, app.sort_field, dir),
             Cow::Borrowed("Available"),
-            Cow::Borrowed("Source"),
+            sort_header("Source", SortField::Source, app.sort_field, dir),
         ]
     } else {
         let dir = app.sort_dir;
@@ -246,7 +246,7 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
             sort_header("Name", SortField::Name, app.sort_field, dir),
             sort_header("ID", SortField::Id, app.sort_field, dir),
             sort_header("Version", SortField::Version, app.sort_field, dir),
-            Cow::Borrowed("Source"),
+            sort_header("Source", SortField::Source, app.sort_field, dir),
         ]
     };
 
@@ -1049,7 +1049,9 @@ fn draw_help_overlay(f: &mut Frame, app: &mut App) {
         ]),
         Line::from(vec![
             Span::styled("  S           ", key),
-            Span::raw("Cycle sort: Name↑ → Name↓ → ID↑ → ID↓ → Version↑ → Version↓ → off"),
+            Span::raw(
+                "Cycle sort: Name↑ → Name↓ → ID↑ → ID↓ → Version↑ → Version↓ → Source↑ → Source↓ → off",
+            ),
         ]),
         Line::raw(""),
         Line::from(Span::styled("  Mouse", section)),
@@ -1059,7 +1061,7 @@ fn draw_help_overlay(f: &mut Frame, app: &mut App) {
         ]),
         Line::from(vec![
             Span::styled("  Header click", key),
-            Span::raw("Sort by Name / ID / Version (click again to reverse)"),
+            Span::raw("Sort by Name / ID / Version / Source (click again to reverse)"),
         ]),
         Line::from(vec![
             Span::styled("  Scroll      ", key),
