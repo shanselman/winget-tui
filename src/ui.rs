@@ -345,11 +345,22 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
         theme::border_unfocused()
     };
 
+    let count_display =
+        if !app.local_filter.is_empty() && app.unfiltered_count != app.filtered_packages.len() {
+            format!(
+                "{} of {}",
+                app.filtered_packages.len(),
+                app.unfiltered_count
+            )
+        } else {
+            app.filtered_packages.len().to_string()
+        };
+
     let block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
         .border_style(border_style)
-        .title(format!(" {} ({}) ", title, app.filtered_packages.len()))
+        .title(format!(" {} ({}) ", title, count_display))
         .title_style(theme::title())
         .padding(ratatui::widgets::Padding::top(1));
 
