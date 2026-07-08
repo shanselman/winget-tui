@@ -535,9 +535,9 @@ impl CliBackend {
 
             // Parse "Found Name [Id]" header line (locale-independent).
             // Matches any "Prefix Name [Id]" pattern, e.g. "Gefunden Chrome [Google.Chrome]"
-            // The closing ']' must be at the end of the line to avoid false positives
-            // from indented release-notes lines that contain "[author]" references.
-            if trimmed.ends_with(']') {
+            // The closing ']' must be at the end of a non-indented line to avoid false
+            // positives from indented release-notes lines ending with "[#NNN]" references.
+            if trimmed.ends_with(']') && !line.starts_with(' ') && !line.starts_with('\t') {
                 if let (Some(bracket_start), Some(bracket_end)) =
                     (trimmed.rfind('['), trimmed.rfind(']'))
                 {
@@ -1724,6 +1724,39 @@ Release Notes Url: https://github.com/gitui-org/gitui/releases/tag/v0.28.1
         );
         assert_eq!(detail.id, "StephanDilly.gitui");
         assert_eq!(detail.publisher, "Stephan Dilly");
+        assert_eq!(
+            detail.release_notes_url,
+            "https://github.com/gitui-org/gitui/releases/tag/v0.28.1"
+        );
+    }
+
+    #[test]
+    fn parse_show_output_indented_issue_ref_at_line_end_not_treated_as_name() {
+        let backend = CliBackend::new();
+        // Release notes may contain GitHub issue references at the end of a line,
+        // e.g. "  - fix something [#2823]". Without the indentation guard these
+        // indented lines would overwrite name/id because they end with ']' and
+        // contain no ':'.
+        let output = "\
+Found gitui [StephanDilly.gitui]
+Version: 0.28.1
+Publisher: Stephan Dilly
+Description: Small git GUI for the terminal.
+Release Notes:
+  Fixed
+  - fix panic when renaming remote [#2868]
+  - race condition in diff view [#2901]
+Release Notes Url: https://github.com/gitui-org/gitui/releases/tag/v0.28.1
+";
+        let detail = backend.parse_show_output(output);
+        assert_eq!(
+            detail.name, "gitui",
+            "indented release-notes line ending with [#NNN] must not overwrite name"
+        );
+        assert_eq!(
+            detail.id, "StephanDilly.gitui",
+            "indented release-notes line ending with [#NNN] must not overwrite id"
+        );
         assert_eq!(
             detail.release_notes_url,
             "https://github.com/gitui-org/gitui/releases/tag/v0.28.1"
