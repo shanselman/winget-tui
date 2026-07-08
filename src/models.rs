@@ -11,6 +11,9 @@ pub enum SortField {
     Name,
     Id,
     Version,
+    /// Sort by the available (upgrade-to) version.  Only meaningful in the
+    /// Upgrades view where `Package::available_version` is populated.
+    AvailableVersion,
 }
 
 impl SortField {
@@ -24,6 +27,7 @@ impl fmt::Display for SortField {
             Self::Name => write!(f, "Name"),
             Self::Id => write!(f, "ID"),
             Self::Version => write!(f, "Version"),
+            Self::AvailableVersion => write!(f, "Available"),
         }
     }
 }
@@ -599,6 +603,7 @@ mod tests {
         assert_eq!(SortField::Name.to_string(), "Name");
         assert_eq!(SortField::Id.to_string(), "ID");
         assert_eq!(SortField::Version.to_string(), "Version");
+        assert_eq!(SortField::AvailableVersion.to_string(), "Available");
     }
 
     #[test]
