@@ -1,11 +1,11 @@
 {
-  "last_run": "2026-07-08T01:14:00Z",
-  "last_run_id": "28910208146",
+  "last_run": "2026-07-08",
+  "last_run_id": "28945480861",
   "monthly_summary_preference": "maintainer_disabled",
   "monthly_summary_note": "2026-06-08: Maintainer closed issue #222. Do NOT create monthly activity summary issues.",
   "pr_count": 30,
   "main_sha": "8265348a1fa8bb7bf061cf79d149784d45a682b6",
-  "test_baseline": 371,
+  "test_baseline": 372,
   "cargo_versions": {
     "ratatui": "0.30.2",
     "tokio": "1.52.3",
@@ -13,7 +13,10 @@
     "time": "0.3.47",
     "wasm-bindgen": "0.2.121"
   },
-  "pending_dependabot_prs": [285, 302],
+  "pending_dependabot_prs": [
+    285,
+    302
+  ],
   "ci_infrastructure_note": "All repo-assist branch PRs show action_required CI (fork protection). This is infrastructure, not code failures.",
   "pr_conflicts_warning": "PRs #273 and #297 share 4 test names. PRs #296 and #297 share 1 test name. Comments added to #273 and #296."
 }
