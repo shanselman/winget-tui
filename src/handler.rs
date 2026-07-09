@@ -1786,6 +1786,29 @@ mod tests {
     }
 
     #[test]
+    fn f_key_resets_selection_to_zero() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app_with_pkgs(5);
+        app.selected = 3;
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('f'), KeyModifiers::NONE);
+        assert_eq!(
+            app.selected, 0,
+            "f key should reset selection to the first item"
+        );
+    }
+
+    #[test]
+    fn f_key_sets_loading_flag() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app_with_pkgs(3);
+        app.loading = false;
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('f'), KeyModifiers::NONE);
+        assert!(app.loading, "f key should set loading = true");
+    }
+
+    #[test]
     fn r_key_sets_loading_flag_and_status() {
         let rt = test_runtime();
         let _guard = rt.enter();
