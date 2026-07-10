@@ -72,7 +72,8 @@ impl Config {
     }
 
     /// Parse a minimal subset of TOML: bare `key = "value"` lines only.
-    /// Comments (`#`), blank lines, and unrecognised keys are skipped.
+    /// Full-line and inline comments (`#`), blank lines, and unrecognised keys
+    /// are skipped.
     fn parse(text: &str) -> Self {
         let mut cfg = Self::default();
         for line in text.lines() {
@@ -85,7 +86,19 @@ impl Config {
                 continue;
             };
             let key = key.trim();
-            let value = value.trim().trim_matches('"').trim();
+            // Extract the value from a quoted string, handling inline comments.
+            // `"search" # pick the search view` → `search`
+            let raw = value.trim();
+            let value = if let Some(after_open) = raw.strip_prefix('"') {
+                // Grab everything up to the closing quote; ignore the rest (inline comment).
+                after_open
+                    .split_once('"')
+                    .map(|(v, _)| v)
+                    .unwrap_or(after_open)
+            } else {
+                // Unquoted value: strip an optional trailing inline comment.
+                raw.split_once(" #").map(|(v, _)| v.trim()).unwrap_or(raw)
+            };
             match key {
                 "default_view" => {
                     cfg.default_view = match value {
@@ -315,5 +328,40 @@ default_source = \"msstore\"
         let cfg = Config::default();
         assert_eq!(cfg.default_sort_field, SortField::None);
         assert_eq!(cfg.default_sort_dir, SortDir::Asc);
+    }
+
+    // ── inline comment handling ───────────────────────────────────────────────
+
+    #[test]
+    fn parse_inline_comment_after_quoted_value() {
+        let cfg = Config::parse(r#"default_view = "search" # pick search"#);
+        assert_eq!(cfg.default_view, AppMode::Search);
+    }
+
+    #[test]
+    fn parse_inline_comment_on_source_key() {
+        let cfg = Config::parse(r#"default_source = "winget" # only winget"#);
+        assert_eq!(cfg.default_source, SourceFilter::Winget);
+    }
+
+    #[test]
+    fn parse_inline_comment_on_sort_key() {
+        let cfg = Config::parse(r#"default_sort = "name_desc" # sort descending"#);
+        assert_eq!(cfg.default_sort_field, SortField::Name);
+        assert_eq!(cfg.default_sort_dir, SortDir::Desc);
+    }
+
+    #[test]
+    fn parse_inline_comment_on_pin_filter_key() {
+        let cfg = Config::parse(r#"default_pin_filter = "pinned" # only pinned"#);
+        assert_eq!(cfg.default_pin_filter, PinFilter::PinnedOnly);
+    }
+
+    #[test]
+    fn parse_quoted_value_without_closing_quote_still_parses() {
+        // Malformed input: no closing quote — parser takes everything after the
+        // opening quote as the value, which still matches known keys.
+        let cfg = Config::parse(r#"default_view = "search"#);
+        assert_eq!(cfg.default_view, AppMode::Search);
     }
 }
