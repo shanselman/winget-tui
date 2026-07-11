@@ -1,6 +1,6 @@
 {
   "last_run": "2026-07-11",
-  "last_run_id": "29134187371",
+  "last_run_id": "29153809392",
   "monthly_summary_disabled": true,
   "monthly_summary_note": "2026-06-08: Maintainer closed issue #222. Do NOT create monthly activity summary issues.",
   "comments_made": {
@@ -10,105 +10,34 @@
     "273": "2026-07-08: Commented that PR #273 has 4 test name conflicts with #297"
   },
   "open_repo_assist_prs": [
-    {
-      "pr": 241,
-      "title": "feat: sort Upgrades view by available version"
-    },
-    {
-      "pr": 246,
-      "title": "feat(csv): add PinState column to exported package list"
-    },
-    {
-      "pr": 248,
-      "title": "fix: clamp mouse scroll-down offset to last full viewport page"
-    },
-    {
-      "pr": 271,
-      "title": "feat: show X of Y in package list title when local filter active"
-    },
-    {
-      "pr": 274,
-      "title": "fix: reset detail_scroll when selected package changes after refresh"
-    },
-    {
-      "pr": 276,
-      "title": "feat: sort package list by Source column"
-    },
-    {
-      "pr": 282,
-      "title": "fix: strip C1 control characters from package metadata"
-    },
-    {
-      "pr": 290,
-      "title": "feat: restore per-view cursor position when switching views"
-    },
-    {
-      "pr": 293,
-      "title": "perf: only render visible rows in package list table"
-    },
-    {
-      "pr": 295,
-      "title": "fix: discard stale detail errors to prevent post_refresh_status clobber"
-    },
-    {
-      "pr": 299,
-      "title": "fix: reset detail_scroll when cycling pin filter (P key)"
-    },
-    {
-      "pr": 300,
-      "title": "fix: reload detail panel when sort changes the selected package"
-    },
-    {
-      "pr": 306,
-      "title": "fix: reset detail_scroll when switching views"
-    },
-    {
-      "pr": 308,
-      "title": "fix: guard parse_show_output header detection against indented lines"
-    },
-    {
-      "pr": 311,
-      "title": "test: verify f key resets selection and sets loading flag"
-    },
-    {
-      "pr": 312,
-      "title": "chore: update Cargo.lock to latest compatible dependency versions"
-    },
-    {
-      "pr": "aw_cfgfix",
-      "title": "fix: handle inline TOML comments in config parser"
-    },
-    {
-      "pr": "aw_readme_fix",
-      "title": "docs: remove inaccurate click filter bar entry (closes #280)"
-    }
+    {"pr": 241, "title": "feat: sort Upgrades view by available version"},
+    {"pr": 246, "title": "feat(csv): add PinState column to exported package list"},
+    {"pr": 248, "title": "fix: clamp mouse scroll-down offset to last full viewport page"},
+    {"pr": 271, "title": "feat: show X of Y in package list title when local filter active"},
+    {"pr": 274, "title": "fix: reset detail_scroll when selected package changes after refresh"},
+    {"pr": 276, "title": "feat: sort package list by Source column"},
+    {"pr": 282, "title": "fix: strip C1 control characters from package metadata"},
+    {"pr": 290, "title": "feat: restore per-view cursor position when switching views"},
+    {"pr": 293, "title": "perf: only render visible rows in package list table"},
+    {"pr": 295, "title": "fix: discard stale detail errors to prevent post_refresh_status clobber"},
+    {"pr": 299, "title": "fix: reset detail_scroll when cycling pin filter (P key)"},
+    {"pr": 300, "title": "fix: reload detail panel when sort changes the selected package"},
+    {"pr": 306, "title": "fix: reset detail_scroll when switching views"},
+    {"pr": 308, "title": "fix: guard parse_show_output header detection against indented lines"},
+    {"pr": 311, "title": "test: verify f key resets selection and sets loading flag"},
+    {"pr": 312, "title": "chore: update Cargo.lock to latest compatible dependency versions"},
+    {"pr": 314, "title": "fix: handle inline TOML comments in config parser"},
+    {"pr": 315, "title": "docs: remove inaccurate click filter bar entry (closes #280)"},
+    {"pr": "aw_gG_nav", "title": "feat: add g/G vim-style first/last navigation shortcuts"}
   ],
   "failed_pr_issues": [
-    {
-      "issue": 289,
-      "note": "CI restore-keys patch - protected CI file"
-    },
-    {
-      "issue": 307,
-      "note": "AGENTS.md config keys docs - duplicate of #309"
-    },
-    {
-      "issue": 309,
-      "note": "AGENTS.md config keys docs - protected file, manual patch provided"
-    },
-    {
-      "issue": 310,
-      "note": "Bundled Dependabot CI patch - protected file, manual patch provided"
-    },
-    {
-      "issue": 313,
-      "note": "g/G vim navigation issue - protected AGENTS.md file"
-    }
+    {"issue": 289, "note": "CI restore-keys patch - protected CI file"},
+    {"issue": 307, "note": "AGENTS.md config keys docs - duplicate of #309"},
+    {"issue": 309, "note": "AGENTS.md config keys docs - protected file, manual patch provided"},
+    {"issue": 310, "note": "Bundled Dependabot CI patch - protected file, manual patch provided"},
+    {"issue": 313, "note": "g/G navigation - previous attempt had protected files; new PR created 2026-07-11 without protected file changes"}
   ],
-  "pending_dependabot_prs": [
-    285,
-    302
-  ],
+  "pending_dependabot_prs": [285, 302],
   "ci_note": "All repo-assist branch PRs show action_required CI (fork protection). Infrastructure issue, not code failures.",
-  "notes": "Run 29134187371 (2026-07-11): Task4+Task3. Task4: fixed README.md inaccurate mouse doc entry (closes issue #280) - created PR. Task3: no open user bug issues; all code bugs found are already covered by existing open PRs (308, 295, 300, 248). Monthly summary disabled by maintainer."
+  "notes": "Run 29153809392 (2026-07-11): Task3+Task5. Task3: Added g/G vim-style navigation shortcuts to handler.rs only (no protected files), 6 new tests, 377 pass. Created PR. Monthly summary disabled by maintainer."
 }
