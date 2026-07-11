@@ -293,7 +293,7 @@ fn handle_normal_mode(
                 load_detail_for_selected(app);
             }
         }
-        KeyCode::Home => {
+        KeyCode::Home | KeyCode::Char('g') => {
             if app.focus == FocusZone::DetailPanel {
                 app.detail_scroll = 0;
             } else if !app.filtered_packages.is_empty() {
@@ -302,7 +302,7 @@ fn handle_normal_mode(
                 load_detail_for_selected(app);
             }
         }
-        KeyCode::End => {
+        KeyCode::End | KeyCode::Char('G') => {
             if app.focus == FocusZone::DetailPanel {
                 let viewport = app.layout.detail_panel.height.saturating_sub(3) as usize;
                 app.detail_scroll = app.detail_content_lines.saturating_sub(viewport);
@@ -2353,5 +2353,64 @@ mod tests {
         app.layout.package_list = rect(0, 0, 2, 10); // content_width = 2-3 = underflows to 0
         click_sort_header(&mut app, 0);
         assert_eq!(app.sort_field, SortField::None);
+    }
+
+    // ── g / G vim-style first/last navigation ─────────────────────────────────
+
+    #[test]
+    fn g_key_moves_to_first_package() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app_with_pkgs(5);
+        app.selected = 4;
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('g'), KeyModifiers::NONE);
+        assert_eq!(app.selected, 0);
+    }
+
+    #[test]
+    fn g_key_on_empty_list_is_noop() {
+        let mut app = make_app();
+        app.selected = 0;
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('g'), KeyModifiers::NONE);
+        assert_eq!(app.selected, 0);
+    }
+
+    #[test]
+    fn shift_g_key_moves_to_last_package() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app_with_pkgs(5);
+        app.selected = 0;
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('G'), KeyModifiers::NONE);
+        assert_eq!(app.selected, 4);
+    }
+
+    #[test]
+    fn shift_g_key_on_empty_list_is_noop() {
+        let mut app = make_app();
+        app.selected = 0;
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('G'), KeyModifiers::NONE);
+        assert_eq!(app.selected, 0);
+    }
+
+    #[test]
+    fn g_key_detail_panel_focus_scrolls_to_top() {
+        let mut app = make_app_with_pkgs(3);
+        app.focus = FocusZone::DetailPanel;
+        app.detail_scroll = 10;
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('g'), KeyModifiers::NONE);
+        assert_eq!(app.detail_scroll, 0);
+    }
+
+    #[test]
+    fn shift_g_key_detail_panel_focus_scrolls_to_bottom() {
+        let mut app = make_app_with_pkgs(3);
+        app.focus = FocusZone::DetailPanel;
+        app.detail_scroll = 0;
+        app.detail_content_lines = 50;
+        app.layout.detail_panel = rect(60, 0, 40, 20);
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('G'), KeyModifiers::NONE);
+        // viewport = 20 - 3 = 17; bottom = 50 - 17 = 33
+        assert_eq!(app.detail_scroll, 33);
     }
 }
