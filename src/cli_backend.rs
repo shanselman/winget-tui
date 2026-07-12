@@ -2055,4 +2055,140 @@ Node.js                    OpenJS.NodeJS              20.*            Gating
         assert_eq!(pins[1].id, "OpenJS.NodeJS");
         assert_eq!(pins[1].pin_state, PinState::Gating("20.*".to_string()));
     }
+
+    // ── parse_show_output: additional edge cases ─────────────────────────────
+
+    #[test]
+    fn parse_show_output_source_field_is_parsed() {
+        // The `Source:` field must be stored in detail.source, not discarded.
+        let backend = CliBackend::new();
+        let output = "\
+Found Git [Git.Git]
+Version: 2.47.0
+Publisher: The Git Development Community
+Homepage: https://gitforwindows.org
+License: GPL-2.0
+Source: winget
+";
+        let detail = backend.parse_show_output(output);
+        assert_eq!(detail.id, "Git.Git");
+        assert_eq!(detail.source, "winget", "source field should be populated");
+    }
+
+    #[test]
+    fn parse_show_output_without_found_header_still_parses_kv() {
+        // If winget omits the "Found Name [Id]" header (unlikely but defensive),
+        // the key-value fields should still be extracted correctly.
+        let backend = CliBackend::new();
+        let output = "\
+Version: 1.0.0
+Publisher: Example Corp
+Description: A sample application.
+Homepage: https://example.com
+License: MIT
+Source: winget
+";
+        let detail = backend.parse_show_output(output);
+        // No name/id from the header, but all KV fields should be populated.
+        assert!(
+            detail.name.is_empty(),
+            "name should be empty without header"
+        );
+        assert!(detail.id.is_empty(), "id should be empty without header");
+        assert_eq!(detail.version, "1.0.0");
+        assert_eq!(detail.publisher, "Example Corp");
+        assert_eq!(detail.description, "A sample application.");
+        assert_eq!(detail.homepage, "https://example.com");
+        assert_eq!(detail.license, "MIT");
+        assert_eq!(detail.source, "winget");
+    }
+
+    #[test]
+    fn parse_show_output_description_blank_on_key_line_indented_continuation() {
+        // `Description:` with no value on the key line; text starts on the next
+        // indented continuation line. This pattern appears in some winget outputs.
+        let backend = CliBackend::new();
+        let output = "\
+Found Some App [Some.App]
+Version: 2.0.0
+Publisher: Some Publisher
+Description:
+  This app does something useful.
+  It also does something else.
+License: MIT
+";
+        let detail = backend.parse_show_output(output);
+        assert_eq!(detail.id, "Some.App");
+        // Both continuation lines should be appended to the description.
+        assert!(
+            detail.description.contains("something useful"),
+            "first continuation line should be in description"
+        );
+        assert!(
+            detail.description.contains("something else"),
+            "second continuation line should be in description"
+        );
+    }
+
+    // ── normalize_show_key: Portuguese and Italian locale coverage ────────────
+
+    #[test]
+    fn normalize_show_key_portuguese_translations() {
+        // Ensure Portuguese locale translations are correctly mapped.
+        assert_eq!(CliBackend::normalize_show_key("Descrição"), "description");
+        assert_eq!(CliBackend::normalize_show_key("Fonte"), "source");
+        assert_eq!(CliBackend::normalize_show_key("Licença"), "license");
+        assert_eq!(CliBackend::normalize_show_key("Editor"), "publisher");
+    }
+
+    #[test]
+    fn normalize_show_key_italian_translations() {
+        // Ensure Italian locale translations are correctly mapped.
+        assert_eq!(CliBackend::normalize_show_key("Descrizione"), "description");
+        assert_eq!(CliBackend::normalize_show_key("Origine"), "source");
+        assert_eq!(CliBackend::normalize_show_key("Licenza"), "license");
+        assert_eq!(CliBackend::normalize_show_key("Editore"), "publisher");
+    }
+
+    // ── sanitize_text: comprehensive C0 control character coverage ────────────
+
+    #[test]
+    fn sanitize_strips_all_c0_controls_except_tab_and_newline() {
+        // Every C0 control code except HT (0x09) and LF (0x0A) must be removed.
+        // Test a representative selection: NUL, SOH, BEL, BS, VT, FF, CR, ESC.
+        assert_eq!(super::sanitize_text("a\x00b"), "ab"); // NUL
+        assert_eq!(super::sanitize_text("a\x01b"), "ab"); // SOH
+        assert_eq!(super::sanitize_text("a\x07b"), "ab"); // BEL
+        assert_eq!(super::sanitize_text("a\x08b"), "ab"); // BS
+        assert_eq!(super::sanitize_text("a\x0Bb"), "ab"); // VT
+        assert_eq!(super::sanitize_text("a\x0Cb"), "ab"); // FF
+        assert_eq!(super::sanitize_text("a\x0Db"), "ab"); // CR
+        assert_eq!(super::sanitize_text("a\x1Bb"), "ab"); // ESC
+        assert_eq!(super::sanitize_text("a\x1Fb"), "ab"); // US
+                                                          // Tab and newline must be preserved.
+        assert_eq!(super::sanitize_text("a\x09b"), "a\tb"); // HT
+        assert_eq!(super::sanitize_text("a\x0Ab"), "a\nb"); // LF
+    }
+
+    // ── parse_packages_from_table: minimal two-column table ──────────────────
+
+    #[test]
+    fn parse_packages_from_table_two_column_name_and_id() {
+        // A minimal table with only Name and Id columns (no Version, Source,
+        // or Available). The parser should handle this gracefully, returning
+        // packages with empty version/source/available fields.
+        let backend = CliBackend::new();
+        let output = "\
+Name              Id
+----------------------------------
+Google Chrome     Google.Chrome
+Git               Git.Git
+";
+        let packages = backend.parse_packages_from_table(output);
+        assert_eq!(packages.len(), 2, "both packages should be parsed");
+        assert_eq!(packages[0].name, "Google Chrome");
+        assert_eq!(packages[0].id, "Google.Chrome");
+        assert!(packages[0].version.is_empty());
+        assert_eq!(packages[1].id, "Git.Git");
+    }
 }
