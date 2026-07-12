@@ -268,7 +268,9 @@ impl App {
         if self.mode != AppMode::Search && !self.local_filter.is_empty() {
             let query = self.local_filter.to_lowercase();
             self.filtered_packages.retain(|pkg| {
-                pkg.name.to_lowercase().contains(&query) || pkg.id.to_lowercase().contains(&query)
+                pkg.name.to_lowercase().contains(&query)
+                    || pkg.id.to_lowercase().contains(&query)
+                    || pkg.source.to_lowercase().contains(&query)
             });
         }
         if self.mode != AppMode::Search {
@@ -1242,6 +1244,61 @@ mod tests {
     }
 
     // ── apply_filter ──────────────────────────────────────────────────────────
+
+    #[test]
+    fn apply_filter_local_filter_matches_source() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.mode = AppMode::Installed;
+        app.packages = vec![
+            Package {
+                name: "App One".to_string(),
+                id: "App.One".to_string(),
+                version: "1.0".to_string(),
+                source: "winget".to_string(),
+                available_version: String::new(),
+                pin_state: PinState::None,
+            },
+            Package {
+                name: "App Two".to_string(),
+                id: "App.Two".to_string(),
+                version: "2.0".to_string(),
+                source: "msstore".to_string(),
+                available_version: String::new(),
+                pin_state: PinState::None,
+            },
+        ];
+        app.local_filter = "msstore".to_string();
+        app.apply_filter();
+        assert_eq!(
+            app.filtered_packages.len(),
+            1,
+            "only the msstore package should survive the source filter"
+        );
+        assert_eq!(app.filtered_packages[0].id, "App.Two");
+    }
+
+    #[test]
+    fn apply_filter_local_filter_source_case_insensitive() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.mode = AppMode::Installed;
+        app.packages = vec![Package {
+            name: "Widget".to_string(),
+            id: "W.Widget".to_string(),
+            version: "1.0".to_string(),
+            source: "Winget".to_string(),
+            available_version: String::new(),
+            pin_state: PinState::None,
+        }];
+        app.local_filter = "WINGET".to_string();
+        app.apply_filter();
+        assert_eq!(
+            app.filtered_packages.len(),
+            1,
+            "source filter should be case-insensitive"
+        );
+    }
 
     #[test]
     fn apply_filter_clamps_selection_when_list_shrinks() {
