@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-07-13",
-  "last_run_id": "29216994633",
+  "last_run": "2026-07-14",
+  "last_run_id": "29335311922",
   "monthly_summary_disabled": true,
   "monthly_summary_note": "2026-06-08: Maintainer closed issue #222. Do NOT create monthly activity summary issues.",
   "comments_made": {
@@ -29,7 +29,8 @@
     {"pr": 314, "title": "fix: handle inline TOML comments in config parser"},
     {"pr": 316, "title": "feat: add g/G vim-style first/last navigation shortcuts"},
     {"pr": 317, "title": "test: add cli_backend coverage for edge cases"},
-    {"pr": 318, "title": "feat: include Source field in local filter matching"}
+    {"pr": 318, "title": "feat: include Source field in local filter matching"},
+    {"pr": 319, "title": "feat: add Ctrl+U shortcut to clear text input fields"}
   ],
   "failed_pr_issues": [
     {"issue": 289, "note": "CI restore-keys patch - protected CI file"},
@@ -38,7 +39,7 @@
     {"issue": 310, "note": "Bundled Dependabot CI patch - protected file, manual patch provided"},
     {"issue": 313, "note": "g/G navigation - previous attempt had protected files; PR #316 created 2026-07-11"}
   ],
-  "pending_dependabot_prs": [285, 302],
+  "pending_dependabot_prs": [285, 302, 320, 321, 322],
   "ci_note": "All repo-assist branch PRs show action_required CI (fork protection). Infrastructure issue, not code failures.",
-  "notes": "Run 29216994633 (2026-07-13): Tasks 5+4. With 20 open Repo Assist PRs, no new PRs created. Existing PRs cover engineering investments (Cargo.lock #312, Dependabot #285/#302) and many coding improvements. PR #315 (docs) was merged/closed since last run. Prioritise maintainer review of existing PRs."
+  "notes": "Run 29335311922 (2026-07-14): Tasks 4+8. With 21 open Repo Assist PRs, no new PRs created to avoid noise. apply_filter() already uses sort_by_cached_key; visible-row rendering covered by #293. Dependabot/CI PRs #320/#321/#322 appeared since last run. Maintainer review of existing PRs remains the priority."
 }
