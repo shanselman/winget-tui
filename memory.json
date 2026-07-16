@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-07-15",
-  "last_run_id": "29418043160",
+  "last_run": "2026-07-16",
+  "last_run_id": "29463487939",
   "monthly_summary_disabled": true,
   "monthly_summary_note": "2026-06-08: Maintainer closed issue #222. Do NOT create monthly activity summary issues.",
   "comments_made": {
@@ -30,7 +30,8 @@
     {"pr": 316, "title": "feat: add g/G vim-style first/last navigation shortcuts"},
     {"pr": 317, "title": "test: add cli_backend coverage for edge cases"},
     {"pr": 318, "title": "feat: include Source field in local filter matching"},
-    {"pr": 319, "title": "feat: add Ctrl+U shortcut to clear text input fields"}
+    {"pr": 319, "title": "feat: add Ctrl+U shortcut to clear text input fields"},
+    {"pr": "TBD-323", "title": "feat: show pending upgrade count badge on Upgrades nav tab"}
   ],
   "failed_pr_issues": [
     {"issue": 289, "note": "CI restore-keys patch - protected CI file"},
@@ -41,5 +42,5 @@
   ],
   "pending_dependabot_prs": [285, 302, 320, 321, 322],
   "ci_note": "All repo-assist branch PRs show action_required CI (fork protection). Infrastructure issue, not code failures.",
-  "notes": "Run 29418043160 (2026-07-15): Tasks 6+2. Main branch unchanged (8265348). All 21 Repo Assist PRs remain conflict-free. No human-opened issues to investigate - all open issues are Repo Assist issues. 5 pending Dependabot PRs (#285, #302, #320, #321, #322). Bundling attempt failed previously due to protected CI file. Key PRs for maintainer review: #241, #246, #248, #282, #293, #314, #316, #319."
+  "notes": "Run 29463487939 (2026-07-16): Tasks 10+6. Task 10: created PR for upgrades count badge on nav tab (App::upgrades_count field, badge in ui.rs). Task 6: all 22 Repo Assist PRs conflict-free with main (8265348 unchanged). Monthly summary disabled by maintainer. Key PRs for review: #241, #246, #248, #282, #293, #314, #316, #319."
 }
