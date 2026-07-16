@@ -120,7 +120,15 @@ fn draw_header(f: &mut Frame, app: &mut App, area: Rect) {
             } else {
                 theme::navbar_inactive()
             };
-            let tab_text = format!(" {} ", label);
+            // Append upgrade count badge to the Upgrades tab when known.
+            let tab_text = if *mode == AppMode::Upgrades {
+                match app.upgrades_count {
+                    Some(n) => format!(" {} ({}) ", label, n),
+                    None => format!(" {} ", label),
+                }
+            } else {
+                format!(" {} ", label)
+            };
             let tab_width = UnicodeWidthStr::width(tab_text.as_str()) as u16;
             tab_regions.push((current_x, current_x + tab_width, *mode));
             current_x += tab_width + 1;
