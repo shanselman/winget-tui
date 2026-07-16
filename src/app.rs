@@ -152,6 +152,9 @@ pub struct App {
     pub detail_cache: HashMap<String, PackageDetail>,
     /// Indices into filtered_packages that are selected for batch operations
     pub selected_packages: HashSet<usize>,
+    /// Last known number of upgradable packages; `None` until the Upgrades view
+    /// has been loaded at least once.  Shown as a badge on the Upgrades nav tab.
+    pub upgrades_count: Option<usize>,
     /// A high-signal status message to restore after the next list refresh completes.
     pub post_refresh_status: Option<String>,
     pub backend: Arc<dyn WingetBackend>,
@@ -246,6 +249,7 @@ impl App {
             detail_generation: 0,
             detail_cache: HashMap::new(),
             selected_packages: HashSet::new(),
+            upgrades_count: None,
             post_refresh_status: None,
             backend,
             message_tx,
@@ -693,6 +697,11 @@ impl App {
                     }
                     self.loading = false;
                     let count = self.filtered_packages.len();
+                    // Track upgrades count for the nav tab badge whenever the
+                    // Upgrades view finishes loading.
+                    if self.mode == AppMode::Upgrades {
+                        self.upgrades_count = Some(count);
+                    }
                     if let Some(status) = self.post_refresh_status.take() {
                         self.set_status(status);
                     } else {
@@ -1865,6 +1874,65 @@ mod tests {
         app.process_messages();
         assert_eq!(app.filtered_packages.len(), 3);
         assert!(!app.loading);
+    }
+
+    #[tokio::test]
+    async fn upgrades_count_set_when_upgrades_view_loads() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.mode = AppMode::Upgrades;
+        app.view_generation = 1;
+        app.message_tx
+            .send(AppMessage::PackagesLoaded {
+                generation: 1,
+                packages: make_packages(7),
+            })
+            .unwrap();
+        app.process_messages();
+        assert_eq!(app.upgrades_count, Some(7));
+    }
+
+    #[tokio::test]
+    async fn upgrades_count_not_set_for_installed_view() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.mode = AppMode::Installed;
+        app.view_generation = 1;
+        app.message_tx
+            .send(AppMessage::PackagesLoaded {
+                generation: 1,
+                packages: make_packages(5),
+            })
+            .unwrap();
+        app.process_messages();
+        assert_eq!(app.upgrades_count, None);
+    }
+
+    #[tokio::test]
+    async fn upgrades_count_updates_on_subsequent_upgrades_refresh() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.mode = AppMode::Upgrades;
+        app.view_generation = 1;
+        app.message_tx
+            .send(AppMessage::PackagesLoaded {
+                generation: 1,
+                packages: make_packages(4),
+            })
+            .unwrap();
+        app.process_messages();
+        assert_eq!(app.upgrades_count, Some(4));
+
+        // Simulate a second refresh returning fewer upgrades
+        app.view_generation = 2;
+        app.message_tx
+            .send(AppMessage::PackagesLoaded {
+                generation: 2,
+                packages: make_packages(2),
+            })
+            .unwrap();
+        app.process_messages();
+        assert_eq!(app.upgrades_count, Some(2));
     }
 
     #[tokio::test]
