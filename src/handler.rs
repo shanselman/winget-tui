@@ -1571,6 +1571,134 @@ mod tests {
         assert_eq!(app.focus, FocusZone::PackageList);
     }
 
+    // ── detail panel navigation (focus == DetailPanel) ───────────────────────
+
+    #[test]
+    fn up_key_scrolls_detail_when_detail_panel_focused() {
+        let mut app = make_app();
+        app.focus = FocusZone::DetailPanel;
+        app.detail_scroll = 5;
+        app.detail_content_lines = 20;
+        let _ = handle_normal_mode(&mut app, KeyCode::Up, KeyModifiers::NONE);
+        assert_eq!(app.detail_scroll, 4, "Up should scroll detail up by 1");
+    }
+
+    #[test]
+    fn down_key_scrolls_detail_when_detail_panel_focused() {
+        let mut app = make_app();
+        app.focus = FocusZone::DetailPanel;
+        app.detail_scroll = 3;
+        app.detail_content_lines = 20;
+        app.layout.detail_panel = ratatui::layout::Rect::new(0, 0, 40, 10);
+        let _ = handle_normal_mode(&mut app, KeyCode::Down, KeyModifiers::NONE);
+        assert_eq!(app.detail_scroll, 4, "Down should scroll detail down by 1");
+    }
+
+    #[test]
+    fn up_key_moves_selection_when_package_list_focused() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app_with_pkgs(3);
+        app.focus = FocusZone::PackageList;
+        app.selected = 2;
+        let _ = handle_normal_mode(&mut app, KeyCode::Up, KeyModifiers::NONE);
+        assert_eq!(
+            app.selected, 1,
+            "Up should move selection up when list is focused"
+        );
+    }
+
+    #[test]
+    fn down_key_moves_selection_when_package_list_focused() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app_with_pkgs(3);
+        app.focus = FocusZone::PackageList;
+        app.selected = 0;
+        let _ = handle_normal_mode(&mut app, KeyCode::Down, KeyModifiers::NONE);
+        assert_eq!(
+            app.selected, 1,
+            "Down should move selection down when list is focused"
+        );
+    }
+
+    #[test]
+    fn home_key_resets_detail_scroll_when_detail_panel_focused() {
+        let mut app = make_app();
+        app.focus = FocusZone::DetailPanel;
+        app.detail_scroll = 10;
+        let _ = handle_normal_mode(&mut app, KeyCode::Home, KeyModifiers::NONE);
+        assert_eq!(app.detail_scroll, 0, "Home should reset detail_scroll to 0");
+    }
+
+    #[test]
+    fn home_key_moves_to_first_package_when_list_focused() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app_with_pkgs(5);
+        app.focus = FocusZone::PackageList;
+        app.selected = 4;
+        let _ = handle_normal_mode(&mut app, KeyCode::Home, KeyModifiers::NONE);
+        assert_eq!(app.selected, 0, "Home should jump to first package");
+    }
+
+    #[test]
+    fn end_key_scrolls_detail_to_bottom_when_detail_panel_focused() {
+        let mut app = make_app();
+        app.focus = FocusZone::DetailPanel;
+        app.detail_scroll = 0;
+        app.detail_content_lines = 30;
+        // Detail panel height = 10; viewport = 10 - 3 = 7 rows visible
+        app.layout.detail_panel = ratatui::layout::Rect::new(0, 0, 40, 10);
+        let _ = handle_normal_mode(&mut app, KeyCode::End, KeyModifiers::NONE);
+        // Expected: detail_scroll = 30 - 7 = 23
+        assert_eq!(
+            app.detail_scroll, 23,
+            "End should scroll to the last page of detail content"
+        );
+    }
+
+    #[test]
+    fn end_key_moves_to_last_package_when_list_focused() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app_with_pkgs(5);
+        app.focus = FocusZone::PackageList;
+        app.selected = 0;
+        let _ = handle_normal_mode(&mut app, KeyCode::End, KeyModifiers::NONE);
+        assert_eq!(app.selected, 4, "End should jump to last package");
+    }
+
+    #[test]
+    fn pageup_scrolls_detail_by_page_when_detail_panel_focused() {
+        let mut app = make_app();
+        app.focus = FocusZone::DetailPanel;
+        app.detail_scroll = 15;
+        app.detail_content_lines = 50;
+        // detail_panel height = 10; page = 10 - 3 = 7
+        app.layout.detail_panel = ratatui::layout::Rect::new(0, 0, 40, 10);
+        let _ = handle_normal_mode(&mut app, KeyCode::PageUp, KeyModifiers::NONE);
+        assert_eq!(
+            app.detail_scroll, 8,
+            "PageUp should scroll detail up by (panel_height - 3)"
+        );
+    }
+
+    #[test]
+    fn pagedown_scrolls_detail_by_page_when_detail_panel_focused() {
+        let mut app = make_app();
+        app.focus = FocusZone::DetailPanel;
+        app.detail_scroll = 0;
+        app.detail_content_lines = 50;
+        // detail_panel height = 10; page = 10 - 3 = 7
+        app.layout.detail_panel = ratatui::layout::Rect::new(0, 0, 40, 10);
+        let _ = handle_normal_mode(&mut app, KeyCode::PageDown, KeyModifiers::NONE);
+        assert_eq!(
+            app.detail_scroll, 7,
+            "PageDown should scroll detail down by (panel_height - 3)"
+        );
+    }
+
     #[test]
     fn s_key_cycles_sort_to_name_ascending() {
         use crate::models::{SortDir, SortField};
