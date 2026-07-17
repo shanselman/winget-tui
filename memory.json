@@ -1,6 +1,6 @@
 {
   "last_run": "2026-07-17",
-  "last_run_id": "29546886498",
+  "last_run_id": "29582858494",
   "monthly_summary_disabled": true,
   "monthly_summary_note": "2026-06-08: Maintainer closed issue #222. Do NOT create monthly activity summary issues.",
   "comments_made": {
@@ -32,8 +32,8 @@
     {"pr": 318, "title": "feat: include Source field in local filter matching"},
     {"pr": 319, "title": "feat: add Ctrl+U shortcut to clear text input fields"},
     {"pr": 323, "title": "feat: show pending upgrade count badge on Upgrades nav tab"},
-    {"pr": "TBD-324", "title": "feat: add w key to open package page on winget.run"},
-    {"pr": "TBD-325", "title": "test: add detail panel navigation key coverage"}
+    {"pr": 325, "title": "test: add detail panel navigation key coverage"},
+    {"pr": "TBD-bundle-depbot", "title": "chore: bundle Dependabot GitHub Actions updates (cache v6, gittools v4.7)"}
   ],
   "failed_pr_issues": [
     {"issue": 289, "note": "CI restore-keys patch - protected CI file"},
@@ -42,7 +42,8 @@
     {"issue": 310, "note": "Bundled Dependabot CI patch - protected file, manual patch provided"},
     {"issue": 313, "note": "g/G navigation - previous attempt had protected files; PR #316 created 2026-07-11"}
   ],
-  "pending_dependabot_prs": [285, 302, 320, 321, 322],
+  "pending_dependabot_prs": [320, 321, 322],
+  "bundled_dependabot_prs": [285, 302],
   "ci_note": "All repo-assist branch PRs show action_required CI (fork protection). Infrastructure issue, not code failures.",
-  "notes": "Run 29546886498 (2026-07-17): Tasks 9+6. Task 9: Added 10 tests for detail panel navigation keys (Up/Down/PageUp/PageDown/Home/End) when focus==DetailPanel vs PackageList - previously untested paths. 381 tests now (up from 371). Task 6: All 22 open Repo Assist PRs checked - all mergeable, no conflicts. CI unstable is fork protection issue only. Monthly summary disabled by maintainer. Key PRs for review: #241, #246, #248, #282, #293, #314, #316, #319, #323."
+  "notes": "Run 29582858494 (2026-07-17): Tasks 4+6. Task 4: Created bundled Dependabot PR for actions/cache v5->v6 (#285) and gittools/gitversion/execute v4.5->v4.7 (#302). Task 6: All 23 open Repo Assist PRs checked - all mergeable, no conflicts, no CI failures (fork protection infra issue only). Monthly summary disabled. Key PRs for review: #241, #246, #248, #282, #293, #314, #316, #319, #323, #325."
 }
