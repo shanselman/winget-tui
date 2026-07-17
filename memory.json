@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-07-16",
-  "last_run_id": "29501064359",
+  "last_run": "2026-07-17",
+  "last_run_id": "29546886498",
   "monthly_summary_disabled": true,
   "monthly_summary_note": "2026-06-08: Maintainer closed issue #222. Do NOT create monthly activity summary issues.",
   "comments_made": {
@@ -32,7 +32,8 @@
     {"pr": 318, "title": "feat: include Source field in local filter matching"},
     {"pr": 319, "title": "feat: add Ctrl+U shortcut to clear text input fields"},
     {"pr": 323, "title": "feat: show pending upgrade count badge on Upgrades nav tab"},
-    {"pr": "TBD-324", "title": "feat: add w key to open package page on winget.run"}
+    {"pr": "TBD-324", "title": "feat: add w key to open package page on winget.run"},
+    {"pr": "TBD-325", "title": "test: add detail panel navigation key coverage"}
   ],
   "failed_pr_issues": [
     {"issue": 289, "note": "CI restore-keys patch - protected CI file"},
@@ -43,5 +44,5 @@
   ],
   "pending_dependabot_prs": [285, 302, 320, 321, 322],
   "ci_note": "All repo-assist branch PRs show action_required CI (fork protection). Infrastructure issue, not code failures.",
-  "notes": "Run 29501064359 (2026-07-16): Tasks 2+10. Task 2: no human issues open - all 9 open issues are Repo Assist generated. Task 10: created PR for 'w' key to open winget.run package page (URL from package ID, no detail load needed). Monthly summary disabled by maintainer. Key PRs for review: #241, #246, #248, #282, #293, #314, #316, #319, #323."
+  "notes": "Run 29546886498 (2026-07-17): Tasks 9+6. Task 9: Added 10 tests for detail panel navigation keys (Up/Down/PageUp/PageDown/Home/End) when focus==DetailPanel vs PackageList - previously untested paths. 381 tests now (up from 371). Task 6: All 22 open Repo Assist PRs checked - all mergeable, no conflicts. CI unstable is fork protection issue only. Monthly summary disabled by maintainer. Key PRs for review: #241, #246, #248, #282, #293, #314, #316, #319, #323."
 }
