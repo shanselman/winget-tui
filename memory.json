@@ -1,13 +1,14 @@
 {
-  "last_run": "2026-07-17",
-  "last_run_id": "29582858494",
+  "last_run": "2026-07-18",
+  "last_run_id": "29624669499",
   "monthly_summary_disabled": true,
   "monthly_summary_note": "2026-06-08: Maintainer closed issue #222. Do NOT create monthly activity summary issues.",
   "comments_made": {
     "275": "2026-07-06: Commented that PR #275 is superseded by #298",
     "233": "2026-07-07: Commented that PR #241 already implements the available-version sort feature",
     "296": "2026-07-08: Commented that PR #296 is superseded by #297, test name collision",
-    "273": "2026-07-08: Commented that PR #273 has 4 test name conflicts with #297"
+    "273": "2026-07-08: Commented that PR #273 has 4 test name conflicts with #297",
+    "282": "2026-07-18: Explained fork-protection CI issue to maintainer (response to held comment)"
   },
   "open_repo_assist_prs": [
     {"pr": 241, "title": "feat: sort Upgrades view by available version"},
@@ -32,8 +33,7 @@
     {"pr": 318, "title": "feat: include Source field in local filter matching"},
     {"pr": 319, "title": "feat: add Ctrl+U shortcut to clear text input fields"},
     {"pr": 323, "title": "feat: show pending upgrade count badge on Upgrades nav tab"},
-    {"pr": 325, "title": "test: add detail panel navigation key coverage"},
-    {"pr": "TBD-bundle-depbot", "title": "chore: bundle Dependabot GitHub Actions updates (cache v6, gittools v4.7)"}
+    {"pr": 325, "title": "test: add detail panel navigation key coverage"}
   ],
   "failed_pr_issues": [
     {"issue": 289, "note": "CI restore-keys patch - protected CI file"},
@@ -44,6 +44,6 @@
   ],
   "pending_dependabot_prs": [320, 321, 322],
   "bundled_dependabot_prs": [285, 302],
-  "ci_note": "All repo-assist branch PRs show action_required CI (fork protection). Infrastructure issue, not code failures.",
-  "notes": "Run 29582858494 (2026-07-17): Tasks 4+6. Task 4: Created bundled Dependabot PR for actions/cache v5->v6 (#285) and gittools/gitversion/execute v4.5->v4.7 (#302). Task 6: All 23 open Repo Assist PRs checked - all mergeable, no conflicts, no CI failures (fork protection infra issue only). Monthly summary disabled. Key PRs for review: #241, #246, #248, #282, #293, #314, #316, #319, #323, #325."
+  "ci_note": "All repo-assist branch PRs show action_required CI (fork protection). Infrastructure issue, not code failures. Explained to maintainer in PR #282 comment on 2026-07-18.",
+  "notes": "Run 29624669499 (2026-07-18): Tasks 6+2. Task 6: 23 open Repo Assist PRs - all checked, no conflicts (main SHA unchanged at 8265348a1fa8bb7bf061cf79d149784d45a682b6). Maintainer left 'held, no checks' comment on #282 - explained fork-protection CI issue. Task 2: No human issues open. All 11 open issues are RA-created tracking issues. Key PRs for review: #241, #246, #248, #282, #293, #314, #316, #319, #323, #325."
 }
