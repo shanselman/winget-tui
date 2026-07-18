@@ -551,6 +551,29 @@ fn handle_normal_mode(
             "Opening changelog ",
         ),
 
+        // Open package page on winget.run community portal
+        KeyCode::Char('w') => match app.selected_package() {
+            None => app.set_status("No package selected"),
+            Some(pkg) if pkg.is_truncated() => {
+                app.set_status("Cannot open winget.run: package ID is truncated")
+            }
+            Some(pkg) => {
+                let id = pkg.id.clone();
+                let url = if let Some(dot) = id.find('.') {
+                    let publisher = &id[..dot];
+                    let app_name = &id[dot + 1..];
+                    format!("https://winget.run/pkg/{publisher}/{app_name}")
+                } else {
+                    format!("https://winget.run/pkg/{id}")
+                };
+                if open_url(&url) {
+                    app.set_status(format!("Opening {url}…"));
+                } else {
+                    app.set_status("Failed to open winget.run page");
+                }
+            }
+        },
+
         // Sort: cycle through Name↑ → Name↓ → ID↑ → ID↓ → Version↑ → Version↓ → None
         KeyCode::Char('S') => {
             app.cycle_sort();
@@ -1514,6 +1537,46 @@ mod tests {
         assert_eq!(
             app.status_message,
             "No changelog URL available for this package"
+        );
+    }
+
+    // ── w key: open winget.run page ──────────────────────────────────────────
+
+    #[test]
+    fn w_key_no_selection_shows_status() {
+        let mut app = make_app();
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('w'), KeyModifiers::NONE);
+        assert_eq!(app.status_message, "No package selected");
+    }
+
+    #[test]
+    fn w_key_truncated_id_shows_status() {
+        let mut app = make_app_with_pkg("Microsoft.Sysinternals.R...", "1.0", "");
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('w'), KeyModifiers::NONE);
+        assert!(app.status_message.contains("truncated"));
+    }
+
+    #[test]
+    fn w_key_valid_id_builds_winget_run_url() {
+        let mut app = make_app_with_pkg("Google.Chrome", "1.0", "");
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('w'), KeyModifiers::NONE);
+        assert!(
+            app.status_message
+                .contains("https://winget.run/pkg/Google/Chrome"),
+            "expected winget.run URL in status, got: {}",
+            app.status_message
+        );
+    }
+
+    #[test]
+    fn w_key_id_without_dot_builds_plain_url() {
+        let mut app = make_app_with_pkg("NoDotPackage", "1.0", "");
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('w'), KeyModifiers::NONE);
+        assert!(
+            app.status_message
+                .contains("https://winget.run/pkg/NoDotPackage"),
+            "expected plain winget.run URL in status, got: {}",
+            app.status_message
         );
     }
 
