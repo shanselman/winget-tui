@@ -357,35 +357,7 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
     let loading_msg = if app.loading {
         Some(format!(" {} Loading...", app.spinner()))
     } else if app.filtered_packages.is_empty() {
-        Some(
-            match app.mode {
-                AppMode::Search if app.search_query.is_empty() => " Type / to search for packages",
-                AppMode::Search => " No results found",
-                AppMode::Installed
-                    if matches!(app.pin_filter, crate::models::PinFilter::PinnedOnly) =>
-                {
-                    " No pinned packages found"
-                }
-                AppMode::Installed
-                    if matches!(app.pin_filter, crate::models::PinFilter::UnpinnedOnly) =>
-                {
-                    " All visible packages are pinned"
-                }
-                AppMode::Upgrades
-                    if matches!(app.pin_filter, crate::models::PinFilter::PinnedOnly) =>
-                {
-                    " No pinned packages with upgrades found"
-                }
-                AppMode::Upgrades
-                    if matches!(app.pin_filter, crate::models::PinFilter::UnpinnedOnly) =>
-                {
-                    " No unpinned packages with upgrades found"
-                }
-                AppMode::Installed => " No packages found",
-                AppMode::Upgrades => " All packages are up to date!",
-            }
-            .to_string(),
-        )
+        Some(empty_list_message(app))
     } else {
         None
     };
@@ -1225,6 +1197,39 @@ fn word_wrap(text: &str, max_width: usize) -> Vec<String> {
     lines
 }
 
+/// Returns the message to display when the package list is empty (not loading).
+///
+/// Checks the active local filter first so users see a targeted message
+/// instead of the generic "No packages found" when the filter is the cause.
+fn empty_list_message(app: &App) -> String {
+    match app.mode {
+        AppMode::Search if app.search_query.is_empty() => {
+            " Type / to search for packages".to_string()
+        }
+        AppMode::Search => " No results found".to_string(),
+        AppMode::Installed if matches!(app.pin_filter, crate::models::PinFilter::PinnedOnly) => {
+            " No pinned packages found".to_string()
+        }
+        AppMode::Installed if matches!(app.pin_filter, crate::models::PinFilter::UnpinnedOnly) => {
+            " All visible packages are pinned".to_string()
+        }
+        AppMode::Upgrades if matches!(app.pin_filter, crate::models::PinFilter::PinnedOnly) => {
+            " No pinned packages with upgrades found".to_string()
+        }
+        AppMode::Upgrades if matches!(app.pin_filter, crate::models::PinFilter::UnpinnedOnly) => {
+            " No unpinned packages with upgrades found".to_string()
+        }
+        AppMode::Installed if !app.local_filter.is_empty() => {
+            format!(" No packages match \"{}\"", app.local_filter)
+        }
+        AppMode::Upgrades if !app.local_filter.is_empty() => {
+            format!(" No upgrades match \"{}\"", app.local_filter)
+        }
+        AppMode::Installed => " No packages found".to_string(),
+        AppMode::Upgrades => " All packages are up to date!".to_string(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1423,5 +1428,93 @@ mod tests {
         // With max=4: "你好" (4) fits on one line, "世界" on the next
         let lines = word_wrap("你好世界", 4);
         assert_eq!(lines, vec!["你好", "世界"]);
+    }
+
+    // ── empty_list_message ────────────────────────────────────────────────────
+
+    fn make_app_for_empty_msg(mode: AppMode) -> App {
+        use crate::backend::WingetBackend;
+        use crate::models::{Package, PackageDetail, PackagePin, Source};
+        use anyhow::Result;
+        use async_trait::async_trait;
+        use std::sync::Arc;
+
+        struct NoopBackend;
+
+        #[async_trait]
+        impl WingetBackend for NoopBackend {
+            async fn search(&self, _: &str, _: Option<&str>) -> Result<Vec<Package>> {
+                Ok(vec![])
+            }
+            async fn list_installed(&self, _: Option<&str>) -> Result<Vec<Package>> {
+                Ok(vec![])
+            }
+            async fn list_upgrades(&self, _: Option<&str>) -> Result<Vec<Package>> {
+                Ok(vec![])
+            }
+            async fn show(&self, _: &str) -> Result<PackageDetail> {
+                Ok(PackageDetail::default())
+            }
+            async fn install(&self, _: &str, _: Option<&str>) -> Result<String> {
+                Ok(String::new())
+            }
+            async fn uninstall(&self, _: &str) -> Result<String> {
+                Ok(String::new())
+            }
+            async fn upgrade(&self, _: &str) -> Result<String> {
+                Ok(String::new())
+            }
+            async fn list_pins(&self) -> Result<Vec<PackagePin>> {
+                Ok(vec![])
+            }
+            async fn pin(&self, _: &str) -> Result<String> {
+                Ok(String::new())
+            }
+            async fn unpin(&self, _: &str) -> Result<String> {
+                Ok(String::new())
+            }
+            async fn list_sources(&self) -> Result<Vec<Source>> {
+                Ok(vec![])
+            }
+        }
+
+        let mut app = App::new(Arc::new(NoopBackend), Default::default());
+        app.mode = mode;
+        app.packages = vec![];
+        app.filtered_packages = vec![];
+        app
+    }
+
+    #[test]
+    fn empty_msg_installed_no_filter_is_generic() {
+        let app = make_app_for_empty_msg(AppMode::Installed);
+        assert_eq!(empty_list_message(&app), " No packages found");
+    }
+
+    #[test]
+    fn empty_msg_upgrades_no_filter_is_up_to_date() {
+        let app = make_app_for_empty_msg(AppMode::Upgrades);
+        assert_eq!(empty_list_message(&app), " All packages are up to date!");
+    }
+
+    #[test]
+    fn empty_msg_installed_with_local_filter_names_the_filter() {
+        let mut app = make_app_for_empty_msg(AppMode::Installed);
+        app.local_filter = "chrome".to_string();
+        assert_eq!(empty_list_message(&app), " No packages match \"chrome\"");
+    }
+
+    #[test]
+    fn empty_msg_upgrades_with_local_filter_names_the_filter() {
+        let mut app = make_app_for_empty_msg(AppMode::Upgrades);
+        app.local_filter = "rust".to_string();
+        assert_eq!(empty_list_message(&app), " No upgrades match \"rust\"");
+    }
+
+    #[test]
+    fn empty_msg_search_with_query_is_no_results() {
+        let mut app = make_app_for_empty_msg(AppMode::Search);
+        app.search_query = "nothinghere".to_string();
+        assert_eq!(empty_list_message(&app), " No results found");
     }
 }
