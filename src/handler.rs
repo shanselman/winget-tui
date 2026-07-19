@@ -467,7 +467,17 @@ fn handle_normal_mode(
             }
         }
 
-        // Batch Upgrade (Shift+U)
+        // Batch Upgrade (Shift+U) — requires at least one package selected
+        KeyCode::Char('U') if app.mode == AppMode::Upgrades && app.filtered_packages.is_empty() => {
+            app.set_status("No packages to upgrade");
+        }
+
+        KeyCode::Char('U') if app.mode == AppMode::Upgrades && app.selected_packages.is_empty() => {
+            app.set_status(
+                "No packages selected — press Space to select one, or 'a' to select all",
+            );
+        }
+
         KeyCode::Char('U')
             if app.mode == AppMode::Upgrades && !app.selected_packages.is_empty() =>
         {
@@ -1470,6 +1480,33 @@ mod tests {
         assert!(app
             .status_message
             .contains("all selected packages have truncated IDs"));
+    }
+
+    #[test]
+    fn batch_upgrade_empty_selection_shows_hint() {
+        let mut app = make_app_with_pkgs(2);
+        app.mode = AppMode::Upgrades;
+        // selected_packages is empty (default)
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('U'), KeyModifiers::NONE);
+        assert!(app.confirm.is_none(), "no confirm dialog expected");
+        assert!(
+            app.status_message.contains("No packages selected"),
+            "expected hint message, got: {}",
+            app.status_message
+        );
+    }
+
+    #[test]
+    fn batch_upgrade_empty_list_shows_hint() {
+        let mut app = make_app();
+        app.mode = AppMode::Upgrades;
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('U'), KeyModifiers::NONE);
+        assert!(app.confirm.is_none(), "no confirm dialog expected");
+        assert!(
+            app.status_message.contains("No packages"),
+            "expected hint message, got: {}",
+            app.status_message
+        );
     }
 
     // ── open homepage / changelog feedback ───────────────────────────────────
