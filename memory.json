@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-07-19",
-  "last_run_id": "29688304062",
+  "last_run": "2026-07-20",
+  "last_run_id": "29710634356",
   "monthly_summary_disabled": true,
   "monthly_summary_note": "2026-06-08: Maintainer closed issue #222. Do NOT create monthly activity summary issues.",
   "comments_made": {
@@ -35,7 +35,8 @@
     {"pr": 325, "title": "test: add detail panel navigation key coverage"},
     {"pr": 327, "title": "feat: add w key to open package page on winget.run"},
     {"pr": 328, "title": "feat: show hint when pressing U with no packages selected in Upgrades view"},
-    {"pr": "#aw_pr_filter_msg", "title": "fix: show active filter in empty-list message for Installed and Upgrades views"}
+    {"pr": 329, "title": "fix: show active filter in empty-list message for Installed and Upgrades views"},
+    {"pr": "#aw_pr_help_scroll", "title": "fix: reset help_scroll when dismissing overlay via mouse click"}
   ],
   "failed_pr_issues": [
     {"issue": 289, "note": "CI restore-keys patch - protected CI file"},
@@ -46,5 +47,5 @@
   ],
   "pending_dependabot_prs": [285, 302],
   "ci_note": "All repo-assist branch PRs show action_required CI (fork protection). Infrastructure issue, not code failures. Verified 2026-07-14: all PRs are conflict-free with main.",
-  "notes": "Run 29688304062 (2026-07-19): Tasks 10+6. Task 6: all CI failures are fork-protection infrastructure only, no code fixes needed. Task 10: Improved empty-state messages - when local filter active and no match, now shows 'No packages match <filter>' instead of generic message. 5 new tests. 376 total tests pass."
+  "notes": "Run 29710634356 (2026-07-20): Tasks 6+3. Task 3: fixed help_scroll not reset on mouse-click dismiss (inconsistency with keyboard dismiss). PR created. Task 6: CI failures are fork-protection infrastructure only - no code fixes needed. 372 tests pass."
 }
