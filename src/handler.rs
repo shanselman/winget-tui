@@ -696,6 +696,7 @@ fn handle_mouse(app: &mut App, mouse: crossterm::event::MouseEvent) -> anyhow::R
             // Dismiss dialogs/help on click outside
             if app.show_help {
                 app.show_help = false;
+                app.help_scroll = 0;
                 return Ok(false);
             }
             if app.confirm.is_some() {
@@ -2148,6 +2149,30 @@ mod tests {
         handle_help_input(&mut app, KeyCode::Esc);
         assert!(!app.show_help);
         assert_eq!(app.help_scroll, 0, "scroll should reset when help closes");
+    }
+
+    #[test]
+    fn mouse_click_dismisses_help_and_resets_scroll() {
+        let mut app = make_app();
+        app.show_help = true;
+        app.help_scroll = 7;
+        app.help_max_scroll = 10;
+
+        let _ = handle_mouse(
+            &mut app,
+            MouseEvent {
+                kind: MouseEventKind::Down(MouseButton::Left),
+                column: 0,
+                row: 0,
+                modifiers: KeyModifiers::NONE,
+            },
+        );
+
+        assert!(!app.show_help, "mouse click should dismiss help overlay");
+        assert_eq!(
+            app.help_scroll, 0,
+            "help_scroll must be reset to 0 when dismissed via mouse click"
+        );
     }
 
     // ── handle_tab_click ─────────────────────────────────────────────────────
