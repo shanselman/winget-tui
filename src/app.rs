@@ -185,6 +185,30 @@ impl PartialOrd for VersionPart {
     }
 }
 
+/// ASCII-only case-insensitive substring search that avoids heap allocation.
+///
+/// winget package IDs and names are ASCII-only, so we skip the per-package
+/// `to_lowercase()` call (which allocates a new `String` for every element)
+/// and instead do a byte-level sliding-window comparison.  This eliminates
+/// 2 × N heap allocations per keystroke when the local filter is active.
+///
+/// Non-ASCII characters in either argument are compared with `eq_ignore_ascii_case`,
+/// which leaves them unchanged — i.e., "ü" ≠ "Ü".  That is acceptable for the
+/// winget package corpus, which is ASCII throughout.
+fn contains_ascii_ci(haystack: &str, needle: &str) -> bool {
+    let n = needle.len();
+    if n == 0 {
+        return true;
+    }
+    if haystack.len() < n {
+        return false;
+    }
+    haystack
+        .as_bytes()
+        .windows(n)
+        .any(|w| w.eq_ignore_ascii_case(needle.as_bytes()))
+}
+
 fn version_key(v: &str) -> Vec<VersionPart> {
     v.split(['.', '-', '+'])
         .map(|part| VersionPart {
@@ -266,9 +290,11 @@ impl App {
             }
         }
         if self.mode != AppMode::Search && !self.local_filter.is_empty() {
-            let query = self.local_filter.to_lowercase();
+            // Lowercase the query once; then use the zero-allocation helper to
+            // avoid allocating a new String for every package name/id comparison.
+            let query = self.local_filter.to_ascii_lowercase();
             self.filtered_packages.retain(|pkg| {
-                pkg.name.to_lowercase().contains(&query) || pkg.id.to_lowercase().contains(&query)
+                contains_ascii_ci(&pkg.name, &query) || contains_ascii_ci(&pkg.id, &query)
             });
         }
         if self.mode != AppMode::Search {
@@ -1658,6 +1684,43 @@ mod tests {
             "filter matching nothing should yield an empty list"
         );
         assert_eq!(app.selected, 0, "selection should clamp to 0 on empty list");
+    }
+
+    // ── contains_ascii_ci ─────────────────────────────────────────────────────
+
+    #[test]
+    fn contains_ascii_ci_empty_needle_always_matches() {
+        assert!(contains_ascii_ci("anything", ""));
+        assert!(contains_ascii_ci("", ""));
+    }
+
+    #[test]
+    fn contains_ascii_ci_exact_match() {
+        assert!(contains_ascii_ci(
+            "Microsoft.VisualStudioCode",
+            "microsoft.visualstudiocode"
+        ));
+        assert!(contains_ascii_ci(
+            "microsoft.visualstudiocode",
+            "Microsoft.VisualStudioCode"
+        ));
+    }
+
+    #[test]
+    fn contains_ascii_ci_substring_match() {
+        assert!(contains_ascii_ci("Microsoft.VisualStudioCode", "visual"));
+        assert!(contains_ascii_ci("Google Chrome", "CHROME"));
+    }
+
+    #[test]
+    fn contains_ascii_ci_no_match() {
+        assert!(!contains_ascii_ci("Google.Chrome", "firefox"));
+        assert!(!contains_ascii_ci("short", "toolongneedle"));
+    }
+
+    #[test]
+    fn contains_ascii_ci_haystack_shorter_than_needle() {
+        assert!(!contains_ascii_ci("ab", "abc"));
     }
 
     // ── process_messages ──────────────────────────────────────────────────────
