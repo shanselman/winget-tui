@@ -1,6 +1,6 @@
 {
   "last_run": "2026-07-21",
-  "last_run_id": "29792473331",
+  "last_run_id": "29833227552",
   "monthly_summary_disabled": true,
   "monthly_summary_note": "2026-06-08: Maintainer closed issue #222. Do NOT create monthly activity summary issues.",
   "comments_made": {
@@ -42,7 +42,8 @@
     {"pr": 328, "title": "feat: show hint when pressing U with no packages selected in Upgrades view"},
     {"pr": 329, "title": "fix: show active filter in empty-list message for Installed and Upgrades views"},
     {"pr": 330, "title": "fix: reset help_scroll when dismissing overlay via mouse click"},
-    {"pr": 331, "title": "perf: eliminate per-package heap allocations in local filter"}
+    {"pr": 331, "title": "perf: eliminate per-package heap allocations in local filter"},
+    {"pr": 332, "title": "perf: cache sorted packages to avoid re-sorting on every filter keystroke"}
   ],
   "superseded_prs": [
     {"pr": 280, "superseded_by": 315, "note": "Commented 2026-07-21"},
@@ -60,5 +61,5 @@
   ],
   "pending_dependabot_prs": [285, 302],
   "ci_note": "All repo-assist branch PRs show action_required CI (fork protection). Infrastructure issue, not code failures. Verified 2026-07-14: all PRs are conflict-free with main. Still true 2026-07-21.",
-  "notes": "Run 29792473331 (2026-07-21): Tasks 3+6. Task 3: no open bug issues; thorough codebase review found all known bugs already covered by existing open PRs. Task 6: Identified 5 pairs of duplicate PRs; commented on older ones (#280, #307, #310, #313, #324) noting they are superseded by newer versions (#315, #309, #326, #316, #327). 28 open Repo Assist PRs pending maintainer review."
+  "notes": "Run 29833227552 (2026-07-21): Tasks 2+8. Task 2: all open issues are Repo Assist auto-issues, no real user issues to comment on. Task 8: Created PR #332 - perf: cache sorted packages to avoid re-sorting on every filter keystroke. Introduces sorted_packages cache + sort_dirty flag so O(N log N) sort is paid once per sort-change, not on every filter keystroke. All 371 tests pass. 29 open Repo Assist PRs pending maintainer review."
 }
