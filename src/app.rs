@@ -150,6 +150,14 @@ pub struct App {
     pub detail_generation: u64,
     /// Cache of package details to avoid repeated winget show calls
     pub detail_cache: HashMap<String, PackageDetail>,
+    /// Pre-sorted copy of `packages` for the current `sort_field`/`sort_dir`.
+    /// Rebuilt lazily by `apply_filter` whenever `sort_dirty` is set, so the
+    /// O(N log N) sort is paid once per sort-field change rather than on every
+    /// filter keystroke.
+    sorted_packages: Vec<Package>,
+    /// Set whenever `packages` is replaced or `sort_field`/`sort_dir` changes,
+    /// cleared after `sorted_packages` is rebuilt.
+    sort_dirty: bool,
     /// Indices into filtered_packages that are selected for batch operations
     pub selected_packages: HashSet<usize>,
     /// A high-signal status message to restore after the next list refresh completes.
@@ -245,6 +253,8 @@ impl App {
             view_generation: 0,
             detail_generation: 0,
             detail_cache: HashMap::new(),
+            sorted_packages: Vec::new(),
+            sort_dirty: true,
             selected_packages: HashSet::new(),
             post_refresh_status: None,
             backend,
@@ -254,10 +264,45 @@ impl App {
     }
 
     pub fn apply_filter(&mut self) {
+        // Rebuild the sorted package list when packages or sort settings have
+        // changed.  This is paid once per data-load or sort-field change, not
+        // on every filter keystroke, which eliminates repeated O(N log N) sort
+        // work when the user is typing into the local filter.
+        if self.sort_dirty {
+            self.sorted_packages = self.packages.clone();
+            match self.sort_field {
+                SortField::None => {}
+                SortField::Name => {
+                    self.sorted_packages
+                        .sort_by_cached_key(|p| p.name.to_lowercase());
+                    if self.sort_dir == SortDir::Desc {
+                        self.sorted_packages.reverse();
+                    }
+                }
+                SortField::Id => {
+                    self.sorted_packages
+                        .sort_by_cached_key(|p| p.id.to_lowercase());
+                    if self.sort_dir == SortDir::Desc {
+                        self.sorted_packages.reverse();
+                    }
+                }
+                SortField::Version => {
+                    self.sorted_packages
+                        .sort_by_cached_key(|pkg| version_key(&pkg.version));
+                    if self.sort_dir == SortDir::Desc {
+                        self.sorted_packages.reverse();
+                    }
+                }
+            }
+            self.sort_dirty = false;
+        }
+
+        // Clone from the pre-sorted list.  Any filtering below (retain) preserves
+        // relative order so no further sort is needed.
         // When a source filter is active, winget already filters server-side
         // (and omits the Source column), so accept all returned packages.
         // Backfill the source field when winget omitted it (single-source query).
-        self.filtered_packages = self.packages.clone();
+        self.filtered_packages = self.sorted_packages.clone();
         if let Some(src) = self.source_filter.as_arg() {
             for pkg in &mut self.filtered_packages {
                 if pkg.source.is_empty() {
@@ -274,34 +319,6 @@ impl App {
         if self.mode != AppMode::Search {
             self.filtered_packages
                 .retain(|pkg| self.pin_filter.matches(&pkg.pin_state));
-        }
-        // Apply sort if a field is selected.
-        // sort_by_cached_key computes the key exactly once per element (O(N))
-        // rather than on every comparison (O(N log N)), avoiding repeated heap
-        // allocations from to_lowercase() for Name and Id sorts.
-        match self.sort_field {
-            SortField::None => {}
-            SortField::Name => {
-                self.filtered_packages
-                    .sort_by_cached_key(|p| p.name.to_lowercase());
-                if self.sort_dir == SortDir::Desc {
-                    self.filtered_packages.reverse();
-                }
-            }
-            SortField::Id => {
-                self.filtered_packages
-                    .sort_by_cached_key(|p| p.id.to_lowercase());
-                if self.sort_dir == SortDir::Desc {
-                    self.filtered_packages.reverse();
-                }
-            }
-            SortField::Version => {
-                self.filtered_packages
-                    .sort_by_cached_key(|pkg| version_key(&pkg.version));
-                if self.sort_dir == SortDir::Desc {
-                    self.filtered_packages.reverse();
-                }
-            }
         }
         // Keep selection in bounds
         if self.selected >= self.filtered_packages.len() {
@@ -374,6 +391,7 @@ impl App {
         };
         self.sort_field = next_field;
         self.sort_dir = next_dir;
+        self.sort_dirty = true;
         self.apply_filter();
         let label = match self.sort_field {
             SortField::None => "Sort: none".to_string(),
@@ -682,6 +700,7 @@ impl App {
                     // re-anchor the cursor after the list is replaced.
                     let prev_id = self.selected_package().map(|p| p.id.clone());
                     self.packages = packages;
+                    self.sort_dirty = true;
                     self.apply_filter();
                     // Restore cursor to the same package (if it is still present)
                     // so that pressing 'r' to refresh does not jump the cursor.
