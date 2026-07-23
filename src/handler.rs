@@ -17,6 +17,12 @@ pub fn handle_events(app: &mut App) -> anyhow::Result<bool> {
 
     match event::read()? {
         Event::Key(key) if key.kind == KeyEventKind::Press => {
+            // Ctrl+C always quits, regardless of input mode
+            if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('c') {
+                app.should_quit = true;
+                return Ok(true);
+            }
+
             // Confirm dialog takes priority
             if app.confirm.is_some() {
                 handle_confirm(app, key.code)?;
@@ -2353,5 +2359,38 @@ mod tests {
         app.layout.package_list = rect(0, 0, 2, 10); // content_width = 2-3 = underflows to 0
         click_sort_header(&mut app, 0);
         assert_eq!(app.sort_field, SortField::None);
+    }
+
+    // ── Ctrl+C global quit ────────────────────────────────────────────────────
+
+    /// In normal mode, Ctrl+C quits.
+    #[test]
+    fn ctrl_c_quits_in_normal_mode() {
+        let mut app = make_app();
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('c'), KeyModifiers::CONTROL);
+        assert!(app.should_quit, "Ctrl+C must quit in Normal mode");
+    }
+
+    /// Pressing bare 'c' in search mode appends the character (no quit).
+    /// The Ctrl+C global guard is checked at the handle_events level before
+    /// dispatching to handle_search_input, so this test confirms the
+    /// per-mode handler does not handle Ctrl on its own.
+    #[test]
+    fn bare_c_in_search_mode_appends_to_query() {
+        let mut app = make_app();
+        app.input_mode = InputMode::Search;
+        let _ = handle_search_input(&mut app, KeyCode::Char('c'));
+        assert_eq!(app.search_query, "c");
+        assert!(!app.should_quit, "bare 'c' must not quit");
+    }
+
+    /// Pressing bare 'c' in local-filter mode appends to the filter.
+    #[test]
+    fn bare_c_in_local_filter_mode_appends_to_filter() {
+        let mut app = make_app();
+        app.input_mode = InputMode::LocalFilter;
+        let _ = handle_local_filter_input(&mut app, KeyCode::Char('c'));
+        assert_eq!(app.local_filter, "c");
+        assert!(!app.should_quit, "bare 'c' must not quit");
     }
 }
