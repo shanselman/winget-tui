@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-07-22",
-  "last_run_id": "29922793349",
+  "last_run": "2026-07-23",
+  "last_run_id": "29971272259",
   "monthly_summary_disabled": true,
   "monthly_summary_note": "2026-06-08: Maintainer closed issue #222. Do NOT create monthly activity summary issues.",
   "comments_made": {
@@ -45,7 +45,8 @@
     {"pr": 330, "title": "fix: reset help_scroll when dismissing overlay via mouse click"},
     {"pr": 331, "title": "perf: eliminate per-package heap allocations in local filter"},
     {"pr": 337, "title": "perf: cache sorted packages to avoid re-sorting on every filter keystroke"},
-    {"pr": 338, "title": "chore: update Cargo.lock to latest compatible dependency versions (Jul 2026)"}
+    {"pr": 338, "title": "chore: update Cargo.lock to latest compatible dependency versions (Jul 2026)"},
+    {"pr": "NEW", "title": "fix: Ctrl+C always quits regardless of active input mode (2026-07-23)"}
   ],
   "superseded_prs": [
     {"pr": 280, "superseded_by": 315, "note": "Commented 2026-07-21"},
@@ -64,5 +65,5 @@
   ],
   "pending_dependabot_prs": [285, 302, 320, 321, 322, 332, 333, 334, 335, 336],
   "ci_note": "All repo-assist branch PRs show action_required CI (fork protection). Infrastructure issue, not code failures. Verified 2026-07-22: #331 and #337 both mergeable_state=unstable (fork protection only). All PRs conflict-free with main (last commit 2026-07-07).",
-  "notes": "Run 29922793349 (2026-07-22): Tasks 2+6. Task 2: All 11 open issues are Repo Assist tracking or infrastructure issues ([aw] No-Op Runs) - no real user issues to comment on. Task 6: 30 open Repo Assist PRs verified conflict-free. #331 and #337 both touch app.rs apply_filter but are independent features that would need to be rebased if one is merged first. Monthly summary disabled per maintainer request."
+  "notes": "Run 29971272259 (2026-07-23): Tasks 5+6. Task 5: Fixed real bug - Ctrl+C silently appended 'c' in Search/LocalFilter/VersionInput modes instead of quitting; created PR (fix: Ctrl+C always quits regardless of active input mode). Task 6: No changes needed - all PRs still conflict-free, CI failures are fork-protection only. Monthly summary disabled per maintainer request."
 }
