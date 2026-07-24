@@ -85,7 +85,18 @@ impl Config {
                 continue;
             };
             let key = key.trim();
-            let value = value.trim().trim_matches('"').trim();
+            // Extract the value, stripping inline comments (e.g. `"installed" # note`).
+            // For quoted values, take the content between the first pair of double-quotes.
+            let raw = value.trim();
+            let value = if let Some(inner) = raw.strip_prefix('"') {
+                if let Some(close) = inner.find('"') {
+                    &inner[..close]
+                } else {
+                    raw.trim_matches('"').trim()
+                }
+            } else {
+                raw.trim_matches('"').trim()
+            };
             match key {
                 "default_view" => {
                     cfg.default_view = match value {
@@ -315,5 +326,27 @@ default_source = \"msstore\"
         let cfg = Config::default();
         assert_eq!(cfg.default_sort_field, SortField::None);
         assert_eq!(cfg.default_sort_dir, SortDir::Asc);
+    }
+
+    #[test]
+    fn parse_inline_comment_after_value() {
+        let cfg = Config::parse(r#"default_view = "search" # the search view"#);
+        assert_eq!(cfg.default_view, AppMode::Search);
+    }
+
+    #[test]
+    fn parse_inline_comment_all_keys() {
+        let input = "\
+default_view = \"upgrades\"   # installed | search | upgrades
+default_source = \"winget\"   # all | winget | msstore
+default_sort = \"name_desc\"  # sort by name descending
+default_pin_filter = \"pinned\" # show only pinned
+";
+        let cfg = Config::parse(input);
+        assert_eq!(cfg.default_view, AppMode::Upgrades);
+        assert_eq!(cfg.default_source, SourceFilter::Winget);
+        assert_eq!(cfg.default_sort_field, SortField::Name);
+        assert_eq!(cfg.default_sort_dir, SortDir::Desc);
+        assert_eq!(cfg.default_pin_filter, PinFilter::PinnedOnly);
     }
 }
