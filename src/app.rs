@@ -685,8 +685,8 @@ impl App {
                     self.apply_filter();
                     // Restore cursor to the same package (if it is still present)
                     // so that pressing 'r' to refresh does not jump the cursor.
-                    if let Some(id) = prev_id {
-                        if let Some(idx) = self.filtered_packages.iter().position(|p| p.id == id) {
+                    if let Some(ref id) = prev_id {
+                        if let Some(idx) = self.filtered_packages.iter().position(|p| p.id == *id) {
                             self.selected = idx;
                             self.ensure_selection_visible();
                         }
@@ -701,9 +701,14 @@ impl App {
                             if count == 1 { "" } else { "s" }
                         ));
                     }
-                    // Auto-load detail for the (restored) selected package
+                    // Auto-load detail for the (restored) selected package.
+                    // Reset the detail scroll when the selection landed on a different
+                    // package (the previous package left the list after the refresh).
                     if let Some(pkg) = self.selected_package() {
                         let id = pkg.id.clone();
+                        if prev_id.as_deref() != Some(id.as_str()) {
+                            self.detail_scroll = 0;
+                        }
                         self.load_detail(&id);
                     }
                 }
@@ -963,6 +968,74 @@ mod tests {
         assert!(
             app.selected < app.filtered_packages.len(),
             "selection must remain in bounds after package disappears"
+        );
+    }
+
+    #[tokio::test]
+    async fn packages_loaded_resets_detail_scroll_when_package_disappears() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+
+        // Load initial list and select the third package
+        app.view_generation = 1;
+        deliver_packages(
+            &mut app,
+            vec![
+                pkg("Google.Chrome"),
+                pkg("Microsoft.VisualStudioCode"),
+                pkg("7zip.7zip"),
+            ],
+        );
+        app.selected = 2;
+        // Simulate the user having scrolled the detail pane
+        app.detail_scroll = 5;
+
+        // Refresh: 7zip is gone so the cursor will land on a different package
+        app.view_generation = 2;
+        deliver_packages(
+            &mut app,
+            vec![pkg("Google.Chrome"), pkg("Microsoft.VisualStudioCode")],
+        );
+
+        assert_eq!(
+            app.detail_scroll, 0,
+            "detail_scroll must reset when the selected package changes after refresh"
+        );
+    }
+
+    #[tokio::test]
+    async fn packages_loaded_preserves_detail_scroll_when_same_package_stays() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+
+        // Load initial list and select Chrome
+        app.view_generation = 1;
+        deliver_packages(
+            &mut app,
+            vec![
+                pkg("Google.Chrome"),
+                pkg("Microsoft.VisualStudioCode"),
+                pkg("7zip.7zip"),
+            ],
+        );
+        app.selected = 0;
+        // Simulate the user having scrolled the detail pane for Chrome
+        app.detail_scroll = 3;
+
+        // Refresh: Chrome is still present (just re-ordered)
+        app.view_generation = 2;
+        deliver_packages(
+            &mut app,
+            vec![
+                pkg("7zip.7zip"),
+                pkg("Google.Chrome"),
+                pkg("Microsoft.VisualStudioCode"),
+            ],
+        );
+
+        assert_eq!(
+            app.detail_scroll, 3,
+            "detail_scroll must be preserved when the same package is re-selected"
         );
     }
 
