@@ -52,7 +52,7 @@ pub fn handle_events(app: &mut App) -> anyhow::Result<bool> {
 
 fn handle_help_input(app: &mut App, key: KeyCode) {
     match key {
-        KeyCode::Char('?') | KeyCode::Esc => {
+        KeyCode::Char('?') | KeyCode::Char('q') | KeyCode::Esc => {
             app.show_help = false;
             app.help_scroll = 0;
         }
@@ -2147,6 +2147,17 @@ mod tests {
 
         handle_help_input(&mut app, KeyCode::Esc);
         assert!(!app.show_help);
+        assert_eq!(app.help_scroll, 0, "scroll should reset when help closes");
+    }
+
+    #[test]
+    fn q_key_closes_help_overlay() {
+        let mut app = make_app();
+        app.show_help = true;
+        app.help_scroll = 3;
+
+        handle_help_input(&mut app, KeyCode::Char('q'));
+        assert!(!app.show_help, "q key should close help overlay");
         assert_eq!(app.help_scroll, 0, "scroll should reset when help closes");
     }
 
