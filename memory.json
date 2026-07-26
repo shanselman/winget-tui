@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-07-25",
-  "last_run_id": "30159187459",
+  "last_run": "2026-07-26",
+  "last_run_id": "30182565360",
   "monthly_summary_disabled": true,
   "monthly_summary_note": "2026-06-08: Maintainer closed issue #222. Do NOT create monthly activity summary issues.",
   "comments_made": {
@@ -18,54 +18,189 @@
     "333": "2026-07-23: Commented superseded by #338 (full cargo update)",
     "334": "2026-07-23: Commented superseded by #338 (full cargo update)",
     "335": "2026-07-23: Commented superseded by #338 (full cargo update)",
-    "336": "2026-07-23: Commented superseded by #338 (full cargo update)"
+    "336": "2026-07-23: Commented superseded by #338 (full cargo update)",
+    "314": "2026-07-26: Commented that PR #314 is superseded by #341"
   },
   "open_repo_assist_prs": [
-    {"pr": 299, "title": "fix: reset detail_scroll when cycling pin filter (P key)"},
-    {"pr": 300, "title": "fix: reload detail panel when sort changes the selected package"},
-    {"pr": 306, "title": "fix: reset detail_scroll when switching views"},
-    {"pr": 308, "title": "fix: guard parse_show_output header detection against indented lines"},
-    {"pr": 311, "title": "test: verify f key resets selection and sets loading flag"},
-    {"pr": 312, "title": "chore: update Cargo.lock (superseded by #338)"},
-    {"pr": 314, "title": "fix: handle inline TOML comments in config parser (superseded by #341)"},
-    {"pr": 316, "title": "feat: add g/G vim-style first/last navigation shortcuts"},
-    {"pr": 317, "title": "test: add cli_backend coverage for edge cases"},
-    {"pr": 318, "title": "feat: include Source field in local filter matching"},
-    {"pr": 319, "title": "feat: add Ctrl+U shortcut to clear text input fields"},
-    {"pr": 323, "title": "feat: show pending upgrade count badge on Upgrades nav tab"},
-    {"pr": 325, "title": "test: add detail panel navigation key coverage"},
-    {"pr": 326, "title": "chore: bundle Dependabot GitHub Actions updates (cache v6, gittools v4)"},
-    {"pr": 327, "title": "feat: add w key to open package page on winget.run"},
-    {"pr": 328, "title": "feat: show hint when pressing U with no packages selected in Upgrades view"},
-    {"pr": 329, "title": "fix: show active filter in empty-list message for Installed and Upgrades views"},
-    {"pr": 330, "title": "fix: reset help_scroll when dismissing overlay via mouse click"},
-    {"pr": 331, "title": "perf: eliminate per-package heap allocations in local filter"},
-    {"pr": 337, "title": "perf: cache sorted packages to avoid re-sorting on every filter keystroke"},
-    {"pr": 338, "title": "chore: update Cargo.lock to latest compatible dependency versions (Jul 2026)"},
-    {"pr": 339, "title": "fix: Ctrl+C always quits regardless of active input mode"},
-    {"pr": 340, "title": "fix: reset detail_scroll when selected package changes after refresh"},
-    {"pr": 341, "title": "fix: handle inline TOML comments in config parser"},
-    {"pr": 342, "title": "fix: q key now closes the help overlay"}
+    {
+      "pr": 299,
+      "title": "fix: reset detail_scroll when cycling pin filter (P key)"
+    },
+    {
+      "pr": 300,
+      "title": "fix: reload detail panel when sort changes the selected package"
+    },
+    {
+      "pr": 306,
+      "title": "fix: reset detail_scroll when switching views"
+    },
+    {
+      "pr": 308,
+      "title": "fix: guard parse_show_output header detection against indented lines"
+    },
+    {
+      "pr": 311,
+      "title": "test: verify f key resets selection and sets loading flag"
+    },
+    {
+      "pr": 312,
+      "title": "chore: update Cargo.lock (superseded by #338)"
+    },
+    {
+      "pr": 314,
+      "title": "fix: handle inline TOML comments in config parser (superseded by #341)"
+    },
+    {
+      "pr": 316,
+      "title": "feat: add g/G vim-style first/last navigation shortcuts"
+    },
+    {
+      "pr": 317,
+      "title": "test: add cli_backend coverage for edge cases"
+    },
+    {
+      "pr": 318,
+      "title": "feat: include Source field in local filter matching"
+    },
+    {
+      "pr": 319,
+      "title": "feat: add Ctrl+U shortcut to clear text input fields"
+    },
+    {
+      "pr": 323,
+      "title": "feat: show pending upgrade count badge on Upgrades nav tab"
+    },
+    {
+      "pr": 325,
+      "title": "test: add detail panel navigation key coverage"
+    },
+    {
+      "pr": 326,
+      "title": "chore: bundle Dependabot GitHub Actions updates (cache v6, gittools v4)"
+    },
+    {
+      "pr": 327,
+      "title": "feat: add w key to open package page on winget.run"
+    },
+    {
+      "pr": 328,
+      "title": "feat: show hint when pressing U with no packages selected in Upgrades view"
+    },
+    {
+      "pr": 329,
+      "title": "fix: show active filter in empty-list message for Installed and Upgrades views"
+    },
+    {
+      "pr": 330,
+      "title": "fix: reset help_scroll when dismissing overlay via mouse click"
+    },
+    {
+      "pr": 331,
+      "title": "perf: eliminate per-package heap allocations in local filter"
+    },
+    {
+      "pr": 337,
+      "title": "perf: cache sorted packages to avoid re-sorting on every filter keystroke"
+    },
+    {
+      "pr": 338,
+      "title": "chore: update Cargo.lock to latest compatible dependency versions (Jul 2026)"
+    },
+    {
+      "pr": 339,
+      "title": "fix: Ctrl+C always quits regardless of active input mode"
+    },
+    {
+      "pr": 340,
+      "title": "fix: reset detail_scroll when selected package changes after refresh"
+    },
+    {
+      "pr": 341,
+      "title": "fix: handle inline TOML comments in config parser"
+    },
+    {
+      "pr": 342,
+      "title": "fix: q key now closes the help overlay"
+    }
   ],
   "superseded_prs": [
-    {"pr": 280, "superseded_by": 315, "note": "Commented 2026-07-21"},
-    {"pr": 307, "superseded_by": 309, "note": "Commented 2026-07-21"},
-    {"pr": 313, "superseded_by": 316, "note": "Commented 2026-07-21"},
-    {"pr": 310, "superseded_by": 326, "note": "Commented 2026-07-21"},
-    {"pr": 324, "superseded_by": 327, "note": "Commented 2026-07-21"},
-    {"pr": 312, "superseded_by": 338, "note": "Commented 2026-07-22"},
-    {"pr": 332, "superseded_by": 338, "note": "Commented 2026-07-23"},
-    {"pr": 333, "superseded_by": 338, "note": "Commented 2026-07-23"},
-    {"pr": 334, "superseded_by": 338, "note": "Commented 2026-07-23"},
-    {"pr": 335, "superseded_by": 338, "note": "Commented 2026-07-23"},
-    {"pr": 336, "superseded_by": 338, "note": "Commented 2026-07-23"},
-    {"pr": 314, "superseded_by": 341, "note": "Same fix, better PR created 2026-07-24"}
+    {
+      "pr": 280,
+      "superseded_by": 315,
+      "note": "Commented 2026-07-21"
+    },
+    {
+      "pr": 307,
+      "superseded_by": 309,
+      "note": "Commented 2026-07-21"
+    },
+    {
+      "pr": 313,
+      "superseded_by": 316,
+      "note": "Commented 2026-07-21"
+    },
+    {
+      "pr": 310,
+      "superseded_by": 326,
+      "note": "Commented 2026-07-21"
+    },
+    {
+      "pr": 324,
+      "superseded_by": 327,
+      "note": "Commented 2026-07-21"
+    },
+    {
+      "pr": 312,
+      "superseded_by": 338,
+      "note": "Commented 2026-07-22"
+    },
+    {
+      "pr": 332,
+      "superseded_by": 338,
+      "note": "Commented 2026-07-23"
+    },
+    {
+      "pr": 333,
+      "superseded_by": 338,
+      "note": "Commented 2026-07-23"
+    },
+    {
+      "pr": 334,
+      "superseded_by": 338,
+      "note": "Commented 2026-07-23"
+    },
+    {
+      "pr": 335,
+      "superseded_by": 338,
+      "note": "Commented 2026-07-23"
+    },
+    {
+      "pr": 336,
+      "superseded_by": 338,
+      "note": "Commented 2026-07-23"
+    },
+    {
+      "pr": 314,
+      "superseded_by": 341,
+      "note": "Same fix, better PR created 2026-07-24"
+    }
   ],
   "failed_pr_issues": [
-    {"issue": 289, "note": "CI restore-keys patch - protected CI file"},
-    {"issue": 309, "note": "AGENTS.md config keys docs - protected file, manual patch provided"}
+    {
+      "issue": 289,
+      "note": "CI restore-keys patch - protected CI file"
+    },
+    {
+      "issue": 309,
+      "note": "AGENTS.md config keys docs - protected file, manual patch provided"
+    }
   ],
-  "pending_dependabot_prs": [302, 320, 321, 322],
+  "pending_dependabot_prs": [
+    302,
+    320,
+    321,
+    322
+  ],
   "ci_note": "All repo-assist branch PRs show action_required CI (fork protection). Infrastructure issue, not code failures.",
-  "notes": "Run 30159187459 (2026-07-25): Tasks 4+5. Code is clean - 371 tests pass, clippy happy, no warnings. cargo update --dry-run shows updates available (anyhow, async-trait, tokio, etc) but these are covered by open PR #338. No new Engineering Investments (Task 4) or Coding Improvements (Task 5) found that aren't already covered by the 25 open Repo Assist PRs. Main branch SHA still 8265348."
+  "notes": "Run 30182565360 (2026-07-26): Tasks 6+2. No real user issues. Commented on PR #314 (superseded by #341). All Repo Assist PRs healthy - CI fork protection only, no merge conflicts with main. Main branch SHA still 8265348."
 }
