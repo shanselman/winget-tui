@@ -164,17 +164,25 @@ pub struct App {
 /// Version strings are split on `.`, `-`, and `+`. Each component is compared
 /// numerically when both sides parse as `u64`; otherwise lexicographically.
 /// This avoids the lexicographic pitfall where `"10.0"` sorts before `"2.0"`.
+///
+/// `src` is `None` for numeric-only components to avoid heap allocations for
+/// the common case where every version component is a plain integer.
 #[derive(Debug, Clone, Eq, PartialEq)]
 struct VersionPart {
     num: Option<u64>,
-    src: String,
+    /// Only populated when `num` is `None` (i.e. the component is non-numeric).
+    src: Option<Box<str>>,
 }
 
 impl Ord for VersionPart {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         match (self.num, other.num) {
             (Some(left), Some(right)) => left.cmp(&right),
-            _ => self.src.cmp(&other.src),
+            _ => {
+                let ls = self.src.as_deref().unwrap_or("");
+                let rs = other.src.as_deref().unwrap_or("");
+                ls.cmp(rs)
+            }
         }
     }
 }
@@ -187,9 +195,16 @@ impl PartialOrd for VersionPart {
 
 fn version_key(v: &str) -> Vec<VersionPart> {
     v.split(['.', '-', '+'])
-        .map(|part| VersionPart {
-            num: part.parse::<u64>().ok(),
-            src: part.to_string(),
+        .map(|part| {
+            let num = part.parse::<u64>().ok();
+            VersionPart {
+                src: if num.is_none() {
+                    Some(part.into())
+                } else {
+                    None
+                },
+                num,
+            }
         })
         .collect()
 }
