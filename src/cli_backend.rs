@@ -450,6 +450,7 @@ impl CliBackend {
             "release notes url" | "versionshinweise url" => "release_notes_url",
             "license" | "lizenz" | "licence" | "licencia" | "licença" | "licenza" => "license",
             "source" | "quelle" | "origen" | "fonte" | "origine" => "source",
+            "tags" | "tags:" => "tags",
             _ => "",
         }
     }
@@ -584,6 +585,31 @@ impl CliBackend {
                         "release_notes_url" => detail.release_notes_url = sanitize_text(&value),
                         "license" => detail.license = sanitize_text(&value),
                         "source" => detail.source = sanitize_text(&value),
+                        "tags" => {
+                            // Tags may appear as a comma-separated list on the same line,
+                            // or as indented items on following lines (one per line).
+                            let mut tags: Vec<String> = Vec::new();
+                            if !value.is_empty() {
+                                // Inline: "Tags: browser, web, chromium"
+                                for t in value.split(',') {
+                                    let t = sanitize_text(t.trim());
+                                    if !t.is_empty() {
+                                        tags.push(t);
+                                    }
+                                }
+                            }
+                            // Indented continuation lines: "  browser"
+                            while lines.peek().is_some_and(|l| l.starts_with("  ")) {
+                                let continuation = lines.next().unwrap();
+                                let t = sanitize_text(continuation.trim());
+                                if !t.is_empty() {
+                                    tags.push(t);
+                                }
+                            }
+                            if !tags.is_empty() {
+                                detail.tags = tags;
+                            }
+                        }
                         _ => {}
                     }
                 }
@@ -1981,6 +2007,57 @@ Google Chrome  Google.Chrome  131.0
     #[test]
     fn normalize_show_key_package_version_alias() {
         assert_eq!(CliBackend::normalize_show_key("PackageVersion"), "version");
+    }
+
+    #[test]
+    fn normalize_show_key_tags() {
+        assert_eq!(CliBackend::normalize_show_key("Tags"), "tags");
+        assert_eq!(CliBackend::normalize_show_key("TAGS"), "tags");
+    }
+
+    #[test]
+    fn parse_show_output_tags_indented() {
+        let backend = make_backend();
+        let output = "\
+Found Google Chrome [Google.Chrome]
+Version: 132.0.6834
+Publisher: Google LLC
+License: Proprietary
+Tags:
+  browser
+  chromium
+  web
+Source: winget
+";
+        let detail = backend.parse_show_output(output);
+        assert_eq!(detail.tags, vec!["browser", "chromium", "web"]);
+    }
+
+    #[test]
+    fn parse_show_output_tags_inline_comma_separated() {
+        let backend = make_backend();
+        let output = "\
+Found Some App [Example.App]
+Version: 1.0
+Tags: utility, productivity, tool
+Source: winget
+";
+        let detail = backend.parse_show_output(output);
+        assert_eq!(detail.tags, vec!["utility", "productivity", "tool"]);
+    }
+
+    #[test]
+    fn parse_show_output_no_tags_returns_empty() {
+        let backend = make_backend();
+        let output = "\
+Found Google Chrome [Google.Chrome]
+Version: 132.0.6834
+Publisher: Google LLC
+License: Proprietary
+Source: winget
+";
+        let detail = backend.parse_show_output(output);
+        assert!(detail.tags.is_empty());
     }
 
     // ── parse_pins_from_table ─────────────────────────────────────────────────

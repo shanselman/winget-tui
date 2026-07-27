@@ -506,6 +506,16 @@ fn draw_detail_panel(f: &mut Frame, app: &mut App, area: Rect) {
             ]));
         }
 
+        if !detail.tags.is_empty() {
+            lines.push(Line::from(vec![
+                Span::styled("  Tags      ", label_style),
+                Span::styled(
+                    detail.tags.join("  ·  "),
+                    Style::default().fg(theme::TEXT_SECONDARY),
+                ),
+            ]));
+        }
+
         if !detail.homepage.is_empty() {
             lines.push(Line::raw(""));
             lines.push(Line::from(vec![

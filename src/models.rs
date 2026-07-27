@@ -191,6 +191,8 @@ pub struct PackageDetail {
     pub source: String,
     pub release_notes_url: String,
     pub pin_state: PinState,
+    /// Tags extracted from `winget show` output, e.g. `["browser", "web"]`.
+    pub tags: Vec<String>,
 }
 
 impl PackageDetail {
@@ -223,6 +225,11 @@ impl PackageDetail {
                 self.pin_state
             } else {
                 base.pin_state.clone()
+            },
+            tags: if self.tags.is_empty() {
+                base.tags.clone()
+            } else {
+                self.tags
             },
         }
     }
@@ -476,6 +483,7 @@ mod tests {
             source: "winget".to_string(),
             release_notes_url: String::new(),
             pin_state: PinState::None,
+            tags: vec![],
         };
         let base = PackageDetail {
             id: "OLD.ID".to_string(),
@@ -581,6 +589,31 @@ mod tests {
         };
         let merged = fresh.merge_over(&base);
         assert_eq!(merged.pin_state, PinState::Gating("1.2.3".to_string()));
+    }
+
+    #[test]
+    fn merge_over_tags_fresh_wins_when_non_empty() {
+        let fresh = PackageDetail {
+            tags: vec!["browser".to_string(), "web".to_string()],
+            ..PackageDetail::default()
+        };
+        let base = PackageDetail {
+            tags: vec!["old-tag".to_string()],
+            ..PackageDetail::default()
+        };
+        let merged = fresh.merge_over(&base);
+        assert_eq!(merged.tags, vec!["browser", "web"]);
+    }
+
+    #[test]
+    fn merge_over_tags_falls_back_to_base_when_fresh_empty() {
+        let fresh = PackageDetail::default(); // tags is empty
+        let base = PackageDetail {
+            tags: vec!["utility".to_string()],
+            ..PackageDetail::default()
+        };
+        let merged = fresh.merge_over(&base);
+        assert_eq!(merged.tags, vec!["utility"]);
     }
 
     #[test]
