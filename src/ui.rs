@@ -962,7 +962,7 @@ fn draw_help_overlay(f: &mut Frame, app: &mut App) {
         Line::raw(""),
         Line::from(Span::styled("  Navigation", section)),
         Line::from(vec![
-            Span::styled("  up/k  dn/j  ", key),
+            Span::styled("  ↑/k   ↓/j   ", key),
             Span::raw("Move up / down"),
         ]),
         Line::from(vec![
@@ -974,7 +974,7 @@ fn draw_help_overlay(f: &mut Frame, app: &mut App) {
             Span::raw("Jump to first / last"),
         ]),
         Line::from(vec![
-            Span::styled("  lt/rt       ", key),
+            Span::styled("  ←/→         ", key),
             Span::raw("Switch view (Search / Installed / Upgrades)"),
         ]),
         Line::from(vec![
