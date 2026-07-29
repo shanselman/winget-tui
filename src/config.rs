@@ -85,7 +85,16 @@ impl Config {
                 continue;
             };
             let key = key.trim();
-            let value = value.trim().trim_matches('"').trim();
+            // Extract the bare value, handling both plain and inline-commented forms:
+            //   "search"            → search
+            //   "search" # comment  → search
+            //   search # comment    → search
+            let raw = value.trim();
+            let value = if let Some(inner) = raw.strip_prefix('"') {
+                inner.split_once('"').map(|(v, _)| v).unwrap_or(inner)
+            } else {
+                raw.split_once('#').map(|(v, _)| v.trim()).unwrap_or(raw)
+            };
             match key {
                 "default_view" => {
                     cfg.default_view = match value {
@@ -297,6 +306,28 @@ default_source = \"msstore\"
     fn parse_default_pin_filter_unknown_falls_back_to_all() {
         let cfg = Config::parse(r#"default_pin_filter = "invalid""#);
         assert_eq!(cfg.default_pin_filter, PinFilter::All);
+    }
+
+    #[test]
+    fn parse_inline_comment_on_value() {
+        let cfg = Config::parse(r#"default_view = "search" # pick the search view"#);
+        assert_eq!(cfg.default_view, AppMode::Search);
+    }
+
+    #[test]
+    fn parse_inline_comment_on_all_keys() {
+        let input = "\
+default_view = \"upgrades\" # the upgrades view
+default_source = \"winget\" # only winget
+default_sort = \"name_desc\" # descending
+default_pin_filter = \"pinned\" # pinned only
+";
+        let cfg = Config::parse(input);
+        assert_eq!(cfg.default_view, AppMode::Upgrades);
+        assert_eq!(cfg.default_source, SourceFilter::Winget);
+        assert_eq!(cfg.default_sort_field, SortField::Name);
+        assert_eq!(cfg.default_sort_dir, SortDir::Desc);
+        assert_eq!(cfg.default_pin_filter, PinFilter::PinnedOnly);
     }
 
     #[test]
