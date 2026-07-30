@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-07-29",
-  "last_run_id": "30455409858",
+  "last_run": "2026-07-30",
+  "last_run_id": "30504872508",
   "monthly_summary_disabled": true,
   "monthly_summary_note": "2026-06-08: Maintainer closed issue #222. Do NOT create monthly activity summary issues.",
   "comments_made": {
@@ -23,9 +23,10 @@
   },
   "open_repo_assist_prs": [
     {"pr": 348, "title": "chore: update Cargo.lock to latest compatible dependency versions (Jul 2026)"},
-    {"pr": "new-2026-07-29-inline-comments", "title": "fix: handle inline TOML comments in config parser"}
+    {"pr": 349, "title": "fix: handle inline TOML comments in config parser"},
+    {"pr": "new-2026-07-30-bundle-actions", "title": "ci: bundle Dependabot GitHub Actions updates (Jul 2026) - closes #285, #302, #322"}
   ],
-  "pending_dependabot_prs": [285, 302, 322],
+  "pending_dependabot_prs": [],
   "ci_note": "All repo-assist branch PRs show action_required CI (fork protection). Infrastructure issue, not code failures.",
-  "notes": "Run 30455409858 (2026-07-29): Tasks 2+5. Task 2: No real human issues open (issue #347 filtered by integrity policy). Task 5: Fixed inline TOML comment handling in config parser - values followed by # comment were silently ignored. 375 tests pass (2 new). Created PR."
+  "notes": "Run 30504872508 (2026-07-30): Tasks 2+1. No human issues available (only #347 filtered by integrity policy). Pivoted to Task 4: Created bundled GitHub Actions PR to close #285 (actions/cache v5->v6), #302 (gittools execute v4.5->v4.7), #322 (gh-aw-actions setup v0.82.2->v0.83.4). 371 tests pass on main."
 }
