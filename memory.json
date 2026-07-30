@@ -1,6 +1,6 @@
 {
   "last_run": "2026-07-30",
-  "last_run_id": "30504872508",
+  "last_run_id": "30546081130",
   "monthly_summary_disabled": true,
   "monthly_summary_note": "2026-06-08: Maintainer closed issue #222. Do NOT create monthly activity summary issues.",
   "comments_made": {
@@ -24,9 +24,10 @@
   "open_repo_assist_prs": [
     {"pr": 348, "title": "chore: update Cargo.lock to latest compatible dependency versions (Jul 2026)"},
     {"pr": 349, "title": "fix: handle inline TOML comments in config parser"},
-    {"pr": "new-2026-07-30-bundle-actions", "title": "ci: bundle Dependabot GitHub Actions updates (Jul 2026) - closes #285, #302, #322"}
+    {"pr": 350, "title": "[Issue] ci: bundle Dependabot GitHub Actions updates (Jul 2026) - blocked by protected files, issue created instead"},
+    {"pr": "new-2026-07-30-ctrlc", "title": "fix: Ctrl+C always quits regardless of active input mode"}
   ],
-  "pending_dependabot_prs": [],
-  "ci_note": "All repo-assist branch PRs show action_required CI (fork protection). Infrastructure issue, not code failures.",
-  "notes": "Run 30504872508 (2026-07-30): Tasks 2+1. No human issues available (only #347 filtered by integrity policy). Pivoted to Task 4: Created bundled GitHub Actions PR to close #285 (actions/cache v5->v6), #302 (gittools execute v4.5->v4.7), #322 (gh-aw-actions setup v0.82.2->v0.83.4). 371 tests pass on main."
+  "pending_dependabot_prs": [285, 302, 322],
+  "ci_note": "All repo-assist branch PRs show action_required CI (fork protection). Infrastructure issue, not code failures. Bundled GitHub Actions PR blocked by protected .github/workflows files.",
+  "notes": "Run 30546081130 (2026-07-30): Tasks 4+3. Task 3: Fixed Ctrl+C not quitting in Search/LocalFilter input modes - the early-exit Ctrl+C check was only in handle_normal_mode; added pre-dispatch check in handle_events. 374 tests pass (3 new). Task 4: No additional engineering work possible - #348 already has Cargo.lock update, bundled Actions PR blocked by protected files. #350 is the issue tracking the blocked Actions bundle. AGENTS.md still missing default_sort/default_pin_filter docs (protected file)."
 }
