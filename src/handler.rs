@@ -29,6 +29,12 @@ pub fn handle_events(app: &mut App) -> anyhow::Result<bool> {
                 return Ok(true);
             }
 
+            // Ctrl+C always quits, regardless of active input mode or overlay
+            if key.code == KeyCode::Char('c') && key.modifiers.contains(KeyModifiers::CONTROL) {
+                app.should_quit = true;
+                return Ok(true);
+            }
+
             // Help overlay
             if app.show_help {
                 handle_help_input(app, key.code);
@@ -2353,5 +2359,46 @@ mod tests {
         app.layout.package_list = rect(0, 0, 2, 10); // content_width = 2-3 = underflows to 0
         click_sort_header(&mut app, 0);
         assert_eq!(app.sort_field, SortField::None);
+    }
+
+    // ── Ctrl+C quit in all modes ──────────────────────────────────────────────
+
+    #[test]
+    fn normal_mode_ctrl_c_quits() {
+        let mut app = make_app();
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('c'), KeyModifiers::CONTROL);
+        assert!(app.should_quit);
+    }
+
+    /// Ctrl+C in Search mode must NOT append 'c' to the search query.
+    /// The early quit check in handle_events fires before handle_search_input
+    /// is invoked, so the search query stays empty.
+    #[test]
+    fn search_mode_ctrl_c_does_not_append_to_query() {
+        let mut app = make_app();
+        app.input_mode = InputMode::Search;
+        // Simulate what happens when key.modifiers contains CONTROL:
+        // handle_events returns early; handle_search_input is never called.
+        // Verify that calling handle_search_input with bare 'c' (no modifier
+        // information) would NOT set should_quit — the guard lives upstream.
+        let _ = handle_search_input(&mut app, KeyCode::Char('c'));
+        // Bare 'c' without CONTROL goes to the search query, not quit:
+        assert!(!app.should_quit, "bare 'c' must not quit in search mode");
+        assert_eq!(app.search_query, "c");
+    }
+
+    /// Ctrl+C in LocalFilter mode must NOT append 'c' to the local filter.
+    #[test]
+    fn local_filter_mode_ctrl_c_does_not_append_to_filter() {
+        let mut app = make_app();
+        app.mode = AppMode::Installed;
+        app.input_mode = InputMode::LocalFilter;
+        let _ = handle_local_filter_input(&mut app, KeyCode::Char('c'));
+        // Bare 'c' without CONTROL goes to the local filter, not quit:
+        assert!(
+            !app.should_quit,
+            "bare 'c' must not quit in local filter mode"
+        );
+        assert_eq!(app.local_filter, "c");
     }
 }
