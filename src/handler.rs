@@ -628,19 +628,22 @@ fn click_sort_header(app: &mut App, col: u16) {
 
     // Determine the sort field based on column percentages defined in ui.rs.
     // Non-Upgrades: Name 25%, ID 35%, Version 20%, Source 20% (unsortable)
-    // Upgrades:     Name 25%, ID 30%, Version 15%, Available 15% (unsortable), Source 15% (unsortable)
+    // Upgrades:     Name 25%, ID 30%, Version 15%, Available 15%, Source 15% (unsortable)
     let field = if app.mode == AppMode::Upgrades {
         let boundary_name = content_width * 25 / 100;
         let boundary_id = boundary_name + content_width * 30 / 100;
         let boundary_version = boundary_id + content_width * 15 / 100;
+        let boundary_available = boundary_version + content_width * 15 / 100;
         if offset < boundary_name {
             SortField::Name
         } else if offset < boundary_id {
             SortField::Id
         } else if offset < boundary_version {
             SortField::Version
+        } else if offset < boundary_available {
+            SortField::AvailableVersion
         } else {
-            return; // Available or Source — not sortable
+            return; // Source — not sortable
         }
     } else {
         let boundary_name = content_width * 25 / 100;
@@ -2344,6 +2347,49 @@ mod tests {
             app.sort_field,
             SortField::None,
             "Source column must not set sort"
+        );
+    }
+
+    #[test]
+    fn click_sort_header_upgrades_available_column_sets_available_sort() {
+        let mut app = make_app_with_list_layout();
+        app.mode = AppMode::Upgrades;
+        // Upgrades: Name 25%, ID 30%, Version 15%, Available 15%
+        // content_width = 97; boundaries: name=24, id=53, version=67, available=82
+        // Click at col=70 (within Available column)
+        click_sort_header(&mut app, 71);
+        assert_eq!(
+            app.sort_field,
+            SortField::AvailableVersion,
+            "Clicking Available column should set AvailableVersion sort"
+        );
+        assert_eq!(app.sort_dir, SortDir::Asc);
+    }
+
+    #[test]
+    fn click_sort_header_upgrades_available_column_toggles_direction() {
+        let mut app = make_app_with_list_layout();
+        app.mode = AppMode::Upgrades;
+        // First click: sets AvailableVersion Asc
+        click_sort_header(&mut app, 71);
+        assert_eq!(app.sort_field, SortField::AvailableVersion);
+        assert_eq!(app.sort_dir, SortDir::Asc);
+        // Second click: toggles to Desc
+        click_sort_header(&mut app, 71);
+        assert_eq!(app.sort_field, SortField::AvailableVersion);
+        assert_eq!(app.sort_dir, SortDir::Desc);
+    }
+
+    #[test]
+    fn click_sort_header_upgrades_source_column_is_noop() {
+        let mut app = make_app_with_list_layout();
+        app.mode = AppMode::Upgrades;
+        // Upgrades Source starts at ~85% boundary; click at col=90
+        click_sort_header(&mut app, 90);
+        assert_eq!(
+            app.sort_field,
+            SortField::None,
+            "Source column in Upgrades view must not set sort"
         );
     }
 
