@@ -1,6 +1,6 @@
 {
   "last_run": "2026-07-31",
-  "last_run_id": "30595806786",
+  "last_run_id": "30633826793",
   "monthly_summary_disabled": true,
   "monthly_summary_note": "2026-06-08: Maintainer closed issue #222. Do NOT create monthly activity summary issues.",
   "comments_made": {
@@ -19,15 +19,16 @@
     "334": "2026-07-23: Commented superseded by #338 (full cargo update)",
     "335": "2026-07-23: Commented superseded by #338 (full cargo update)",
     "336": "2026-07-23: Commented superseded by #338 (full cargo update)",
-    "314": "2026-07-26: Commented that PR #314 is superseded by #341"
+    "314": "2026-07-26: Commented that PR #314 is superseded by #341",
+    "347": "2026-07-31: Commented with root cause analysis and debugging suggestions for No packages found redux"
   },
   "open_repo_assist_prs": [
-    {"pr": 348, "title": "chore: update Cargo.lock to latest compatible dependency versions (Jul 2026)"},
-    {"pr": 349, "title": "fix: handle inline TOML comments in config parser"},
-    {"pr": 351, "title": "fix: Ctrl+C always quits regardless of active input mode"},
-    {"pr": "new-2026-07-31-avail-sort", "title": "feat: sort Upgrades view by available version"}
+    {"pr": 348, "title": "chore: update Cargo.lock to latest compatible dependency versions (Jul 2026)", "mergeable": true},
+    {"pr": 349, "title": "fix: handle inline TOML comments in config parser", "mergeable": true},
+    {"pr": 351, "title": "fix: Ctrl+C always quits regardless of active input mode", "mergeable": true},
+    {"pr": 352, "title": "feat: sort Upgrades view by available version", "mergeable": true}
   ],
   "pending_dependabot_prs": [285, 302, 322],
-  "ci_note": "All repo-assist branch PRs show action_required CI (fork protection). Infrastructure issue, not code failures. Bundled GitHub Actions PR blocked by protected .github/workflows files.",
-  "notes": "Run 30595806786 (2026-07-31): Tasks 1+3. Task 1: Labelled issue #347 with needs-triage (content blocked by integrity policy). Task 3: Implemented sort-by-available-version feature for Upgrades view - adds SortField::AvailableVersion, cycle_sort extends to Available in Upgrades, click_sort_header makes Available column sortable, UI shows sort indicator. 378 tests pass (7 new). Issue #233 tracks this feature. Note: PR #241 (closed 2026-07-28) had same feature - this is a fresh implementation."
+  "ci_note": "All repo-assist branch PRs show pending CI (fork protection). Infrastructure issue, not code failures. All 4 PRs verified mergeable 2026-07-31.",
+  "notes": "Run 30633826793 (2026-07-31): Tasks 2+6. Task 2: Commented on issue #347 (No packages found redux) with root cause analysis - ANSI escape chars, Store app ID filtering, or localized footer. Task 6: All 4 Repo Assist PRs (348,349,351,352) verified open, mergeable, no conflicts. CI pending due to fork protection infrastructure issue."
 }
