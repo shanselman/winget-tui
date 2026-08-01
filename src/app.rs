@@ -164,17 +164,24 @@ pub struct App {
 /// Version strings are split on `.`, `-`, and `+`. Each component is compared
 /// numerically when both sides parse as `u64`; otherwise lexicographically.
 /// This avoids the lexicographic pitfall where `"10.0"` sorts before `"2.0"`.
+///
+/// `VersionPart` is an enum so that purely-numeric components (the common case
+/// for versions like "1.2.3") carry no heap-allocated `String` at all.
 #[derive(Debug, Clone, Eq, PartialEq)]
-struct VersionPart {
-    num: Option<u64>,
-    src: String,
+enum VersionPart {
+    Numeric(u64),
+    Text(String),
 }
 
 impl Ord for VersionPart {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        match (self.num, other.num) {
-            (Some(left), Some(right)) => left.cmp(&right),
-            _ => self.src.cmp(&other.src),
+        match (self, other) {
+            (Self::Numeric(a), Self::Numeric(b)) => a.cmp(b),
+            (Self::Text(a), Self::Text(b)) => a.cmp(b),
+            // Numeric components sort before text components, matching the
+            // convention that "1.0" (all-numeric) precedes "1.0-beta" (mixed).
+            (Self::Numeric(_), Self::Text(_)) => std::cmp::Ordering::Less,
+            (Self::Text(_), Self::Numeric(_)) => std::cmp::Ordering::Greater,
         }
     }
 }
@@ -187,9 +194,12 @@ impl PartialOrd for VersionPart {
 
 fn version_key(v: &str) -> Vec<VersionPart> {
     v.split(['.', '-', '+'])
-        .map(|part| VersionPart {
-            num: part.parse::<u64>().ok(),
-            src: part.to_string(),
+        .map(|part| {
+            if let Ok(n) = part.parse::<u64>() {
+                VersionPart::Numeric(n)
+            } else {
+                VersionPart::Text(part.to_string())
+            }
         })
         .collect()
 }
@@ -266,9 +276,13 @@ impl App {
             }
         }
         if self.mode != AppMode::Search && !self.local_filter.is_empty() {
-            let query = self.local_filter.to_lowercase();
+            // Use to_ascii_lowercase: package names and IDs are overwhelmingly
+            // ASCII, so this avoids the Unicode folding-table overhead of
+            // to_lowercase() while remaining correct for all real-world packages.
+            let query = self.local_filter.to_ascii_lowercase();
             self.filtered_packages.retain(|pkg| {
-                pkg.name.to_lowercase().contains(&query) || pkg.id.to_lowercase().contains(&query)
+                pkg.name.to_ascii_lowercase().contains(&query)
+                    || pkg.id.to_ascii_lowercase().contains(&query)
             });
         }
         if self.mode != AppMode::Search {
@@ -278,19 +292,19 @@ impl App {
         // Apply sort if a field is selected.
         // sort_by_cached_key computes the key exactly once per element (O(N))
         // rather than on every comparison (O(N log N)), avoiding repeated heap
-        // allocations from to_lowercase() for Name and Id sorts.
+        // allocations from to_ascii_lowercase() for Name and Id sorts.
         match self.sort_field {
             SortField::None => {}
             SortField::Name => {
                 self.filtered_packages
-                    .sort_by_cached_key(|p| p.name.to_lowercase());
+                    .sort_by_cached_key(|p| p.name.to_ascii_lowercase());
                 if self.sort_dir == SortDir::Desc {
                     self.filtered_packages.reverse();
                 }
             }
             SortField::Id => {
                 self.filtered_packages
-                    .sort_by_cached_key(|p| p.id.to_lowercase());
+                    .sort_by_cached_key(|p| p.id.to_ascii_lowercase());
                 if self.sort_dir == SortDir::Desc {
                     self.filtered_packages.reverse();
                 }
