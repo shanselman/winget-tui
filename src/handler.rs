@@ -78,7 +78,7 @@ fn handle_help_input(app: &mut App, key: KeyCode) {
     }
 }
 
-fn handle_confirm(app: &mut App, key: KeyCode) -> anyhow::Result<bool> {
+fn handle_confirm(app: &mut App, key: KeyCode) -> anyhow::Result<()> {
     match key {
         KeyCode::Char('y') | KeyCode::Char('Y') => {
             if let Some(confirm) = app.confirm.take() {
@@ -93,10 +93,10 @@ fn handle_confirm(app: &mut App, key: KeyCode) -> anyhow::Result<bool> {
         }
         _ => {}
     }
-    Ok(false)
+    Ok(())
 }
 
-fn handle_version_input(app: &mut App, key: KeyCode) -> anyhow::Result<bool> {
+fn handle_version_input(app: &mut App, key: KeyCode) -> anyhow::Result<()> {
     match key {
         KeyCode::Esc => {
             app.input_mode = InputMode::Normal;
@@ -128,10 +128,10 @@ fn handle_version_input(app: &mut App, key: KeyCode) -> anyhow::Result<bool> {
         }
         _ => {}
     }
-    Ok(false)
+    Ok(())
 }
 
-fn handle_search_input(app: &mut App, key: KeyCode) -> anyhow::Result<bool> {
+fn handle_search_input(app: &mut App, key: KeyCode) -> anyhow::Result<()> {
     match key {
         KeyCode::Esc => {
             app.input_mode = InputMode::Normal;
@@ -153,10 +153,10 @@ fn handle_search_input(app: &mut App, key: KeyCode) -> anyhow::Result<bool> {
         }
         _ => {}
     }
-    Ok(false)
+    Ok(())
 }
 
-fn handle_local_filter_input(app: &mut App, key: KeyCode) -> anyhow::Result<bool> {
+fn handle_local_filter_input(app: &mut App, key: KeyCode) -> anyhow::Result<()> {
     match key {
         KeyCode::Esc => {
             app.input_mode = InputMode::Normal;
@@ -218,14 +218,10 @@ fn handle_local_filter_input(app: &mut App, key: KeyCode) -> anyhow::Result<bool
         }
         _ => {}
     }
-    Ok(false)
+    Ok(())
 }
 
-fn handle_normal_mode(
-    app: &mut App,
-    key: KeyCode,
-    modifiers: KeyModifiers,
-) -> anyhow::Result<bool> {
+fn handle_normal_mode(app: &mut App, key: KeyCode, modifiers: KeyModifiers) -> anyhow::Result<()> {
     match key {
         KeyCode::Char('q') | KeyCode::Esc => {
             app.should_quit = true;
@@ -558,7 +554,7 @@ fn handle_normal_mode(
 
         _ => {}
     }
-    Ok(false)
+    Ok(())
 }
 
 /// Switch the active view/mode, resetting selection and triggering a refresh
