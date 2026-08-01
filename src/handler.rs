@@ -159,9 +159,17 @@ fn handle_search_input(app: &mut App, key: KeyCode) -> anyhow::Result<bool> {
 fn handle_local_filter_input(app: &mut App, key: KeyCode) -> anyhow::Result<bool> {
     match key {
         KeyCode::Esc => {
+            // Capture the current selection so we can restore the cursor to the
+            // same package after the filter is cleared and the full list comes back.
+            let prev_id = app.selected_package().map(|p| p.id.clone());
             app.input_mode = InputMode::Normal;
             app.local_filter.clear();
             app.apply_filter();
+            if let Some(id) = prev_id {
+                if let Some(idx) = app.filtered_packages.iter().position(|p| p.id == id) {
+                    app.selected = idx;
+                }
+            }
             app.ensure_selection_visible();
             load_detail_for_selected(app);
             app.set_status("Filter cleared");
@@ -1223,6 +1231,32 @@ mod tests {
         assert_eq!(app.input_mode, InputMode::Normal);
         assert!(app.local_filter.is_empty());
         assert_eq!(app.filtered_packages.len(), 2);
+    }
+
+    #[test]
+    fn local_filter_esc_restores_cursor_to_previously_selected_package() {
+        // When the user filters to a package, selects it, then clears the filter
+        // with Esc, the cursor should return to that same package in the full list.
+        let mut app = make_app_with_pkgs(5);
+        app.mode = AppMode::Installed;
+        // Apply a filter that narrows to pkg2 and pkg3
+        app.local_filter = "pkg2".to_string();
+        app.apply_filter();
+        // In the filtered list [pkg2], selected = 0 → pkg2
+        assert_eq!(app.filtered_packages[0].id, "pkg2");
+        app.input_mode = InputMode::LocalFilter;
+        let rt = test_runtime();
+        let _guard = rt.enter();
+
+        let _ = handle_local_filter_input(&mut app, KeyCode::Esc);
+
+        // After clearing the filter, all 5 packages are visible.
+        assert_eq!(app.filtered_packages.len(), 5);
+        // The cursor should still point to pkg2.
+        assert_eq!(
+            app.filtered_packages[app.selected].id, "pkg2",
+            "cursor should be restored to the previously selected package after Esc"
+        );
     }
 
     #[test]
