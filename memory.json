@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-07-31",
-  "last_run_id": "30633826793",
+  "last_run": "2026-08-01",
+  "last_run_id": "30677473505",
   "monthly_summary_disabled": true,
   "monthly_summary_note": "2026-06-08: Maintainer closed issue #222. Do NOT create monthly activity summary issues.",
   "comments_made": {
@@ -13,22 +13,24 @@
     "313": "2026-07-21: Commented that PR #313 is superseded by #316",
     "310": "2026-07-21: Commented that PR #310 is superseded by #326",
     "324": "2026-07-21: Commented that PR #324 is superseded by #327",
-    "312": "2026-07-22: Commented that PR #312 is superseded by new bundled deps PR",
-    "332": "2026-07-23: Commented superseded by #338 (full cargo update)",
-    "333": "2026-07-23: Commented superseded by #338 (full cargo update)",
-    "334": "2026-07-23: Commented superseded by #338 (full cargo update)",
-    "335": "2026-07-23: Commented superseded by #338 (full cargo update)",
-    "336": "2026-07-23: Commented superseded by #338 (full cargo update)",
+    "312": "2026-07-22: Commented superseded by new bundled deps PR",
+    "332": "2026-07-23: Commented superseded by #338",
+    "333": "2026-07-23: Commented superseded by #338",
+    "334": "2026-07-23: Commented superseded by #338",
+    "335": "2026-07-23: Commented superseded by #338",
+    "336": "2026-07-23: Commented superseded by #338",
     "314": "2026-07-26: Commented that PR #314 is superseded by #341",
-    "347": "2026-07-31: Commented with root cause analysis and debugging suggestions for No packages found redux"
+    "347": "2026-07-31: Commented with root cause analysis and debugging suggestions"
   },
   "open_repo_assist_prs": [
     {"pr": 348, "title": "chore: update Cargo.lock to latest compatible dependency versions (Jul 2026)", "mergeable": true},
     {"pr": 349, "title": "fix: handle inline TOML comments in config parser", "mergeable": true},
     {"pr": 351, "title": "fix: Ctrl+C always quits regardless of active input mode", "mergeable": true},
-    {"pr": 352, "title": "feat: sort Upgrades view by available version", "mergeable": true}
+    {"pr": 352, "title": "feat: sort Upgrades view by available version", "mergeable": true},
+    {"pr": "TBD-vim", "title": "feat: add g/G vim-style navigation shortcuts", "branch": "repo-assist/feat-vim-navigation-20260801", "mergeable": true},
+    {"pr": "TBD-refactor", "title": "refactor: simplify handler return types from Result<bool> to Result<()", "branch": "repo-assist/improve-handler-return-types-20260801", "mergeable": true}
   ],
   "pending_dependabot_prs": [285, 302, 322],
-  "ci_note": "All repo-assist branch PRs show pending CI (fork protection). Infrastructure issue, not code failures. All 4 PRs verified mergeable 2026-07-31.",
-  "notes": "Run 30633826793 (2026-07-31): Tasks 2+6. Task 2: Commented on issue #347 (No packages found redux) with root cause analysis - ANSI escape chars, Store app ID filtering, or localized footer. Task 6: All 4 Repo Assist PRs (348,349,351,352) verified open, mergeable, no conflicts. CI pending due to fork protection infrastructure issue."
+  "ci_note": "All repo-assist branch PRs show pending CI (fork protection). Infrastructure issue, not code failures.",
+  "notes": "Run 30677473505 (2026-08-01): Tasks 5+10. Task 5: Created PR refactoring 5 handler functions from Result<bool> to Result<(). Task 10: Created PR adding g/G vim navigation shortcuts (Home/End equivalents). Both PRs have 371+ passing tests, clippy clean, fmt clean."
 }
