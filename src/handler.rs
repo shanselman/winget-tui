@@ -173,10 +173,16 @@ fn handle_local_filter_input(app: &mut App, key: KeyCode) -> anyhow::Result<bool
             load_detail_for_selected(app);
         }
         KeyCode::Backspace => {
-            app.local_filter.pop();
-            app.apply_filter();
-            app.ensure_selection_visible();
-            load_detail_for_selected(app);
+            if app.local_filter.is_empty() {
+                // Already empty — treat as Esc to close the filter bar.
+                app.input_mode = InputMode::Normal;
+                app.set_status("Filter cleared");
+            } else {
+                app.local_filter.pop();
+                app.apply_filter();
+                app.ensure_selection_visible();
+                load_detail_for_selected(app);
+            }
         }
         // Allow navigating the filtered list without leaving filter mode
         KeyCode::Up => {
@@ -1223,6 +1229,38 @@ mod tests {
         assert_eq!(app.input_mode, InputMode::Normal);
         assert!(app.local_filter.is_empty());
         assert_eq!(app.filtered_packages.len(), 2);
+    }
+
+    #[test]
+    fn local_filter_backspace_on_empty_filter_exits_input_mode() {
+        let mut app = make_app_with_pkgs(2);
+        app.mode = AppMode::Installed;
+        app.local_filter = String::new();
+        app.input_mode = InputMode::LocalFilter;
+        let rt = test_runtime();
+        let _guard = rt.enter();
+
+        let _ = handle_local_filter_input(&mut app, KeyCode::Backspace);
+
+        assert_eq!(app.input_mode, InputMode::Normal);
+        assert!(app.local_filter.is_empty());
+        assert_eq!(app.filtered_packages.len(), 2, "all packages still visible");
+    }
+
+    #[test]
+    fn local_filter_backspace_on_nonempty_filter_removes_char() {
+        let mut app = make_app_with_pkgs(2);
+        app.mode = AppMode::Installed;
+        app.local_filter = "pk".to_string();
+        app.input_mode = InputMode::LocalFilter;
+        app.apply_filter();
+        let rt = test_runtime();
+        let _guard = rt.enter();
+
+        let _ = handle_local_filter_input(&mut app, KeyCode::Backspace);
+
+        assert_eq!(app.input_mode, InputMode::LocalFilter, "still in filter mode");
+        assert_eq!(app.local_filter, "p");
     }
 
     #[test]
