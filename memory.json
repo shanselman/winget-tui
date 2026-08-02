@@ -1,6 +1,6 @@
 {
   "last_run": "2026-08-02",
-  "last_run_id": "30726713572",
+  "last_run_id": "30749292991",
   "monthly_summary_disabled": true,
   "monthly_summary_note": "2026-06-08: Maintainer closed issue #222. Do NOT create monthly activity summary issues.",
   "comments_made": {
@@ -23,17 +23,20 @@
     "347": "2026-07-31: Commented with root cause analysis and debugging suggestions"
   },
   "open_repo_assist_prs": [
-    {"pr": 348, "title": "chore: update Cargo.lock to latest compatible dependency versions (Jul 2026)", "mergeable": true},
-    {"pr": 349, "title": "fix: handle inline TOML comments in config parser", "mergeable": true},
-    {"pr": 351, "title": "fix: Ctrl+C always quits regardless of active input mode", "mergeable": true},
-    {"pr": 352, "title": "feat: sort Upgrades view by available version", "mergeable": true},
-    {"pr": 353, "title": "feat: add g/G vim-style navigation shortcuts", "mergeable": true},
-    {"pr": 354, "title": "refactor: simplify handler return types from Result<bool> to Result<()>", "mergeable": true},
-    {"pr": 355, "title": "perf: use to_ascii_lowercase in filter/sort; remove per-part alloc in version_key", "mergeable": true},
-    {"pr": 356, "title": "fix: restore cursor to previously selected package when clearing local filter", "mergeable": true},
-    {"pr": "TBD-improve", "title": "improve: backspace on empty local filter exits filter mode", "branch": "repo-assist/improve-backspace-exits-empty-filter", "mergeable": true}
+    {"pr": 348, "title": "chore: update Cargo.lock to latest compatible dependency versions (Jul 2026)", "mergeable": true, "base_sha": "241d48674871145b2ca3f468a51572fe029c907f"},
+    {"pr": 349, "title": "fix: handle inline TOML comments in config parser", "mergeable": true, "base_sha": "241d48674871145b2ca3f468a51572fe029c907f"},
+    {"pr": 351, "title": "fix: Ctrl+C always quits regardless of active input mode", "mergeable": true, "base_sha": "241d48674871145b2ca3f468a51572fe029c907f"},
+    {"pr": 352, "title": "feat: sort Upgrades view by available version", "mergeable": true, "base_sha": "241d48674871145b2ca3f468a51572fe029c907f"},
+    {"pr": 354, "title": "refactor: simplify handler return types from Result<bool> to Result<()>", "mergeable": true, "base_sha": "241d48674871145b2ca3f468a51572fe029c907f"},
+    {"pr": 355, "title": "perf: use to_ascii_lowercase in filter/sort; remove per-part alloc in version_key", "mergeable": true, "base_sha": "241d48674871145b2ca3f468a51572fe029c907f"},
+    {"pr": 356, "title": "fix: restore cursor to previously selected package when clearing local filter", "mergeable": true, "base_sha": "241d48674871145b2ca3f468a51572fe029c907f"},
+    {"pr": 357, "title": "improve: backspace on empty local filter exits filter mode", "mergeable": true, "base_sha": "241d48674871145b2ca3f468a51572fe029c907f"}
+  ],
+  "merged_or_closed_prs": [
+    {"pr": 353, "title": "feat: add g/G vim-style navigation shortcuts", "status": "merged/closed by maintainer (confirmed 2026-08-02)"}
   ],
   "pending_dependabot_prs": [285, 302, 322],
-  "ci_note": "All repo-assist branch PRs show pending CI (fork protection). Infrastructure issue, not code failures.",
-  "notes": "Run 30726713572 (2026-08-02): Tasks 5+2. Task 5: Created PR - backspace on empty local filter exits filter mode (UX improvement). Task 2: No human issues accessible (#347 filtered by integrity policy, already commented last run). 373 tests pass, clippy/fmt clean."
+  "ci_note": "All repo-assist branch PRs show pending CI (fork protection). Infrastructure issue, not code failures. All PRs are on same base SHA as main HEAD.",
+  "handler_conflict_note": "PRs 354, 351, 356, 357 all touch handler.rs. If merged sequentially, later ones may conflict with earlier ones. Maintainer should be aware.",
+  "notes": "Run 30749292991 (2026-08-02): Tasks 2+6. Task 2: No accessible human issues (#347 filtered by integrity policy). Task 6: All 8 open Repo Assist PRs verified clean - same base SHA as main, no conflicts, mergeable_state=unstable (infrastructure/CI issue only). PR #353 (g/G navigation) appears to have been merged/closed by maintainer."
 }
