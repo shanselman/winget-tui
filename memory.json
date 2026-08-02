@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-08-01",
-  "last_run_id": "30701114741",
+  "last_run": "2026-08-02",
+  "last_run_id": "30726713572",
   "monthly_summary_disabled": true,
   "monthly_summary_note": "2026-06-08: Maintainer closed issue #222. Do NOT create monthly activity summary issues.",
   "comments_made": {
@@ -29,10 +29,11 @@
     {"pr": 352, "title": "feat: sort Upgrades view by available version", "mergeable": true},
     {"pr": 353, "title": "feat: add g/G vim-style navigation shortcuts", "mergeable": true},
     {"pr": 354, "title": "refactor: simplify handler return types from Result<bool> to Result<()>", "mergeable": true},
-    {"pr": "TBD-perf", "title": "perf: use to_ascii_lowercase in filter/sort; remove per-part alloc in version_key", "branch": "repo-assist/perf-ascii-lowercase-20260801", "mergeable": true},
-    {"pr": "TBD-fix", "title": "fix: restore cursor to previously selected package when clearing local filter", "branch": "repo-assist/fix-filter-cursor-restore-20260801", "mergeable": true}
+    {"pr": 355, "title": "perf: use to_ascii_lowercase in filter/sort; remove per-part alloc in version_key", "mergeable": true},
+    {"pr": 356, "title": "fix: restore cursor to previously selected package when clearing local filter", "mergeable": true},
+    {"pr": "TBD-improve", "title": "improve: backspace on empty local filter exits filter mode", "branch": "repo-assist/improve-backspace-exits-empty-filter", "mergeable": true}
   ],
   "pending_dependabot_prs": [285, 302, 322],
   "ci_note": "All repo-assist branch PRs show pending CI (fork protection). Infrastructure issue, not code failures.",
-  "notes": "Run 30701114741 (2026-08-01): Tasks 8+3. Task 8: perf PR - to_ascii_lowercase filter/sort + VersionPart enum optimization. Task 3: fix PR - restore cursor position to selected package ID when Esc clears local filter (regression test added). Both pass 372 tests, clippy/fmt clean."
+  "notes": "Run 30726713572 (2026-08-02): Tasks 5+2. Task 5: Created PR - backspace on empty local filter exits filter mode (UX improvement). Task 2: No human issues accessible (#347 filtered by integrity policy, already commented last run). 373 tests pass, clippy/fmt clean."
 }
