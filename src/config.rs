@@ -13,9 +13,11 @@
 /// ```
 use crate::app::AppMode;
 use crate::models::{PinFilter, SortDir, SortField, SourceFilter};
+use crate::theme::ThemeName;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Config {
+    pub theme: ThemeName,
     pub default_view: AppMode,
     pub default_source: SourceFilter,
     pub default_sort_field: SortField,
@@ -26,6 +28,7 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
+            theme: ThemeName::Original,
             default_view: AppMode::Installed,
             default_source: SourceFilter::All,
             default_sort_field: SortField::None,
@@ -87,6 +90,9 @@ impl Config {
             let key = key.trim();
             let value = value.trim().trim_matches('"').trim();
             match key {
+                "theme" => {
+                    cfg.theme = ThemeName::parse(value);
+                }
                 "default_view" => {
                     cfg.default_view = match value {
                         "search" => AppMode::Search,

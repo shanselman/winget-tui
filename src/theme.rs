@@ -1,185 +1,255 @@
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 
-// ── Winget-inspired color palette ───────────────────────────────────────────
+// ── Theme palette ───────────────────────────────────────────────────────────
 
-/// Primary accent
-pub const ACCENT: Color = Color::Rgb(238, 201, 141); // #EEC98D
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Theme {
+    pub accent: Color,
+    pub accent_dim: Color,
+    pub text_primary: Color,
+    pub text_secondary: Color,
+    pub text_on_accent: Color,
+    pub background: Color,
+    pub surface: Color,
+    pub success: Color,
+    pub danger: Color,
+    pub info: Color,
+    pub selection: Color,
+}
 
-/// Dimmed accent — for focused borders
-pub const ACCENT_DIM: Color = Color::Rgb(137, 130, 112); // #898270
+impl Theme {
+    pub const fn original() -> Self {
+        Self {
+            accent: Color::Rgb(238, 201, 141),
+            accent_dim: Color::Rgb(137, 130, 112),
+            text_primary: Color::Rgb(232, 220, 183),
+            text_secondary: Color::Rgb(158, 158, 158),
+            text_on_accent: Color::Rgb(30, 30, 30),
+            background: Color::Rgb(30, 30, 30),
+            surface: Color::Rgb(45, 45, 45),
+            success: Color::Rgb(86, 185, 127),
+            danger: Color::Rgb(231, 72, 86),
+            info: Color::Rgb(97, 175, 239),
+            selection: Color::Rgb(198, 120, 221),
+        }
+    }
 
-/// Primary text color
-pub const TEXT_PRIMARY: Color = Color::Rgb(232, 220, 183); // #E8DCB7
+    pub const fn retro() -> Self {
+        Self {
+            background: Color::Rgb(5, 18, 8),
+            surface: Color::Rgb(10, 30, 15),
+            text_primary: Color::Rgb(144, 255, 144),
+            text_secondary: Color::Rgb(82, 180, 92),
+            accent: Color::Rgb(102, 255, 102),
+            accent_dim: Color::Rgb(38, 112, 48),
+            text_on_accent: Color::Rgb(5, 18, 8),
+            success: Color::Rgb(128, 255, 128),
+            danger: Color::Rgb(255, 108, 108),
+            info: Color::Rgb(102, 204, 170),
+            selection: Color::Rgb(24, 92, 42),
+        }
+    }
 
-/// Secondary/dimmed text
-pub const TEXT_SECONDARY: Color = Color::Rgb(158, 158, 158); // #9E9E9E
+    pub const fn nord() -> Self {
+        Self {
+            background: Color::Rgb(46, 52, 64),
+            surface: Color::Rgb(59, 66, 82),
+            text_primary: Color::Rgb(236, 239, 244),
+            text_secondary: Color::Rgb(216, 222, 233),
+            accent: Color::Rgb(136, 192, 208),
+            accent_dim: Color::Rgb(76, 86, 106),
+            text_on_accent: Color::Rgb(46, 52, 64),
+            success: Color::Rgb(163, 190, 140),
+            danger: Color::Rgb(191, 97, 106),
+            info: Color::Rgb(129, 161, 193),
+            selection: Color::Rgb(67, 76, 94),
+        }
+    }
 
-/// Text rendered on top of accent backgrounds
-pub const TEXT_ON_ACCENT: Color = Color::Rgb(30, 30, 30); // #1E1E1E
+    pub const fn from_name(name: ThemeName) -> Self {
+        match name {
+            ThemeName::Original => Self::original(),
+            ThemeName::Retro => Self::retro(),
+            ThemeName::Nord => Self::nord(),
+        }
+    }
+}
 
-/// Panel/surface background
-pub const SURFACE: Color = Color::Rgb(45, 45, 45); // #2D2D2D
+impl Default for Theme {
+    fn default() -> Self {
+        Self::original()
+    }
+}
 
-/// App background
-#[allow(dead_code)]
-pub const BG: Color = Color::Rgb(30, 30, 30); // #1E1E1E
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ThemeName {
+    Original,
+    Retro,
+    Nord,
+}
 
-/// Success (install, available version, updates)
-pub const SUCCESS: Color = Color::Rgb(86, 185, 127); // #56B97F
-
-/// Danger (uninstall, errors)
-pub const DANGER: Color = Color::Rgb(231, 72, 86); // #E74856
-
-/// Info (links, IDs)
-pub const INFO: Color = Color::Rgb(97, 175, 239); // #61AFEF
-
-/// Selection highlight (multi-select markers in upgrades)
-pub const SELECTION: Color = Color::Rgb(198, 120, 221); // #C678DD
+impl ThemeName {
+    pub fn parse(value: &str) -> Self {
+        match value {
+            "retro" => Self::Retro,
+            "nord" => Self::Nord,
+            _ => Self::Original,
+        }
+    }
+}
 
 // ── Style helpers ───────────────────────────────────────────────────────────
 
 /// Style for a focused panel border
-pub fn border_focused() -> Style {
-    Style::default().fg(ACCENT)
+pub fn border_focused(theme: &Theme) -> Style {
+    Style::default().fg(theme.accent)
 }
 
 /// Style for an unfocused panel border
-pub fn border_unfocused() -> Style {
-    Style::default().fg(ACCENT_DIM)
+pub fn border_unfocused(theme: &Theme) -> Style {
+    Style::default().fg(theme.accent_dim)
 }
 
 /// Style for the selected row in the package list
-pub fn selected_row() -> Style {
+pub fn selected_row(theme: &Theme) -> Style {
     Style::default()
-        .fg(TEXT_ON_ACCENT)
-        .bg(ACCENT)
+        .fg(theme.text_on_accent)
+        .bg(theme.accent)
         .add_modifier(Modifier::BOLD)
 }
 
 /// Style for a multi-select marked row (not currently highlighted)
-pub fn marked_row() -> Style {
-    Style::default().fg(SUCCESS).add_modifier(Modifier::BOLD)
+pub fn marked_row(theme: &Theme) -> Style {
+    Style::default()
+        .fg(theme.success)
+        .add_modifier(Modifier::BOLD)
 }
 
 /// Style for table column headers
-pub fn table_header() -> Style {
-    Style::default().fg(ACCENT).add_modifier(Modifier::BOLD)
+pub fn table_header(theme: &Theme) -> Style {
+    Style::default()
+        .fg(theme.accent)
+        .add_modifier(Modifier::BOLD)
 }
 
 /// Style for panel/block titles
-pub fn title() -> Style {
+pub fn title(theme: &Theme) -> Style {
     Style::default()
-        .fg(TEXT_PRIMARY)
+        .fg(theme.text_primary)
         .add_modifier(Modifier::BOLD)
 }
 
 /// Style for detail panel labels (Name, ID, Version, etc.)
-pub fn detail_label() -> Style {
-    Style::default().fg(ACCENT).add_modifier(Modifier::BOLD)
+pub fn detail_label(theme: &Theme) -> Style {
+    Style::default()
+        .fg(theme.accent)
+        .add_modifier(Modifier::BOLD)
 }
 
 /// Active navbar item
-pub fn navbar_active() -> Style {
+pub fn navbar_active(theme: &Theme) -> Style {
     Style::default()
-        .fg(TEXT_ON_ACCENT)
-        .bg(ACCENT)
+        .fg(theme.text_on_accent)
+        .bg(theme.accent)
         .add_modifier(Modifier::BOLD)
 }
 
 /// Inactive navbar item
-pub fn navbar_inactive() -> Style {
-    Style::default().fg(TEXT_SECONDARY)
+pub fn navbar_inactive(theme: &Theme) -> Style {
+    Style::default().fg(theme.text_secondary)
 }
 
 /// Key hint style (status bar)
 #[allow(dead_code)]
-pub fn keyhint() -> Style {
-    Style::default().fg(TEXT_SECONDARY).bg(SURFACE)
+pub fn keyhint(theme: &Theme) -> Style {
+    Style::default().fg(theme.text_secondary).bg(theme.surface)
 }
 
 /// Status bar style for normal messages
-pub fn status_normal() -> Style {
-    Style::default().fg(TEXT_PRIMARY).bg(SURFACE)
+pub fn status_normal(theme: &Theme) -> Style {
+    Style::default().fg(theme.text_primary).bg(theme.surface)
 }
 
 /// Status bar style when loading
-pub fn status_loading() -> Style {
-    Style::default().fg(ACCENT).bg(SURFACE)
+pub fn status_loading(theme: &Theme) -> Style {
+    Style::default().fg(theme.accent).bg(theme.surface)
 }
 
 /// Status bar style on error
-pub fn status_error() -> Style {
-    Style::default().fg(DANGER).bg(SURFACE)
+pub fn status_error(theme: &Theme) -> Style {
+    Style::default().fg(theme.danger).bg(theme.surface)
 }
 
 /// Action button: install
-pub fn action_install() -> Style {
+pub fn action_install(theme: &Theme) -> Style {
     Style::default()
-        .fg(TEXT_PRIMARY)
+        .fg(theme.text_primary)
         .bg(Color::Rgb(189, 63, 57)) // #BD3F39
         .add_modifier(Modifier::BOLD)
 }
 
 /// Action button: confirm (yes)
-pub fn action_confirm() -> Style {
+pub fn action_confirm(theme: &Theme) -> Style {
     Style::default()
-        .fg(TEXT_ON_ACCENT)
-        .bg(SUCCESS)
+        .fg(theme.text_on_accent)
+        .bg(theme.success)
         .add_modifier(Modifier::BOLD)
 }
 
 /// Action button: upgrade
 #[allow(dead_code)]
-pub fn action_upgrade() -> Style {
+pub fn action_upgrade(theme: &Theme) -> Style {
     Style::default()
-        .fg(TEXT_ON_ACCENT)
-        .bg(ACCENT)
+        .fg(theme.text_on_accent)
+        .bg(theme.accent)
         .add_modifier(Modifier::BOLD)
 }
 
 /// Action button key badge (uniform style for all key indicators)
-pub fn action_key() -> Style {
+pub fn action_key(theme: &Theme) -> Style {
     Style::default()
-        .fg(TEXT_ON_ACCENT)
-        .bg(ACCENT)
+        .fg(theme.text_on_accent)
+        .bg(theme.accent)
         .add_modifier(Modifier::BOLD)
 }
 
 /// Action button: uninstall / danger
-pub fn action_danger() -> Style {
+pub fn action_danger(theme: &Theme) -> Style {
     Style::default()
-        .fg(TEXT_PRIMARY)
-        .bg(DANGER)
+        .fg(theme.text_primary)
+        .bg(theme.danger)
         .add_modifier(Modifier::BOLD)
 }
 
 /// Action button: info (open homepage)
 #[allow(dead_code)]
-pub fn action_info() -> Style {
+pub fn action_info(theme: &Theme) -> Style {
     Style::default()
-        .fg(TEXT_ON_ACCENT)
-        .bg(INFO)
+        .fg(theme.text_on_accent)
+        .bg(theme.info)
         .add_modifier(Modifier::BOLD)
 }
 
 /// Action button: selection (space, select all)
 #[allow(dead_code)]
-pub fn action_selection() -> Style {
+pub fn action_selection(theme: &Theme) -> Style {
     Style::default()
-        .fg(TEXT_ON_ACCENT)
-        .bg(SELECTION)
+        .fg(theme.text_on_accent)
+        .bg(theme.selection)
         .add_modifier(Modifier::BOLD)
 }
 
 /// Help overlay section header
-pub fn help_section() -> Style {
-    Style::default().fg(ACCENT).add_modifier(Modifier::BOLD)
+pub fn help_section(theme: &Theme) -> Style {
+    Style::default()
+        .fg(theme.accent)
+        .add_modifier(Modifier::BOLD)
 }
 
 /// Help overlay key binding text
-pub fn help_key() -> Style {
-    Style::default().fg(INFO)
+pub fn help_key(theme: &Theme) -> Style {
+    Style::default().fg(theme.info)
 }
 
 // ── Winget Icon (half-block pixel art) ───────────────────────────────────────
@@ -199,7 +269,7 @@ pub const LOGO_HEIGHT: u16 = 3;
 
 /// Render "winget" as pixel word art using half-blocks.
 /// 3 text rows tall (6 pixel rows), rendered in the accent color.
-pub fn logo_lines() -> Vec<Line<'static>> {
+pub fn logo_lines(theme: &Theme) -> Vec<Line<'static>> {
     // Letters designed on a 5x6 grid (or narrower), 1px gap between each.
     //
     //  w         i     n         g         e         t
@@ -220,7 +290,7 @@ pub fn logo_lines() -> Vec<Line<'static>> {
         [0,0,0,0,0, 0,0, 0,0,0,0,0, 0,0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,0,0],
     ];
 
-    let color = ACCENT;
+    let color = theme.accent;
     let mut lines = Vec::new();
 
     for text_row in 0..3 {
