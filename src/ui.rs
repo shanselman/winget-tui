@@ -257,10 +257,25 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
     )
     .height(1);
 
+    // Only build Row structs for packages within the visible viewport.
+    // With a 200-package list at ~50 fps this reduces per-frame allocations by
+    // roughly package_count / viewport_height (often 7–10×).
+    //
+    // Row selection is applied via per-row Style (not TableState.selected), so
+    // global indices remain correct after slicing.  We pass a local TableState
+    // with offset=0 because the rows slice already starts at the viewport top.
+    let viewport_rows = app.package_list_viewport_rows().max(1);
+    let pkg_count = app.filtered_packages.len();
+    let row_start = app.table_state.offset().min(pkg_count);
+    // +1 so a partially visible bottom row is included.
+    let row_end = (row_start + viewport_rows + 1).min(pkg_count);
+
     let rows: Vec<Row> = app
         .filtered_packages
         .iter()
         .enumerate()
+        .skip(row_start)
+        .take(row_end - row_start)
         .map(|(i, pkg)| {
             let is_selected = i == app.selected;
             let is_marked = app.mode == AppMode::Upgrades && app.selected_packages.contains(&i);
@@ -400,7 +415,11 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
 
     let table = Table::new(rows, &widths).header(header).block(block);
 
-    f.render_stateful_widget(table, area, &mut app.table_state);
+    // Render with a local state whose offset=0 because rows are already
+    // pre-sliced to start at the viewport top.  app.table_state continues
+    // to own the authoritative offset for navigation; it is not mutated here.
+    let mut render_state = ratatui::widgets::TableState::default();
+    f.render_stateful_widget(table, area, &mut render_state);
 
     // Scrollbar
     if app.filtered_packages.len() > app.package_list_viewport_rows() {
