@@ -1,6 +1,6 @@
 {
   "last_run": "2026-08-04",
-  "last_run_id": "30867919889",
+  "last_run_id": "30913176995",
   "monthly_summary_disabled": true,
   "monthly_summary_note": "2026-06-08: Maintainer closed issue #222. Do NOT create monthly activity summary issues.",
   "comments_made": {
@@ -23,23 +23,24 @@
     "347": "2026-07-31: Commented with root cause analysis and debugging suggestions"
   },
   "open_repo_assist_prs": [
-    {"pr": 348, "title": "chore: update Cargo.lock to latest compatible dependency versions (Jul 2026)", "mergeable": true},
-    {"pr": 349, "title": "fix: handle inline TOML comments in config parser", "mergeable": true},
-    {"pr": 351, "title": "fix: Ctrl+C always quits regardless of active input mode", "mergeable": true},
-    {"pr": 352, "title": "feat: sort Upgrades view by available version", "mergeable": true},
-    {"pr": 354, "title": "refactor: simplify handler return types from Result<bool> to Result<()>", "mergeable": true},
-    {"pr": 355, "title": "perf: use to_ascii_lowercase in filter/sort; remove per-part alloc in version_key", "mergeable": true},
-    {"pr": 356, "title": "fix: restore cursor to previously selected package when clearing local filter", "mergeable": true},
-    {"pr": 357, "title": "improve: backspace on empty local filter exits filter mode", "mergeable": true},
-    {"pr": 358, "title": "chore: remove unused serde_json dependency", "mergeable": true},
-    {"pr": 359, "title": "feat: add w key to open package page on winget.run", "branch": "repo-assist/feat-winget-run-w-key", "mergeable": true},
-    {"pr": "new-2026-08-04", "title": "fix: show 'No packages match the filter' when local filter has no results", "branch": "repo-assist/fix-empty-state-filter-message", "mergeable": true}
+    {"pr": 348, "title": "chore: update Cargo.lock to latest compatible dependency versions (Jul 2026)"},
+    {"pr": 349, "title": "fix: handle inline TOML comments in config parser"},
+    {"pr": 351, "title": "fix: Ctrl+C always quits regardless of active input mode"},
+    {"pr": 352, "title": "feat: sort Upgrades view by available version"},
+    {"pr": 354, "title": "refactor: simplify handler return types from Result<bool> to Result<()>"},
+    {"pr": 355, "title": "perf: use to_ascii_lowercase in filter/sort; remove per-part alloc in version_key"},
+    {"pr": 356, "title": "fix: restore cursor to previously selected package when clearing local filter"},
+    {"pr": 357, "title": "improve: backspace on empty local filter exits filter mode"},
+    {"pr": 358, "title": "chore: remove unused serde_json dependency"},
+    {"pr": 359, "title": "feat: add w key to open package page on winget.run"},
+    {"pr": 360, "title": "fix: show 'No packages match the filter' when local filter has no results"},
+    {"pr": "new-2026-08-04b", "title": "perf: only build Row structs for visible viewport in draw_package_list", "branch": "repo-assist/perf-viewport-only-rows-20260804"}
   ],
   "merged_or_closed_prs": [
     {"pr": 353, "title": "feat: add g/G vim-style navigation shortcuts", "status": "merged/closed by maintainer (confirmed 2026-08-02)"}
   ],
   "pending_dependabot_prs": [285, 302, 322],
   "ci_note": "All repo-assist branch PRs show pending CI (fork protection). Infrastructure issue, not code failures.",
-  "handler_conflict_note": "PRs 354, 351, 356, 357, 359 all touch handler.rs. If merged sequentially, later ones may conflict with earlier ones. Maintainer should be aware.",
-  "notes": "Run 30867919889 (2026-08-04): Tasks 3+2. No user-filed bugs. Fixed empty-state filter message bug in ui.rs (new PR created). 371 tests pass."
+  "handler_conflict_note": "PRs 354, 351, 356, 357, 359 all touch handler.rs. If merged sequentially, later ones may conflict.",
+  "notes": "Run 30913176995 (2026-08-04): Tasks 8+6. Task 6: All 10 open Repo Assist PRs verified conflict-free with main (SHA 241d486748). Task 8: Created viewport-only row rendering PR - reduces per-frame Row allocations from O(total_packages) to O(viewport_height). 371 tests pass."
 }
