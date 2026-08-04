@@ -361,6 +361,12 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
             match app.mode {
                 AppMode::Search if app.search_query.is_empty() => " Type / to search for packages",
                 AppMode::Search => " No results found",
+                AppMode::Installed if !app.local_filter.is_empty() => {
+                    " No packages match the filter"
+                }
+                AppMode::Upgrades if !app.local_filter.is_empty() => {
+                    " No upgrades match the filter"
+                }
                 AppMode::Installed
                     if matches!(app.pin_filter, crate::models::PinFilter::PinnedOnly) =>
                 {
