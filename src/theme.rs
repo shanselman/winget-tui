@@ -313,3 +313,39 @@ pub fn logo_lines(theme: &Theme) -> Vec<Line<'static>> {
 
     lines
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn original_retains_existing_color_values() {
+        assert_eq!(
+            Theme::original(),
+            Theme {
+                accent: Color::Rgb(238, 201, 141),
+                accent_dim: Color::Rgb(137, 130, 112),
+                text_primary: Color::Rgb(232, 220, 183),
+                text_secondary: Color::Rgb(158, 158, 158),
+                text_on_accent: Color::Rgb(30, 30, 30),
+                background: Color::Rgb(30, 30, 30),
+                surface: Color::Rgb(45, 45, 45),
+                success: Color::Rgb(86, 185, 127),
+                danger: Color::Rgb(231, 72, 86),
+                info: Color::Rgb(97, 175, 239),
+                selection: Color::Rgb(198, 120, 221),
+            }
+        );
+    }
+
+    #[test]
+    fn each_preset_produces_a_distinct_palette() {
+        let original = Theme::original();
+        let retro = Theme::retro();
+        let nord = Theme::nord();
+
+        assert_ne!(original, retro);
+        assert_ne!(original, nord);
+        assert_ne!(retro, nord);
+    }
+}

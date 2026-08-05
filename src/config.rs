@@ -152,6 +152,30 @@ mod tests {
     }
 
     #[test]
+    fn missing_theme_selects_original() {
+        let cfg = Config::parse(r#"default_view = "search""#);
+        assert_eq!(cfg.theme, ThemeName::Original);
+    }
+
+    #[test]
+    fn parse_theme_retro() {
+        let cfg = Config::parse(r#"theme = "retro""#);
+        assert_eq!(cfg.theme, ThemeName::Retro);
+    }
+
+    #[test]
+    fn parse_theme_nord() {
+        let cfg = Config::parse(r#"theme = "nord""#);
+        assert_eq!(cfg.theme, ThemeName::Nord);
+    }
+
+    #[test]
+    fn parse_unknown_theme_falls_back_to_original() {
+        let cfg = Config::parse(r#"theme = "unknown""#);
+        assert_eq!(cfg.theme, ThemeName::Original);
+    }
+
+    #[test]
     fn parse_default_view_search() {
         let cfg = Config::parse(r#"default_view = "search""#);
         assert_eq!(cfg.default_view, AppMode::Search);
