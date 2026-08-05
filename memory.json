@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-08-04",
-  "last_run_id": "30913176995",
+  "last_run": "2026-08-05",
+  "last_run_id": "30965597788",
   "monthly_summary_disabled": true,
   "monthly_summary_note": "2026-06-08: Maintainer closed issue #222. Do NOT create monthly activity summary issues.",
   "comments_made": {
@@ -34,13 +34,15 @@
     {"pr": 358, "title": "chore: remove unused serde_json dependency"},
     {"pr": 359, "title": "feat: add w key to open package page on winget.run"},
     {"pr": 360, "title": "fix: show 'No packages match the filter' when local filter has no results"},
-    {"pr": "new-2026-08-04b", "title": "perf: only build Row structs for visible viewport in draw_package_list", "branch": "repo-assist/perf-viewport-only-rows-20260804"}
+    {"pr": 364, "title": "perf: only build Row structs for visible viewport in draw_package_list"},
+    {"pr": "new-2026-08-05a", "title": "feat: add y key to copy package ID to system clipboard", "branch": "repo-assist/feat-yank-package-id-to-clipboard"},
+    {"pr": "new-2026-08-05b", "title": "ci: bundle Dependabot GitHub Actions updates (Aug 2026)", "branch": "repo-assist/eng-bundle-dependabot-aug-2026", "closes": [361, 362, 363]}
   ],
   "merged_or_closed_prs": [
-    {"pr": 353, "title": "feat: add g/G vim-style navigation shortcuts", "status": "merged/closed by maintainer (confirmed 2026-08-02)"}
+    {"pr": 353, "title": "feat: add g/G vim-style navigation shortcuts", "status": "closed by maintainer (confirmed 2026-08-02)"}
   ],
-  "pending_dependabot_prs": [285, 302, 322],
+  "pending_dependabot_prs": [285, 302],
   "ci_note": "All repo-assist branch PRs show pending CI (fork protection). Infrastructure issue, not code failures.",
   "handler_conflict_note": "PRs 354, 351, 356, 357, 359 all touch handler.rs. If merged sequentially, later ones may conflict.",
-  "notes": "Run 30913176995 (2026-08-04): Tasks 8+6. Task 6: All 10 open Repo Assist PRs verified conflict-free with main (SHA 241d486748). Task 8: Created viewport-only row rendering PR - reduces per-frame Row allocations from O(total_packages) to O(viewport_height). 371 tests pass."
+  "notes": "Run 30965597788 (2026-08-05): Tasks 10+4. Task 10: Added y key for clipboard yank (copy_to_clipboard helper, platform-aware: clip/pbcopy/wl-copy/xclip/xsel, 3 new tests, 374 pass). Task 4: Bundled Dependabot PRs #361+#362+#363 into single CI PR. Note: PR #353 (g/G nav) was CLOSED not merged - g/G not in codebase."
 }
