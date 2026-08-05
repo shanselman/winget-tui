@@ -1,6 +1,6 @@
 {
   "last_run": "2026-08-05",
-  "last_run_id": "30965597788",
+  "last_run_id": "31009534645",
   "monthly_summary_disabled": true,
   "monthly_summary_note": "2026-06-08: Maintainer closed issue #222. Do NOT create monthly activity summary issues.",
   "comments_made": {
@@ -35,14 +35,13 @@
     {"pr": 359, "title": "feat: add w key to open package page on winget.run"},
     {"pr": 360, "title": "fix: show 'No packages match the filter' when local filter has no results"},
     {"pr": 364, "title": "perf: only build Row structs for visible viewport in draw_package_list"},
-    {"pr": "new-2026-08-05a", "title": "feat: add y key to copy package ID to system clipboard", "branch": "repo-assist/feat-yank-package-id-to-clipboard"},
-    {"pr": "new-2026-08-05b", "title": "ci: bundle Dependabot GitHub Actions updates (Aug 2026)", "branch": "repo-assist/eng-bundle-dependabot-aug-2026", "closes": [361, 362, 363]}
+    {"pr": 366, "title": "feat: add y key to copy package ID to system clipboard"},
+    {"pr": 367, "title": "ci: bundle Dependabot GitHub Actions updates (Aug 2026)", "closes": [361, 362, 363]}
   ],
   "merged_or_closed_prs": [
     {"pr": 353, "title": "feat: add g/G vim-style navigation shortcuts", "status": "closed by maintainer (confirmed 2026-08-02)"}
   ],
-  "pending_dependabot_prs": [285, 302],
   "ci_note": "All repo-assist branch PRs show pending CI (fork protection). Infrastructure issue, not code failures.",
-  "handler_conflict_note": "PRs 354, 351, 356, 357, 359 all touch handler.rs. If merged sequentially, later ones may conflict.",
-  "notes": "Run 30965597788 (2026-08-05): Tasks 10+4. Task 10: Added y key for clipboard yank (copy_to_clipboard helper, platform-aware: clip/pbcopy/wl-copy/xclip/xsel, 3 new tests, 374 pass). Task 4: Bundled Dependabot PRs #361+#362+#363 into single CI PR. Note: PR #353 (g/G nav) was CLOSED not merged - g/G not in codebase."
+  "handler_conflict_note": "PRs 354, 351, 356, 357, 359, 366 all touch handler.rs. If merged sequentially, later ones may conflict.",
+  "notes": "Run 31009534645 (2026-08-05): Tasks 2+3 selected but no open user issues exist. 14 open Repo Assist PRs. No action taken. Main branch at 241d486 (serde bump, 2026-07-28). 371 tests pass. Codebase healthy - await maintainer reviews before adding more PRs."
 }
