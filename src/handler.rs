@@ -551,6 +551,20 @@ fn handle_normal_mode(
             "Opening changelog ",
         ),
 
+        // Copy selected package ID to system clipboard
+        KeyCode::Char('y') => {
+            if let Some(pkg) = app.selected_package() {
+                let id = pkg.id.clone();
+                if copy_to_clipboard(&id) {
+                    app.set_status(format!("Copied: {id}"));
+                } else {
+                    app.set_status(
+                        "Clipboard unavailable — is clip.exe / pbcopy / xclip installed?",
+                    );
+                }
+            }
+        }
+
         // Sort: cycle through Name↑ → Name↓ → ID↑ → ID↓ → Version↑ → Version↓ → None
         KeyCode::Char('S') => {
             app.cycle_sort();
@@ -879,6 +893,60 @@ fn handle_tab_click(app: &mut App, col: u16) {
     }
 }
 
+/// Copy `text` to the system clipboard.  Returns `true` on success.
+///
+/// Platform strategy:
+/// - Windows: pipe to `clip.exe`
+/// - macOS:   pipe to `pbcopy`
+/// - Linux/other: try `wl-copy`, then `xclip -selection clipboard`, then `xsel --clipboard --input`
+fn copy_to_clipboard(text: &str) -> bool {
+    #[cfg(test)]
+    {
+        let _ = text;
+        return true;
+    }
+    #[cfg(not(test))]
+    copy_to_clipboard_impl(text)
+}
+
+#[cfg(not(test))]
+fn copy_to_clipboard_impl(text: &str) -> bool {
+    use std::io::Write;
+    use std::process::{Command, Stdio};
+
+    let candidates: &[(&str, &[&str])] = {
+        #[cfg(target_os = "windows")]
+        {
+            &[("clip", &[])]
+        }
+        #[cfg(target_os = "macos")]
+        {
+            &[("pbcopy", &[])]
+        }
+        #[cfg(not(any(target_os = "windows", target_os = "macos")))]
+        {
+            &[
+                ("wl-copy", &[] as &[&str]),
+                ("xclip", &["-selection", "clipboard"]),
+                ("xsel", &["--clipboard", "--input"]),
+            ]
+        }
+    };
+
+    for (prog, args) in candidates {
+        let Ok(mut child) = Command::new(prog).args(*args).stdin(Stdio::piped()).spawn() else {
+            continue;
+        };
+        if let Some(mut stdin) = child.stdin.take() {
+            let _ = stdin.write_all(text.as_bytes());
+        }
+        if child.wait().map(|s| s.success()).unwrap_or(false) {
+            return true;
+        }
+    }
+    false
+}
+
 #[cfg(test)]
 mod tests {
     use std::sync::Arc;
@@ -1072,6 +1140,35 @@ mod tests {
     fn open_url_rejects_partial_http_prefix() {
         // Must not match "http" without the colon-slash-slash
         assert!(!open_url("httpx://example.com"));
+    }
+
+    // ── copy_to_clipboard ────────────────────────────────────────────────────
+
+    #[test]
+    fn copy_to_clipboard_returns_true_in_test_mode() {
+        assert!(copy_to_clipboard("some.Package.Id"));
+    }
+
+    #[test]
+    fn yank_key_sets_copied_status() {
+        let mut app = make_app_with_pkg("Test.Package", "1.0", "");
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('y'), KeyModifiers::NONE);
+        assert!(
+            app.status_message.contains("Test.Package"),
+            "status should contain copied package ID"
+        );
+    }
+
+    #[test]
+    fn yank_key_no_selection_does_nothing() {
+        let mut app = make_app();
+        // no packages loaded — selected_package() returns None
+        let initial_status = app.status_message.clone();
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('y'), KeyModifiers::NONE);
+        assert_eq!(
+            app.status_message, initial_status,
+            "status should be unchanged when no package is selected"
+        );
     }
 
     // ── handle_confirm ───────────────────────────────────────────────────────

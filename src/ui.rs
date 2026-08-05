@@ -1048,6 +1048,10 @@ fn draw_help_overlay(f: &mut Frame, app: &mut App) {
             Span::raw("Open changelog / release notes"),
         ]),
         Line::from(vec![
+            Span::styled("  y           ", key),
+            Span::raw("Yank / copy package ID to clipboard"),
+        ]),
+        Line::from(vec![
             Span::styled("  S           ", key),
             Span::raw("Cycle sort: Name↑ → Name↓ → ID↑ → ID↓ → Version↑ → Version↓ → off"),
         ]),
