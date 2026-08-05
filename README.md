@@ -167,6 +167,7 @@ default_view = "upgrades"          # installed | search | upgrades
 default_source = "winget"          # all | winget | msstore
 default_sort = "name"              # name | name_desc | id | id_desc | version | version_desc | none
 default_pin_filter = "hide_pinned" # all | pinned | hide_pinned
+theme = "original"                 # original | retro | nord
 ```
 
 ## Architecture
