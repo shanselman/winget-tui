@@ -1,6 +1,6 @@
 {
   "last_run": "2026-08-06",
-  "last_run_id": "31061965687",
+  "last_run_id": "31105157191",
   "monthly_summary_disabled": true,
   "monthly_summary_note": "2026-06-08: Maintainer closed issue #222. Do NOT create monthly activity summary issues.",
   "comments_made": {
@@ -36,9 +36,12 @@
     {"pr": 360, "title": "fix: show 'No packages match the filter' when local filter has no results"},
     {"pr": 364, "title": "perf: only build Row structs for visible viewport in draw_package_list"},
     {"pr": 366, "title": "feat: add y key to copy package ID to system clipboard"},
-    {"pr": "new-aug6", "title": "ci: bundle Dependabot GitHub Actions updates (Aug 2026) - closes 361,362,363"}
+    {"pr": 367, "title": "ci: bundle Dependabot GitHub Actions updates (Aug 2026)"}
+  ],
+  "merged_or_closed_prs": [
+    {"pr": 353, "title": "feat: add g/G vim-style navigation shortcuts", "status": "closed by maintainer (confirmed 2026-08-02)"}
   ],
   "ci_note": "All repo-assist branch PRs show pending CI (fork protection). Infrastructure issue, not code failures.",
   "handler_conflict_note": "PRs 354, 351, 356, 357, 359, 366 all touch handler.rs. If merged sequentially, later ones may conflict.",
-  "notes": "Run 31061965687 (2026-08-06): Tasks 2+6. Task 2: Only user issue #347 which is integrity-filtered and already commented on (2026-07-31). No new user issues. Task 6: All Repo Assist PRs conflict-free; no CI failures (fork protection infra). Created bundled Dependabot PR (closes #361, #362, #363). Main still at 241d486."
+  "notes": "Run 31105157191 (2026-08-06): Tasks 5+3 selected. No user issues accessible (integrity filtered). Codebase clean: zero compiler warnings, zero clippy warnings, no TODOs/FIXMEs. 14 open Repo Assist PRs already covering most improvements. No action taken - await maintainer reviews."
 }
