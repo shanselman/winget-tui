@@ -1513,6 +1513,47 @@ mod tests {
     }
 
     #[test]
+    fn local_filter_narrows_upgrades_list_by_name_substring() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.mode = AppMode::Upgrades;
+        app.packages = vec![
+            make_package("Visual Studio Code", "Microsoft.VisualStudioCode", "1.0"),
+            make_package("Google Chrome", "Google.Chrome", "120.0"),
+        ];
+        app.local_filter = "chrome".to_string();
+        app.apply_filter();
+
+        assert_eq!(app.filtered_packages.len(), 1);
+        assert_eq!(
+            app.filtered_packages[0].id, "Google.Chrome",
+            "local filter should narrow the Upgrades list the same way it does Installed"
+        );
+    }
+
+    #[test]
+    fn apply_filter_source_backfill_for_msstore() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.source_filter = SourceFilter::MsStore;
+        app.packages = vec![Package {
+            name: "Store App".to_string(),
+            id: "XYZStoreApp".to_string(),
+            version: "1.0.0".to_string(),
+            source: String::new(),
+            available_version: String::new(),
+            pin_state: PinState::None,
+        }];
+
+        app.apply_filter();
+
+        assert_eq!(
+            app.filtered_packages[0].source, "msstore",
+            "empty source field should be backfilled with 'msstore' when source filter is MsStore"
+        );
+    }
+
+    #[test]
     fn apply_filter_pinned_only_keeps_pinned_packages() {
         let spy = SpyBackend::new();
         let mut app = make_app(spy as Arc<dyn WingetBackend>);
@@ -1540,6 +1581,24 @@ mod tests {
         app.apply_filter();
         assert_eq!(app.filtered_packages.len(), 1);
         assert_eq!(app.filtered_packages[0].id, "Regular.App");
+    }
+
+    #[test]
+    fn apply_filter_pin_filter_applies_in_upgrades_mode() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        let mut pinned = make_package("Pinned", "Pinned.App", "1.0");
+        pinned.pin_state = PinState::Pinned;
+        let unpinned = make_package("Regular", "Regular.App", "1.0");
+        app.mode = AppMode::Upgrades;
+        app.pin_filter = PinFilter::UnpinnedOnly;
+        app.packages = vec![pinned, unpinned];
+        app.apply_filter();
+        assert_eq!(app.filtered_packages.len(), 1);
+        assert_eq!(
+            app.filtered_packages[0].id, "Regular.App",
+            "pin filter should apply in Upgrades mode just as in Installed mode"
+        );
     }
 
     #[test]
@@ -1639,6 +1698,23 @@ mod tests {
         assert_eq!(
             compare_versions("1.0+20240101", "1.0+20230101"),
             std::cmp::Ordering::Greater
+        );
+    }
+
+    #[test]
+    fn compare_versions_single_segment() {
+        assert_eq!(compare_versions("2", "10"), std::cmp::Ordering::Less);
+        assert_eq!(compare_versions("10", "2"), std::cmp::Ordering::Greater);
+        assert_eq!(compare_versions("5", "5"), std::cmp::Ordering::Equal);
+    }
+
+    #[test]
+    fn compare_versions_different_segment_counts() {
+        // "1.0.0" vs "1.0" — extra zero segments compare as equal by vec ordering
+        assert_eq!(
+            compare_versions("1.0.0", "1.0"),
+            std::cmp::Ordering::Greater,
+            "more specific version with trailing zero should be Greater"
         );
     }
 
