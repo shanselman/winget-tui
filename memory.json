@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-08-05",
-  "last_run_id": "31009534645",
+  "last_run": "2026-08-07",
+  "last_run_id": "31138712589",
   "monthly_summary_disabled": true,
   "monthly_summary_note": "2026-06-08: Maintainer closed issue #222. Do NOT create monthly activity summary issues.",
   "comments_made": {
@@ -36,12 +36,13 @@
     {"pr": 360, "title": "fix: show 'No packages match the filter' when local filter has no results"},
     {"pr": 364, "title": "perf: only build Row structs for visible viewport in draw_package_list"},
     {"pr": 366, "title": "feat: add y key to copy package ID to system clipboard"},
-    {"pr": 367, "title": "ci: bundle Dependabot GitHub Actions updates (Aug 2026)", "closes": [361, 362, 363]}
+    {"pr": 367, "title": "ci: bundle Dependabot GitHub Actions updates (Aug 2026)"},
+    {"pr": "TBD-test-improvements", "title": "test: add coverage for Upgrades mode filter, MsStore backfill, and version comparison edge cases (2026-08-07)"}
   ],
   "merged_or_closed_prs": [
     {"pr": 353, "title": "feat: add g/G vim-style navigation shortcuts", "status": "closed by maintainer (confirmed 2026-08-02)"}
   ],
   "ci_note": "All repo-assist branch PRs show pending CI (fork protection). Infrastructure issue, not code failures.",
   "handler_conflict_note": "PRs 354, 351, 356, 357, 359, 366 all touch handler.rs. If merged sequentially, later ones may conflict.",
-  "notes": "Run 31009534645 (2026-08-05): Tasks 2+3 selected but no open user issues exist. 14 open Repo Assist PRs. No action taken. Main branch at 241d486 (serde bump, 2026-07-28). 371 tests pass. Codebase healthy - await maintainer reviews before adding more PRs."
+  "notes": "Run 31138712589 (2026-08-07): Tasks 9+2 selected. No user issues. Added 5 new unit tests for coverage gaps in apply_filter/local_filter (Upgrades mode), source backfill for MsStore, and compare_versions edge cases. 376 tests pass. 15 open Repo Assist PRs await maintainer reviews."
 }
