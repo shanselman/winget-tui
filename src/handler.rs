@@ -25,7 +25,7 @@ pub fn handle_events(app: &mut App) -> anyhow::Result<bool> {
 
             // Version input prompt takes priority after confirm
             if app.input_mode == InputMode::VersionInput {
-                handle_version_input(app, key.code)?;
+                handle_version_input(app, key.code, key.modifiers)?;
                 return Ok(true);
             }
 
@@ -36,8 +36,8 @@ pub fn handle_events(app: &mut App) -> anyhow::Result<bool> {
             }
 
             match app.input_mode {
-                InputMode::Search => handle_search_input(app, key.code)?,
-                InputMode::LocalFilter => handle_local_filter_input(app, key.code)?,
+                InputMode::Search => handle_search_input(app, key.code, key.modifiers)?,
+                InputMode::LocalFilter => handle_local_filter_input(app, key.code, key.modifiers)?,
                 InputMode::Normal => handle_normal_mode(app, key.code, key.modifiers)?,
                 InputMode::VersionInput => unreachable!("handled above"),
             };
@@ -96,8 +96,15 @@ fn handle_confirm(app: &mut App, key: KeyCode) -> anyhow::Result<bool> {
     Ok(false)
 }
 
-fn handle_version_input(app: &mut App, key: KeyCode) -> anyhow::Result<bool> {
+fn handle_version_input(
+    app: &mut App,
+    key: KeyCode,
+    modifiers: KeyModifiers,
+) -> anyhow::Result<bool> {
     match key {
+        KeyCode::Char('u') if modifiers.contains(KeyModifiers::CONTROL) => {
+            app.version_input.clear();
+        }
         KeyCode::Esc => {
             app.input_mode = InputMode::Normal;
             app.version_input.clear();
@@ -131,8 +138,15 @@ fn handle_version_input(app: &mut App, key: KeyCode) -> anyhow::Result<bool> {
     Ok(false)
 }
 
-fn handle_search_input(app: &mut App, key: KeyCode) -> anyhow::Result<bool> {
+fn handle_search_input(
+    app: &mut App,
+    key: KeyCode,
+    modifiers: KeyModifiers,
+) -> anyhow::Result<bool> {
     match key {
+        KeyCode::Char('u') if modifiers.contains(KeyModifiers::CONTROL) => {
+            app.search_query.clear();
+        }
         KeyCode::Esc => {
             app.input_mode = InputMode::Normal;
         }
@@ -156,8 +170,19 @@ fn handle_search_input(app: &mut App, key: KeyCode) -> anyhow::Result<bool> {
     Ok(false)
 }
 
-fn handle_local_filter_input(app: &mut App, key: KeyCode) -> anyhow::Result<bool> {
+fn handle_local_filter_input(
+    app: &mut App,
+    key: KeyCode,
+    modifiers: KeyModifiers,
+) -> anyhow::Result<bool> {
     match key {
+        KeyCode::Char('u') if modifiers.contains(KeyModifiers::CONTROL) => {
+            app.local_filter.clear();
+            app.apply_filter();
+            app.ensure_selection_visible();
+            load_detail_for_selected(app);
+            app.set_status("Filter cleared");
+        }
         KeyCode::Esc => {
             app.input_mode = InputMode::Normal;
             app.local_filter.clear();
@@ -1120,7 +1145,7 @@ mod tests {
     fn search_input_esc_returns_to_normal_mode() {
         let mut app = make_app();
         app.input_mode = InputMode::Search;
-        let _ = handle_search_input(&mut app, KeyCode::Esc);
+        let _ = handle_search_input(&mut app, KeyCode::Esc, KeyModifiers::NONE);
         assert_eq!(app.input_mode, InputMode::Normal);
     }
 
@@ -1128,8 +1153,8 @@ mod tests {
     fn search_input_char_appends_to_query() {
         let mut app = make_app();
         app.input_mode = InputMode::Search;
-        let _ = handle_search_input(&mut app, KeyCode::Char('a'));
-        let _ = handle_search_input(&mut app, KeyCode::Char('b'));
+        let _ = handle_search_input(&mut app, KeyCode::Char('a'), KeyModifiers::NONE);
+        let _ = handle_search_input(&mut app, KeyCode::Char('b'), KeyModifiers::NONE);
         assert_eq!(app.search_query, "ab");
     }
 
@@ -1138,7 +1163,7 @@ mod tests {
         let mut app = make_app();
         app.input_mode = InputMode::Search;
         app.search_query = "abc".into();
-        let _ = handle_search_input(&mut app, KeyCode::Backspace);
+        let _ = handle_search_input(&mut app, KeyCode::Backspace, KeyModifiers::NONE);
         assert_eq!(app.search_query, "ab");
     }
 
@@ -1147,10 +1172,27 @@ mod tests {
         let mut app = make_app();
         app.input_mode = InputMode::Search;
         app.search_query = String::new();
-        let _ = handle_search_input(&mut app, KeyCode::Enter);
+        let _ = handle_search_input(&mut app, KeyCode::Enter, KeyModifiers::NONE);
         // Empty query: input_mode switches to Normal but no search is triggered
         assert_eq!(app.input_mode, InputMode::Normal);
         assert!(app.search_query.is_empty());
+    }
+
+    #[test]
+    fn search_input_ctrl_u_clears_query() {
+        let mut app = make_app();
+        app.input_mode = InputMode::Search;
+        app.search_query = "hello world".into();
+        let _ = handle_search_input(&mut app, KeyCode::Char('u'), KeyModifiers::CONTROL);
+        assert!(
+            app.search_query.is_empty(),
+            "Ctrl+U should clear search query"
+        );
+        assert_eq!(
+            app.input_mode,
+            InputMode::Search,
+            "mode should remain Search"
+        );
     }
 
     #[test]
@@ -1200,8 +1242,8 @@ mod tests {
         let rt = test_runtime();
         let _guard = rt.enter();
 
-        let _ = handle_local_filter_input(&mut app, KeyCode::Char('c'));
-        let _ = handle_local_filter_input(&mut app, KeyCode::Char('h'));
+        let _ = handle_local_filter_input(&mut app, KeyCode::Char('c'), KeyModifiers::NONE);
+        let _ = handle_local_filter_input(&mut app, KeyCode::Char('h'), KeyModifiers::NONE);
 
         assert_eq!(app.local_filter, "ch");
         assert_eq!(app.filtered_packages.len(), 1);
@@ -1218,7 +1260,7 @@ mod tests {
         let rt = test_runtime();
         let _guard = rt.enter();
 
-        let _ = handle_local_filter_input(&mut app, KeyCode::Esc);
+        let _ = handle_local_filter_input(&mut app, KeyCode::Esc, KeyModifiers::NONE);
 
         assert_eq!(app.input_mode, InputMode::Normal);
         assert!(app.local_filter.is_empty());
@@ -1235,7 +1277,7 @@ mod tests {
         let rt = test_runtime();
         let _guard = rt.enter();
 
-        let _ = handle_local_filter_input(&mut app, KeyCode::Enter);
+        let _ = handle_local_filter_input(&mut app, KeyCode::Enter, KeyModifiers::NONE);
 
         assert_eq!(app.input_mode, InputMode::Normal);
         assert_eq!(app.local_filter, "pkg1");
@@ -1252,7 +1294,7 @@ mod tests {
 
         // Initial selection is 0; Down should advance it
         app.selected = 0;
-        let _ = handle_local_filter_input(&mut app, KeyCode::Down);
+        let _ = handle_local_filter_input(&mut app, KeyCode::Down, KeyModifiers::NONE);
         assert_eq!(app.selected, 1, "Down should move selection to index 1");
         assert_eq!(
             app.input_mode,
@@ -1261,7 +1303,7 @@ mod tests {
         );
 
         // Up should move it back
-        let _ = handle_local_filter_input(&mut app, KeyCode::Up);
+        let _ = handle_local_filter_input(&mut app, KeyCode::Up, KeyModifiers::NONE);
         assert_eq!(app.selected, 0, "Up should move selection back to index 0");
         assert_eq!(app.input_mode, InputMode::LocalFilter);
     }
@@ -1275,13 +1317,48 @@ mod tests {
         let _guard = rt.enter();
 
         app.selected = 2;
-        let _ = handle_local_filter_input(&mut app, KeyCode::Home);
+        let _ = handle_local_filter_input(&mut app, KeyCode::Home, KeyModifiers::NONE);
         assert_eq!(app.selected, 0, "Home should jump to first item");
         assert_eq!(app.input_mode, InputMode::LocalFilter);
 
-        let _ = handle_local_filter_input(&mut app, KeyCode::End);
+        let _ = handle_local_filter_input(&mut app, KeyCode::End, KeyModifiers::NONE);
         assert_eq!(app.selected, 4, "End should jump to last item");
         assert_eq!(app.input_mode, InputMode::LocalFilter);
+    }
+
+    #[test]
+    fn local_filter_ctrl_u_clears_filter_and_reapplies() {
+        let mut app = make_app_with_pkgs(3);
+        // Give the packages distinct names for filter matching
+        app.packages[0].name = "Alpha".into();
+        app.packages[1].name = "Beta".into();
+        app.packages[2].name = "Gamma".into();
+        app.mode = AppMode::Installed;
+        app.input_mode = InputMode::LocalFilter;
+        app.local_filter = "bet".into();
+        app.apply_filter();
+        assert_eq!(
+            app.filtered_packages.len(),
+            1,
+            "filter should narrow to 1 before Ctrl+U"
+        );
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let _ = handle_local_filter_input(&mut app, KeyCode::Char('u'), KeyModifiers::CONTROL);
+        assert!(
+            app.local_filter.is_empty(),
+            "Ctrl+U should clear local_filter"
+        );
+        assert_eq!(
+            app.filtered_packages.len(),
+            3,
+            "Ctrl+U should restore full list"
+        );
+        assert_eq!(
+            app.input_mode,
+            InputMode::LocalFilter,
+            "mode should stay LocalFilter"
+        );
     }
 
     // ── handle_version_input ─────────────────────────────────────────────────
@@ -1291,7 +1368,7 @@ mod tests {
         let mut app = make_app_with_pkg("Test.App", "1.0", "");
         app.input_mode = InputMode::VersionInput;
         app.version_input = "1.".to_string();
-        let _ = handle_version_input(&mut app, KeyCode::Char('5'));
+        let _ = handle_version_input(&mut app, KeyCode::Char('5'), KeyModifiers::NONE);
         assert_eq!(app.version_input, "1.5");
         assert_eq!(app.input_mode, InputMode::VersionInput);
     }
@@ -1301,9 +1378,26 @@ mod tests {
         let mut app = make_app_with_pkg("Test.App", "1.0", "");
         app.input_mode = InputMode::VersionInput;
         app.version_input = "1.5".to_string();
-        let _ = handle_version_input(&mut app, KeyCode::Backspace);
+        let _ = handle_version_input(&mut app, KeyCode::Backspace, KeyModifiers::NONE);
         assert_eq!(app.version_input, "1.");
         assert_eq!(app.input_mode, InputMode::VersionInput);
+    }
+
+    #[test]
+    fn version_input_ctrl_u_clears_input() {
+        let mut app = make_app_with_pkg("Test.App", "1.0", "");
+        app.input_mode = InputMode::VersionInput;
+        app.version_input = "2.0.1-beta".to_string();
+        let _ = handle_version_input(&mut app, KeyCode::Char('u'), KeyModifiers::CONTROL);
+        assert!(
+            app.version_input.is_empty(),
+            "Ctrl+U should clear version input"
+        );
+        assert_eq!(
+            app.input_mode,
+            InputMode::VersionInput,
+            "mode should remain VersionInput"
+        );
     }
 
     #[test]
@@ -1311,7 +1405,7 @@ mod tests {
         let mut app = make_app_with_pkg("Test.App", "1.0", "");
         app.input_mode = InputMode::VersionInput;
         app.version_input = String::new();
-        let _ = handle_version_input(&mut app, KeyCode::Backspace);
+        let _ = handle_version_input(&mut app, KeyCode::Backspace, KeyModifiers::NONE);
         assert_eq!(app.version_input, "");
     }
 
@@ -1320,7 +1414,7 @@ mod tests {
         let mut app = make_app_with_pkg("Test.App", "1.0", "");
         app.input_mode = InputMode::VersionInput;
         app.version_input = "2.0".to_string();
-        let _ = handle_version_input(&mut app, KeyCode::Esc);
+        let _ = handle_version_input(&mut app, KeyCode::Esc, KeyModifiers::NONE);
         assert_eq!(app.input_mode, InputMode::Normal);
         assert_eq!(app.version_input, "");
     }
@@ -1330,7 +1424,7 @@ mod tests {
         let mut app = make_app_with_pkg("Test.App", "1.0", "");
         app.input_mode = InputMode::VersionInput;
         app.version_input = "2.0.1".to_string();
-        let _ = handle_version_input(&mut app, KeyCode::Enter);
+        let _ = handle_version_input(&mut app, KeyCode::Enter, KeyModifiers::NONE);
         assert_eq!(app.input_mode, InputMode::Normal);
         assert_eq!(app.version_input, "");
         let confirm = app.confirm.expect("confirm dialog should be set");
@@ -1350,7 +1444,7 @@ mod tests {
         let mut app = make_app_with_pkg("Test.App", "1.0", "");
         app.input_mode = InputMode::VersionInput;
         app.version_input = String::new();
-        let _ = handle_version_input(&mut app, KeyCode::Enter);
+        let _ = handle_version_input(&mut app, KeyCode::Enter, KeyModifiers::NONE);
         let confirm = app.confirm.expect("confirm dialog should be set");
         match confirm.operation {
             Operation::Install { version, .. } => {
@@ -1365,7 +1459,7 @@ mod tests {
         let mut app = make_app_with_pkg("Test.App", "1.0", "");
         app.input_mode = InputMode::VersionInput;
         app.version_input = "  2.0  ".to_string();
-        let _ = handle_version_input(&mut app, KeyCode::Enter);
+        let _ = handle_version_input(&mut app, KeyCode::Enter, KeyModifiers::NONE);
         let confirm = app.confirm.expect("confirm dialog should be set");
         match confirm.operation {
             Operation::Install { version, .. } => {
