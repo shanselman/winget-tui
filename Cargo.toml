@@ -1,6 +1,6 @@
 [package]
 name = "winget-tui"
-version = "0.13.0"
+version = "0.13.2"
 edition = "2021"
 rust-version = "1.86"
 description = "A terminal user interface for Windows Package Manager (winget)"
@@ -14,7 +14,6 @@ ratatui = "0.30"
 crossterm = "0.29"
 tokio = { version = "1", features = ["full"] }
 serde = { version = "1", features = ["derive"] }
-serde_json = "1"
 anyhow = "1"
 async-trait = "0.1"
 unicode-width = "0.2"

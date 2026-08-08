@@ -7,6 +7,27 @@ Versions match the `v<major>.<minor>.<patch>` tags in git.
 
 ---
 
+## [0.13.2] – 2026-08-08
+
+### Fixed
+- Package names beginning with digits followed by a space, such as
+  `20 Minutes Till Dawn`, are no longer mistaken for winget footer lines.
+
+---
+
+## [0.13.1] – 2026-08-08
+
+### Fixed
+- Configuration values now support trailing inline comments, so the documented
+  `config.toml` examples work when copied verbatim.
+
+### Other
+- Removed the unused direct `serde_json` dependency.
+- Updated Repo Assist workflow dependencies.
+- Corrected configuration and mouse-support documentation.
+
+---
+
 ## [0.13.0] – 2026-06-07
 
 ### Added

@@ -318,40 +318,61 @@ impl CliBackend {
         let col_positions = Self::detect_columns(header);
         let col_map = Self::package_column_map(&col_positions);
 
-        let mut packages: Vec<Package> = lines[sep_idx + 1..]
-            .iter()
-            .filter(|l| !l.trim().is_empty())
-            // Stop at the first footer line (e.g. "61 upgrades available.").
-            // When pinned packages exist, winget appends a second mini-table
-            // after the footer; we must not parse into it.
-            .take_while(|l| !is_winget_footer_line(l))
-            .filter_map(|line| self.parse_table_row(line, &col_positions, col_map))
-            .collect();
+        let remaining = &lines[sep_idx + 1..];
+        let (mut packages, footer_offset) =
+            self.parse_package_table_section(remaining, &col_positions, col_map);
 
         // When `--include-pinned` is used, winget may append a second table
         // after the footer for packages whose pins block upgrade. Parse that
         // table too so pinned packages appear in the Upgrades view.
-        let remaining = &lines[sep_idx + 1..];
-        if let Some(footer_offset) = remaining
-            .iter()
-            .position(|l| !l.trim().is_empty() && is_winget_footer_line(l))
-        {
+        if let Some(footer_offset) = footer_offset {
             let after_footer = &remaining[footer_offset + 1..];
             if let Some(sep2) = Self::find_table_separator(after_footer) {
                 let header2 = after_footer[sep2 - 1];
                 let cols2 = Self::detect_columns(header2);
                 let map2 = Self::package_column_map(&cols2);
-                let extra: Vec<Package> = after_footer[sep2 + 1..]
-                    .iter()
-                    .filter(|l| !l.trim().is_empty())
-                    .take_while(|l| !is_winget_footer_line(l))
-                    .filter_map(|line| self.parse_table_row(line, &cols2, map2))
-                    .collect();
+                let (extra, _) =
+                    self.parse_package_table_section(&after_footer[sep2 + 1..], &cols2, map2);
                 packages.extend(extra);
             }
         }
 
         packages
+    }
+
+    fn parse_package_table_section(
+        &self,
+        lines: &[&str],
+        cols: &[(&str, usize)],
+        pcols: PackageCols,
+    ) -> (Vec<Package>, Option<usize>) {
+        let mut packages = Vec::new();
+
+        for (offset, line) in lines.iter().enumerate() {
+            if line.trim().is_empty() {
+                continue;
+            }
+
+            let package = self.parse_table_row(line, cols, pcols);
+            // A digit-space prefix alone is ambiguous: package names such as
+            // "20 Minutes Till Dawn" have the same shape as winget count
+            // footers. A real row must also contain a whitespace-free manifest
+            // or Store ID, or a backslash-qualified ARP/MSIX ID.
+            if is_winget_footer_line(line) {
+                let has_package_id = package.as_ref().is_some_and(|package| {
+                    !package.id.chars().any(char::is_whitespace) || package.id.contains('\\')
+                });
+                if !has_package_id {
+                    return (packages, Some(offset));
+                }
+            }
+
+            if let Some(package) = package {
+                packages.push(package);
+            }
+        }
+
+        (packages, None)
     }
 
     fn detect_columns(header: &str) -> Vec<(&str, usize)> {
@@ -1445,6 +1466,22 @@ Docker Desktop                                     Docker.DockerDesktop         
         assert_eq!(packages[0].name, "7-Zip 25.01 (x64)");
         assert_eq!(packages[1].id, "CPUID.CPU-Z.MSI");
         assert_eq!(packages[2].id, "Docker.DockerDesktop");
+    }
+
+    #[test]
+    fn parse_table_with_digit_space_package_name() {
+        let backend = CliBackend::new();
+        // Regression test for #347: the old footer heuristic stopped at the first
+        // row because "20 " looks like the start of a winget count footer.
+        let output = "\
+Name                    Id                                      Version
+--------------------------------------------------------------------------------
+20 Minutes Till Dawn    ARP\\Machine\\X64\\Steam App 1966900       Unknown
+";
+        let packages = backend.parse_packages_from_table(output);
+        assert_eq!(packages.len(), 1);
+        assert_eq!(packages[0].name, "20 Minutes Till Dawn");
+        assert_eq!(packages[0].id, "ARP\\Machine\\X64\\Steam App 1966900");
     }
 
     #[test]

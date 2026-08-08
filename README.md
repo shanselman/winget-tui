@@ -138,7 +138,6 @@ winget-tui
 ### Mouse Support
 
 - **Click** on tabs to switch views (Search / Installed / Upgrades)
-- **Click** on the filter bar to cycle source filters
 - **Click** on the search bar to start typing a search
 - **Click** on a package row to select it and load details
 - **Scroll wheel** over the package list to navigate up/down

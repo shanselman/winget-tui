@@ -1829,14 +1829,13 @@ dependencies = [
 
 [[package]]
 name = "winget-tui"
-version = "0.13.0"
+version = "0.13.2"
 dependencies = [
  "anyhow",
  "async-trait",
  "crossterm",
  "ratatui",
  "serde",
- "serde_json",
  "tokio",
  "unicode-width",
 ]

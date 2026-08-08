@@ -55,8 +55,10 @@ Optional config file:
 Supported keys:
 
 ```toml
-default_view = "installed"   # installed | search | upgrades
-default_source = "all"       # all | winget | msstore
+default_view = "installed"    # installed | search | upgrades
+default_source = "all"        # all | winget | msstore
+default_sort = "none"         # name | name_desc | id | id_desc | version | version_desc | none
+default_pin_filter = "all"    # all | pinned | hide_pinned
 ```
 
 ## Keybindings
