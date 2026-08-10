@@ -16,6 +16,7 @@ pub struct Theme {
     pub danger: Color,
     pub info: Color,
     pub selection: Color,
+    pub install: Color,
 }
 
 impl Theme {
@@ -32,6 +33,7 @@ impl Theme {
             danger: Color::Rgb(231, 72, 86),
             info: Color::Rgb(97, 175, 239),
             selection: Color::Rgb(198, 120, 221),
+            install: Color::Rgb(188, 130, 42),
         }
     }
 
@@ -48,6 +50,7 @@ impl Theme {
             danger: Color::Rgb(255, 108, 108),
             info: Color::Rgb(102, 204, 170),
             selection: Color::Rgb(50, 145, 65),
+            install: Color::Rgb(82, 180, 92),
         }
     }
 
@@ -64,6 +67,7 @@ impl Theme {
             danger: Color::Rgb(238, 150, 157),
             info: Color::Rgb(129, 161, 193),
             selection: Color::Rgb(184, 147, 177),
+            install: Color::Rgb(235, 203, 139),
         }
     }
 
@@ -184,8 +188,8 @@ pub fn status_error(theme: &Theme) -> Style {
 /// Action button: install
 pub fn action_install(theme: &Theme) -> Style {
     Style::default()
-        .fg(theme.text_primary)
-        .bg(Color::Rgb(189, 63, 57)) // #BD3F39
+        .fg(theme.text_on_accent)
+        .bg(theme.install)
         .add_modifier(Modifier::BOLD)
 }
 
@@ -320,7 +324,6 @@ mod tests {
 
     const MIN_TEXT_CONTRAST: f64 = 4.5;
     const MIN_NON_TEXT_CONTRAST: f64 = 3.0;
-    const INSTALL_ACTION_BACKGROUND: Color = Color::Rgb(189, 63, 57);
 
     type ContrastCase = (&'static str, Color, Color, f64);
 
@@ -420,8 +423,8 @@ mod tests {
             ),
             (
                 "install action",
-                theme.text_primary,
-                INSTALL_ACTION_BACKGROUND,
+                theme.text_on_accent,
+                theme.install,
                 MIN_TEXT_CONTRAST,
             ),
             (
@@ -474,6 +477,7 @@ mod tests {
                 danger: Color::Rgb(231, 72, 86),
                 info: Color::Rgb(97, 175, 239),
                 selection: Color::Rgb(198, 120, 221),
+                install: Color::Rgb(188, 130, 42),
             }
         );
     }
