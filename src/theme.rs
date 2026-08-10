@@ -318,6 +318,146 @@ pub fn logo_lines(theme: &Theme) -> Vec<Line<'static>> {
 mod tests {
     use super::*;
 
+    const MIN_TEXT_CONTRAST: f64 = 4.5;
+    const MIN_NON_TEXT_CONTRAST: f64 = 3.0;
+    const INSTALL_ACTION_BACKGROUND: Color = Color::Rgb(189, 63, 57);
+
+    type ContrastCase = (&'static str, Color, Color, f64);
+
+    fn rgb(color: Color, context: &str) -> (u8, u8, u8) {
+        match color {
+            Color::Rgb(r, g, b) => (r, g, b),
+            other => panic!("{context} must use Color::Rgb, got {other:?}"),
+        }
+    }
+
+    fn relative_luminance((r, g, b): (u8, u8, u8)) -> f64 {
+        let channel = |value: u8| {
+            let value = f64::from(value) / 255.0;
+            if value <= 0.03928 {
+                value / 12.92
+            } else {
+                ((value + 0.055) / 1.055).powf(2.4)
+            }
+        };
+
+        0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b)
+    }
+
+    fn contrast_ratio(foreground: Color, background: Color, context: &str) -> f64 {
+        let foreground = relative_luminance(rgb(foreground, context));
+        let background = relative_luminance(rgb(background, context));
+        let (lighter, darker) = if foreground > background {
+            (foreground, background)
+        } else {
+            (background, foreground)
+        };
+
+        (lighter + 0.05) / (darker + 0.05)
+    }
+
+    fn concrete_pairs(theme: Theme) -> [ContrastCase; 12] {
+        [
+            (
+                "normal status/search",
+                theme.text_primary,
+                theme.surface,
+                MIN_TEXT_CONTRAST,
+            ),
+            (
+                "status labels",
+                theme.text_secondary,
+                theme.surface,
+                MIN_TEXT_CONTRAST,
+            ),
+            (
+                "loading/dialog accent text",
+                theme.accent,
+                theme.surface,
+                MIN_TEXT_CONTRAST,
+            ),
+            (
+                "error status",
+                theme.danger,
+                theme.surface,
+                MIN_TEXT_CONTRAST,
+            ),
+            (
+                "help keys and links",
+                theme.info,
+                theme.surface,
+                MIN_TEXT_CONTRAST,
+            ),
+            (
+                "selected rows and key badges",
+                theme.text_on_accent,
+                theme.accent,
+                MIN_TEXT_CONTRAST,
+            ),
+            (
+                "confirm action",
+                theme.text_on_accent,
+                theme.success,
+                MIN_TEXT_CONTRAST,
+            ),
+            (
+                "danger action",
+                theme.text_primary,
+                theme.danger,
+                MIN_TEXT_CONTRAST,
+            ),
+            (
+                "Winget badge",
+                theme.text_on_accent,
+                theme.info,
+                MIN_TEXT_CONTRAST,
+            ),
+            (
+                "MsStore badge",
+                theme.text_on_accent,
+                theme.selection,
+                MIN_TEXT_CONTRAST,
+            ),
+            (
+                "install action",
+                theme.text_primary,
+                INSTALL_ACTION_BACKGROUND,
+                MIN_TEXT_CONTRAST,
+            ),
+            (
+                "focused dialog border",
+                theme.accent,
+                theme.surface,
+                MIN_NON_TEXT_CONTRAST,
+            ),
+        ]
+    }
+
+    #[test]
+    fn concrete_theme_pairs_meet_contrast_floors() {
+        let themes = [
+            ("original", Theme::original()),
+            ("retro", Theme::retro()),
+            ("nord", Theme::nord()),
+        ];
+        let mut failures = Vec::new();
+
+        for (theme_name, theme) in themes {
+            for (pair_name, foreground, background, minimum) in concrete_pairs(theme) {
+                let context = format!("{theme_name}: {pair_name}");
+                let ratio = contrast_ratio(foreground, background, &context);
+                if ratio < minimum {
+                    failures.push(format!(
+                        "{context} contrast {ratio:.2}:1 is below the {:.1}:1 floor",
+                        minimum
+                    ));
+                }
+            }
+        }
+
+        assert!(failures.is_empty(), "\n{}", failures.join("\n"));
+    }
+
     #[test]
     fn original_retains_existing_color_values() {
         assert_eq!(
