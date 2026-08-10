@@ -10,6 +10,7 @@
 /// default_source     = "all"         # "all" | "winget" | "msstore"
 /// default_sort       = "name"        # name | name_desc | id | id_desc | version | version_desc | none
 /// default_pin_filter = "all"         # "all" | "pinned" | "hide_pinned"
+/// theme              = "original"    # "original" | "retro" | "nord"
 /// ```
 use crate::app::AppMode;
 use crate::models::{PinFilter, SortDir, SortField, SourceFilter};
@@ -351,8 +352,10 @@ default_view = \"upgrades\" # the upgrades view
 default_source = \"winget\" # only winget
 default_sort = \"name_desc\" # descending
 default_pin_filter = \"pinned\" # pinned only
+theme = \"retro\" # original | retro | nord
 ";
         let cfg = Config::parse(input);
+        assert_eq!(cfg.theme, ThemeName::Retro);
         assert_eq!(cfg.default_view, AppMode::Upgrades);
         assert_eq!(cfg.default_source, SourceFilter::Winget);
         assert_eq!(cfg.default_sort_field, SortField::Name);
