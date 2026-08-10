@@ -47,7 +47,7 @@ impl Theme {
             success: Color::Rgb(128, 255, 128),
             danger: Color::Rgb(255, 108, 108),
             info: Color::Rgb(102, 204, 170),
-            selection: Color::Rgb(24, 92, 42),
+            selection: Color::Rgb(50, 145, 65),
         }
     }
 
@@ -61,9 +61,9 @@ impl Theme {
             accent_dim: Color::Rgb(76, 86, 106),
             text_on_accent: Color::Rgb(46, 52, 64),
             success: Color::Rgb(163, 190, 140),
-            danger: Color::Rgb(191, 97, 106),
+            danger: Color::Rgb(238, 150, 157),
             info: Color::Rgb(129, 161, 193),
-            selection: Color::Rgb(67, 76, 94),
+            selection: Color::Rgb(184, 147, 177),
         }
     }
 
@@ -217,7 +217,7 @@ pub fn action_key(theme: &Theme) -> Style {
 /// Action button: uninstall / danger
 pub fn action_danger(theme: &Theme) -> Style {
     Style::default()
-        .fg(theme.text_primary)
+        .fg(theme.text_on_accent)
         .bg(theme.danger)
         .add_modifier(Modifier::BOLD)
 }
@@ -402,7 +402,7 @@ mod tests {
             ),
             (
                 "danger action",
-                theme.text_primary,
+                theme.text_on_accent,
                 theme.danger,
                 MIN_TEXT_CONTRAST,
             ),
