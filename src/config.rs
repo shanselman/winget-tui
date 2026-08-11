@@ -13,9 +13,11 @@
 /// ```
 use crate::app::AppMode;
 use crate::models::{PinFilter, SortDir, SortField, SourceFilter};
+use crate::theme::ThemeName;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Config {
+    pub theme: ThemeName,
     pub default_view: AppMode,
     pub default_source: SourceFilter,
     pub default_sort_field: SortField,
@@ -26,6 +28,7 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
+            theme: ThemeName::Original,
             default_view: AppMode::Installed,
             default_source: SourceFilter::All,
             default_sort_field: SortField::None,
@@ -96,6 +99,9 @@ impl Config {
                 raw.split_once('#').map(|(v, _)| v.trim()).unwrap_or(raw)
             };
             match key {
+                "theme" => {
+                    cfg.theme = ThemeName::parse(value);
+                }
                 "default_view" => {
                     cfg.default_view = match value {
                         "search" => AppMode::Search,
@@ -152,6 +158,32 @@ mod tests {
     fn parse_empty_string_returns_defaults() {
         let cfg = Config::parse("");
         assert_eq!(cfg, Config::default());
+    }
+
+    #[test]
+    fn parse_theme_names_case_insensitively() {
+        assert_eq!(
+            Config::parse(r#"theme = "original""#).theme,
+            ThemeName::Original
+        );
+        assert_eq!(Config::parse(r#"theme = "ReTrO""#).theme, ThemeName::Retro);
+        assert_eq!(Config::parse(r#"theme = "NORD""#).theme, ThemeName::Nord);
+    }
+
+    #[test]
+    fn parse_unknown_theme_falls_back_to_original() {
+        assert_eq!(
+            Config::parse(r#"theme = "unknown""#).theme,
+            ThemeName::Original
+        );
+    }
+
+    #[test]
+    fn parse_inline_comment_on_theme() {
+        assert_eq!(
+            Config::parse(r#"theme = "retro" # original | retro | nord"#).theme,
+            ThemeName::Retro
+        );
     }
 
     #[test]

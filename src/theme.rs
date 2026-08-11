@@ -1,217 +1,282 @@
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 
-// ── Winget-inspired color palette ───────────────────────────────────────────
-
-/// Primary accent
-pub const ACCENT: Color = Color::Rgb(238, 201, 141); // #EEC98D
-
-/// Dimmed accent — for focused borders
-pub const ACCENT_DIM: Color = Color::Rgb(137, 130, 112); // #898270
-
-/// Primary text color
-pub const TEXT_PRIMARY: Color = Color::Rgb(232, 220, 183); // #E8DCB7
-
-/// Secondary/dimmed text
-pub const TEXT_SECONDARY: Color = Color::Rgb(158, 158, 158); // #9E9E9E
-
-/// Text rendered on top of accent backgrounds
-pub const TEXT_ON_ACCENT: Color = Color::Rgb(30, 30, 30); // #1E1E1E
-
-/// Panel/surface background
-pub const SURFACE: Color = Color::Rgb(45, 45, 45); // #2D2D2D
-
-/// App background
-#[allow(dead_code)]
-pub const BG: Color = Color::Rgb(30, 30, 30); // #1E1E1E
-
-/// Success (install, available version, updates)
-pub const SUCCESS: Color = Color::Rgb(86, 185, 127); // #56B97F
-
-/// Danger (uninstall, errors)
-pub const DANGER: Color = Color::Rgb(231, 72, 86); // #E74856
-
-/// Info (links, IDs)
-pub const INFO: Color = Color::Rgb(97, 175, 239); // #61AFEF
-
-/// Selection highlight (multi-select markers in upgrades)
-pub const SELECTION: Color = Color::Rgb(198, 120, 221); // #C678DD
-
-// ── Style helpers ───────────────────────────────────────────────────────────
-
-/// Style for a focused panel border
-pub fn border_focused() -> Style {
-    Style::default().fg(ACCENT)
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Theme {
+    pub background: Color,
+    pub surface: Color,
+    pub text_primary: Color,
+    pub text_secondary: Color,
+    pub accent: Color,
+    pub accent_dim: Color,
+    pub success: Color,
+    pub error: Color,
+    pub info: Color,
+    pub selection: Color,
+    pub install: Color,
+    pub danger: Color,
+    pub on_accent: Color,
+    pub on_success: Color,
+    pub on_info: Color,
+    pub on_selection: Color,
+    pub on_install: Color,
+    pub on_danger: Color,
 }
 
-/// Style for an unfocused panel border
-pub fn border_unfocused() -> Style {
-    Style::default().fg(ACCENT_DIM)
+impl Theme {
+    pub const fn original() -> Self {
+        Self {
+            background: Color::Rgb(30, 30, 30),
+            surface: Color::Rgb(45, 45, 45),
+            text_primary: Color::Rgb(232, 220, 183),
+            text_secondary: Color::Rgb(158, 158, 158),
+            accent: Color::Rgb(238, 201, 141),
+            accent_dim: Color::Rgb(137, 130, 112),
+            success: Color::Rgb(86, 185, 127),
+            error: Color::Rgb(249, 99, 113),
+            info: Color::Rgb(97, 175, 239),
+            selection: Color::Rgb(198, 120, 221),
+            install: Color::Rgb(189, 63, 57),
+            danger: Color::Rgb(249, 99, 113),
+            on_accent: Color::Rgb(30, 30, 30),
+            on_success: Color::Rgb(30, 30, 30),
+            on_info: Color::Rgb(30, 30, 30),
+            on_selection: Color::Rgb(30, 30, 30),
+            on_install: Color::Rgb(240, 240, 240),
+            on_danger: Color::Rgb(30, 30, 30),
+        }
+    }
+
+    pub const fn retro() -> Self {
+        Self {
+            background: Color::Rgb(5, 18, 8),
+            surface: Color::Rgb(10, 30, 15),
+            text_primary: Color::Rgb(144, 255, 144),
+            text_secondary: Color::Rgb(82, 180, 92),
+            accent: Color::Rgb(102, 255, 102),
+            accent_dim: Color::Rgb(38, 112, 48),
+            success: Color::Rgb(128, 255, 128),
+            error: Color::Rgb(255, 108, 108),
+            info: Color::Rgb(102, 204, 170),
+            selection: Color::Rgb(50, 145, 65),
+            install: Color::Rgb(82, 180, 92),
+            danger: Color::Rgb(255, 108, 108),
+            on_accent: Color::Rgb(5, 18, 8),
+            on_success: Color::Rgb(5, 18, 8),
+            on_info: Color::Rgb(5, 18, 8),
+            on_selection: Color::Rgb(5, 18, 8),
+            on_install: Color::Rgb(5, 18, 8),
+            on_danger: Color::Rgb(5, 18, 8),
+        }
+    }
+
+    pub const fn nord() -> Self {
+        Self {
+            background: Color::Rgb(46, 52, 64),
+            surface: Color::Rgb(59, 66, 82),
+            text_primary: Color::Rgb(236, 239, 244),
+            text_secondary: Color::Rgb(216, 222, 233),
+            accent: Color::Rgb(136, 192, 208),
+            accent_dim: Color::Rgb(115, 128, 151),
+            success: Color::Rgb(163, 190, 140),
+            error: Color::Rgb(238, 150, 157),
+            info: Color::Rgb(150, 181, 211),
+            selection: Color::Rgb(184, 147, 177),
+            install: Color::Rgb(235, 203, 139),
+            danger: Color::Rgb(238, 150, 157),
+            on_accent: Color::Rgb(46, 52, 64),
+            on_success: Color::Rgb(46, 52, 64),
+            on_info: Color::Rgb(46, 52, 64),
+            on_selection: Color::Rgb(46, 52, 64),
+            on_install: Color::Rgb(46, 52, 64),
+            on_danger: Color::Rgb(46, 52, 64),
+        }
+    }
+
+    pub const fn from_name(name: ThemeName) -> Self {
+        match name {
+            ThemeName::Original => Self::original(),
+            ThemeName::Retro => Self::retro(),
+            ThemeName::Nord => Self::nord(),
+        }
+    }
 }
 
-/// Style for the selected row in the package list
-pub fn selected_row() -> Style {
+impl Default for Theme {
+    fn default() -> Self {
+        Self::original()
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ThemeName {
+    Original,
+    Retro,
+    Nord,
+}
+
+impl ThemeName {
+    pub fn parse(value: &str) -> Self {
+        if value.eq_ignore_ascii_case("retro") {
+            Self::Retro
+        } else if value.eq_ignore_ascii_case("nord") {
+            Self::Nord
+        } else {
+            Self::Original
+        }
+    }
+}
+
+pub fn root(theme: &Theme) -> Style {
+    Style::default().fg(theme.text_primary).bg(theme.background)
+}
+
+pub fn surface(theme: &Theme) -> Style {
+    Style::default().fg(theme.text_primary).bg(theme.surface)
+}
+
+pub fn secondary(theme: &Theme) -> Style {
     Style::default()
-        .fg(TEXT_ON_ACCENT)
-        .bg(ACCENT)
+        .fg(theme.text_secondary)
+        .bg(theme.background)
+}
+
+pub fn surface_secondary(theme: &Theme) -> Style {
+    Style::default().fg(theme.text_secondary).bg(theme.surface)
+}
+
+pub fn success_text(theme: &Theme) -> Style {
+    Style::default().fg(theme.success).bg(theme.background)
+}
+
+pub fn info_text(theme: &Theme) -> Style {
+    Style::default().fg(theme.info).bg(theme.background)
+}
+
+pub fn border_focused(theme: &Theme) -> Style {
+    Style::default().fg(theme.accent).bg(theme.background)
+}
+
+pub fn border_unfocused(theme: &Theme) -> Style {
+    Style::default().fg(theme.accent_dim).bg(theme.background)
+}
+
+pub fn selected_row(theme: &Theme) -> Style {
+    Style::default()
+        .fg(theme.on_accent)
+        .bg(theme.accent)
         .add_modifier(Modifier::BOLD)
 }
 
-/// Style for a multi-select marked row (not currently highlighted)
-pub fn marked_row() -> Style {
-    Style::default().fg(SUCCESS).add_modifier(Modifier::BOLD)
-}
-
-/// Style for table column headers
-pub fn table_header() -> Style {
-    Style::default().fg(ACCENT).add_modifier(Modifier::BOLD)
-}
-
-/// Style for panel/block titles
-pub fn title() -> Style {
+pub fn marked_row(theme: &Theme) -> Style {
     Style::default()
-        .fg(TEXT_PRIMARY)
+        .fg(theme.success)
+        .bg(theme.background)
         .add_modifier(Modifier::BOLD)
 }
 
-/// Style for detail panel labels (Name, ID, Version, etc.)
-pub fn detail_label() -> Style {
-    Style::default().fg(ACCENT).add_modifier(Modifier::BOLD)
-}
-
-/// Active navbar item
-pub fn navbar_active() -> Style {
+pub fn table_header(theme: &Theme) -> Style {
     Style::default()
-        .fg(TEXT_ON_ACCENT)
-        .bg(ACCENT)
+        .fg(theme.accent)
+        .bg(theme.background)
         .add_modifier(Modifier::BOLD)
 }
 
-/// Inactive navbar item
-pub fn navbar_inactive() -> Style {
-    Style::default().fg(TEXT_SECONDARY)
-}
-
-/// Key hint style (status bar)
-#[allow(dead_code)]
-pub fn keyhint() -> Style {
-    Style::default().fg(TEXT_SECONDARY).bg(SURFACE)
-}
-
-/// Status bar style for normal messages
-pub fn status_normal() -> Style {
-    Style::default().fg(TEXT_PRIMARY).bg(SURFACE)
-}
-
-/// Status bar style when loading
-pub fn status_loading() -> Style {
-    Style::default().fg(ACCENT).bg(SURFACE)
-}
-
-/// Status bar style on error
-pub fn status_error() -> Style {
-    Style::default().fg(DANGER).bg(SURFACE)
-}
-
-/// Action button: install
-pub fn action_install() -> Style {
+pub fn title(theme: &Theme) -> Style {
     Style::default()
-        .fg(TEXT_PRIMARY)
-        .bg(Color::Rgb(189, 63, 57)) // #BD3F39
+        .fg(theme.text_primary)
+        .bg(theme.background)
         .add_modifier(Modifier::BOLD)
 }
 
-/// Action button: confirm (yes)
-pub fn action_confirm() -> Style {
+pub fn detail_label(theme: &Theme) -> Style {
     Style::default()
-        .fg(TEXT_ON_ACCENT)
-        .bg(SUCCESS)
+        .fg(theme.accent)
+        .bg(theme.background)
         .add_modifier(Modifier::BOLD)
 }
 
-/// Action button: upgrade
-#[allow(dead_code)]
-pub fn action_upgrade() -> Style {
+pub fn navbar_active(theme: &Theme) -> Style {
     Style::default()
-        .fg(TEXT_ON_ACCENT)
-        .bg(ACCENT)
+        .fg(theme.on_accent)
+        .bg(theme.accent)
         .add_modifier(Modifier::BOLD)
 }
 
-/// Action button key badge (uniform style for all key indicators)
-pub fn action_key() -> Style {
+pub fn navbar_inactive(theme: &Theme) -> Style {
+    secondary(theme)
+}
+
+pub fn status_normal(theme: &Theme) -> Style {
+    surface(theme)
+}
+
+pub fn status_loading(theme: &Theme) -> Style {
+    Style::default().fg(theme.accent).bg(theme.surface)
+}
+
+pub fn status_error(theme: &Theme) -> Style {
+    Style::default().fg(theme.error).bg(theme.surface)
+}
+
+pub fn action_install(theme: &Theme) -> Style {
     Style::default()
-        .fg(TEXT_ON_ACCENT)
-        .bg(ACCENT)
+        .fg(theme.on_install)
+        .bg(theme.install)
         .add_modifier(Modifier::BOLD)
 }
 
-/// Action button: uninstall / danger
-pub fn action_danger() -> Style {
+pub fn action_confirm(theme: &Theme) -> Style {
     Style::default()
-        .fg(TEXT_PRIMARY)
-        .bg(DANGER)
+        .fg(theme.on_success)
+        .bg(theme.success)
         .add_modifier(Modifier::BOLD)
 }
 
-/// Action button: info (open homepage)
-#[allow(dead_code)]
-pub fn action_info() -> Style {
+pub fn action_key(theme: &Theme) -> Style {
     Style::default()
-        .fg(TEXT_ON_ACCENT)
-        .bg(INFO)
+        .fg(theme.on_accent)
+        .bg(theme.accent)
         .add_modifier(Modifier::BOLD)
 }
 
-/// Action button: selection (space, select all)
-#[allow(dead_code)]
-pub fn action_selection() -> Style {
+pub fn action_danger(theme: &Theme) -> Style {
     Style::default()
-        .fg(TEXT_ON_ACCENT)
-        .bg(SELECTION)
+        .fg(theme.on_danger)
+        .bg(theme.danger)
         .add_modifier(Modifier::BOLD)
 }
 
-/// Help overlay section header
-pub fn help_section() -> Style {
-    Style::default().fg(ACCENT).add_modifier(Modifier::BOLD)
+pub fn source_winget(theme: &Theme) -> Style {
+    Style::default()
+        .fg(theme.on_info)
+        .bg(theme.info)
+        .add_modifier(Modifier::BOLD)
 }
 
-/// Help overlay key binding text
-pub fn help_key() -> Style {
-    Style::default().fg(INFO)
+pub fn source_msstore(theme: &Theme) -> Style {
+    Style::default()
+        .fg(theme.on_selection)
+        .bg(theme.selection)
+        .add_modifier(Modifier::BOLD)
 }
 
-// ── Winget Icon (half-block pixel art) ───────────────────────────────────────
+pub fn help_section(theme: &Theme) -> Style {
+    Style::default()
+        .fg(theme.accent)
+        .bg(theme.surface)
+        .add_modifier(Modifier::BOLD)
+}
 
-// Icon colors from the SVG (kept for potential future use)
-#[allow(dead_code)]
-const ICON_BROWN: Color = Color::Rgb(156, 100, 10); // #9C640A back card
-#[allow(dead_code)]
-const ICON_AMBER: Color = Color::Rgb(188, 130, 42); // #BC822A mid card
-#[allow(dead_code)]
-const ICON_GOLD: Color = Color::Rgb(222, 182, 120); // #DEB678 front card
-#[allow(dead_code)]
-const ICON_ARROW: Color = Color::Rgb(240, 240, 240); // #F0F0F0 arrow
+pub fn help_key(theme: &Theme) -> Style {
+    Style::default().fg(theme.info).bg(theme.surface)
+}
 
-/// Height of the logo in text rows
 pub const LOGO_HEIGHT: u16 = 3;
 
-/// Render "winget" as pixel word art using half-blocks.
-/// 3 text rows tall (6 pixel rows), rendered in the accent color.
-pub fn logo_lines() -> Vec<Line<'static>> {
-    // Letters designed on a 5x6 grid (or narrower), 1px gap between each.
-    //
-    //  w         i     n         g         e         t
-    //  #   #     #     #   #     ###       ###      ###
-    //  #   #     #     ##  #     #         #         #
-    //  # # #     #     # # #     # ##      ##        #
-    //  # # #     #     #  ##     #  #      #         #
-    //  ## ##     #     #   #     ###       ###       #
-    //
+pub fn logo_lines(theme: &Theme) -> Vec<Line<'static>> {
     #[rustfmt::skip]
     const GRID: [[u8; 31]; 6] = [
-      // w . . . .   i   n . . . .   g . . . .   e . . .   t . .
         [1,0,0,0,1, 0,1, 0,1,0,0,1, 0,0,1,1,1, 0,1,1,1, 0,1,1,1, 0,0,0,0,0,0],
         [1,0,0,0,1, 0,1, 0,1,1,0,1, 0,1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,0,0,0],
         [1,0,1,0,1, 0,1, 0,1,0,1,1, 0,1,0,1,1, 0,1,1,0, 0,0,1,0, 0,0,0,0,0,0],
@@ -220,26 +285,160 @@ pub fn logo_lines() -> Vec<Line<'static>> {
         [0,0,0,0,0, 0,0, 0,0,0,0,0, 0,0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,0,0],
     ];
 
-    let color = ACCENT;
     let mut lines = Vec::new();
-
     for text_row in 0..3 {
         let top = &GRID[text_row * 2];
-        let bot = &GRID[text_row * 2 + 1];
+        let bottom = &GRID[text_row * 2 + 1];
         let mut spans = Vec::new();
 
-        for col in 0..31 {
-            let t = top[col] == 1;
-            let b = bot[col] == 1;
-            match (t, b) {
+        for column in 0..31 {
+            match (top[column] == 1, bottom[column] == 1) {
                 (false, false) => spans.push(Span::raw(" ")),
-                (true, true) => spans.push(Span::styled("\u{2588}", Style::default().fg(color))),
-                (true, false) => spans.push(Span::styled("\u{2580}", Style::default().fg(color))),
-                (false, true) => spans.push(Span::styled("\u{2584}", Style::default().fg(color))),
+                (true, true) => spans.push(Span::styled(
+                    "\u{2588}",
+                    Style::default().fg(theme.accent).bg(theme.background),
+                )),
+                (true, false) => spans.push(Span::styled(
+                    "\u{2580}",
+                    Style::default().fg(theme.accent).bg(theme.background),
+                )),
+                (false, true) => spans.push(Span::styled(
+                    "\u{2584}",
+                    Style::default().fg(theme.accent).bg(theme.background),
+                )),
             }
         }
         lines.push(Line::from(spans));
     }
 
     lines
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const MIN_TEXT_CONTRAST: f64 = 4.5;
+    const MIN_NON_TEXT_CONTRAST: f64 = 3.0;
+
+    fn rgb(color: Color) -> (u8, u8, u8) {
+        match color {
+            Color::Rgb(red, green, blue) => (red, green, blue),
+            other => panic!("theme colors must be RGB, got {other:?}"),
+        }
+    }
+
+    fn relative_luminance(color: Color) -> f64 {
+        let (red, green, blue) = rgb(color);
+        let channel = |value: u8| {
+            let value = f64::from(value) / 255.0;
+            if value <= 0.04045 {
+                value / 12.92
+            } else {
+                ((value + 0.055) / 1.055).powf(2.4)
+            }
+        };
+        0.2126 * channel(red) + 0.7152 * channel(green) + 0.0722 * channel(blue)
+    }
+
+    fn contrast(foreground: Color, background: Color) -> f64 {
+        let foreground = relative_luminance(foreground);
+        let background = relative_luminance(background);
+        let (lighter, darker) = if foreground > background {
+            (foreground, background)
+        } else {
+            (background, foreground)
+        };
+        (lighter + 0.05) / (darker + 0.05)
+    }
+
+    fn assert_contrast(
+        theme_name: &str,
+        pair_name: &str,
+        foreground: Color,
+        background: Color,
+        minimum: f64,
+    ) {
+        let ratio = contrast(foreground, background);
+        assert!(
+            ratio >= minimum,
+            "{theme_name} {pair_name} contrast {ratio:.2}:1 is below {minimum:.1}:1"
+        );
+    }
+
+    #[test]
+    fn theme_names_are_case_insensitive() {
+        assert_eq!(ThemeName::parse("ORIGINAL"), ThemeName::Original);
+        assert_eq!(ThemeName::parse("ReTrO"), ThemeName::Retro);
+        assert_eq!(ThemeName::parse("NORD"), ThemeName::Nord);
+        assert_eq!(ThemeName::parse("unknown"), ThemeName::Original);
+    }
+
+    #[test]
+    fn rendered_semantic_pairs_meet_contrast_floors() {
+        for (name, theme) in [
+            ("original", Theme::original()),
+            ("retro", Theme::retro()),
+            ("nord", Theme::nord()),
+        ] {
+            for (pair, foreground, background) in [
+                ("root text", theme.text_primary, theme.background),
+                (
+                    "root secondary text",
+                    theme.text_secondary,
+                    theme.background,
+                ),
+                ("surface text", theme.text_primary, theme.surface),
+                (
+                    "surface secondary text",
+                    theme.text_secondary,
+                    theme.surface,
+                ),
+                ("accent text", theme.accent, theme.background),
+                ("surface accent text", theme.accent, theme.surface),
+                ("success text", theme.success, theme.background),
+                ("error text", theme.error, theme.surface),
+                ("info text", theme.info, theme.background),
+                ("surface info text", theme.info, theme.surface),
+                ("selected row", theme.on_accent, theme.accent),
+                ("confirm action", theme.on_success, theme.success),
+                ("Winget badge", theme.on_info, theme.info),
+                ("MsStore badge", theme.on_selection, theme.selection),
+                ("install action", theme.on_install, theme.install),
+                ("danger action", theme.on_danger, theme.danger),
+            ] {
+                assert_contrast(name, pair, foreground, background, MIN_TEXT_CONTRAST);
+            }
+
+            for (pair, foreground, background) in [
+                ("focused border", theme.accent, theme.background),
+                ("unfocused border", theme.accent_dim, theme.background),
+            ] {
+                assert_contrast(name, pair, foreground, background, MIN_NON_TEXT_CONTRAST);
+            }
+        }
+    }
+
+    #[test]
+    fn original_preserves_existing_colors_except_accessibility_exceptions() {
+        let theme = Theme::original();
+        assert_eq!(theme.background, Color::Rgb(30, 30, 30));
+        assert_eq!(theme.surface, Color::Rgb(45, 45, 45));
+        assert_eq!(theme.text_primary, Color::Rgb(232, 220, 183));
+        assert_eq!(theme.text_secondary, Color::Rgb(158, 158, 158));
+        assert_eq!(theme.accent, Color::Rgb(238, 201, 141));
+        assert_eq!(theme.accent_dim, Color::Rgb(137, 130, 112));
+        assert_eq!(theme.success, Color::Rgb(86, 185, 127));
+        assert_eq!(theme.info, Color::Rgb(97, 175, 239));
+        assert_eq!(theme.selection, Color::Rgb(198, 120, 221));
+        assert_eq!(theme.install, Color::Rgb(189, 63, 57));
+        assert_eq!(theme.error, Color::Rgb(249, 99, 113));
+        assert_eq!(theme.danger, Color::Rgb(249, 99, 113));
+        assert_eq!(theme.on_accent, Color::Rgb(30, 30, 30));
+        assert_eq!(theme.on_success, Color::Rgb(30, 30, 30));
+        assert_eq!(theme.on_info, Color::Rgb(30, 30, 30));
+        assert_eq!(theme.on_selection, Color::Rgb(30, 30, 30));
+        assert_eq!(theme.on_install, Color::Rgb(240, 240, 240));
+        assert_eq!(theme.on_danger, Color::Rgb(30, 30, 30));
+    }
 }

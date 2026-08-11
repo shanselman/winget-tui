@@ -10,6 +10,7 @@ use crate::models::{
     OpResult, Operation, Package, PackageDetail, PackagePin, PinFilter, SortDir, SortField,
     SourceFilter,
 };
+use crate::theme::Theme;
 
 /// Stores UI layout regions for mouse hit-testing
 #[derive(Debug, Default, Clone)]
@@ -108,6 +109,7 @@ pub struct ConfirmDialog {
 }
 
 pub struct App {
+    pub theme: Theme,
     pub mode: AppMode,
     pub input_mode: InputMode,
     pub focus: FocusZone,
@@ -215,6 +217,7 @@ impl App {
     pub fn new(backend: Arc<dyn WingetBackend>, cfg: Config) -> Self {
         let (message_tx, message_rx) = tokio::sync::mpsc::unbounded_channel();
         Self {
+            theme: Theme::from_name(cfg.theme),
             mode: cfg.default_view,
             input_mode: InputMode::Normal,
             focus: FocusZone::PackageList,

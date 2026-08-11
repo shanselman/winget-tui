@@ -20,6 +20,9 @@ use crate::theme;
 const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub fn draw(f: &mut Frame, app: &mut App) {
+    let palette = app.theme;
+    f.render_widget(Block::default().style(theme::root(&palette)), f.area());
+
     let header_height = theme::LOGO_HEIGHT; // logo + tabs, no extra spacing
     let show_search_bar = app.mode == AppMode::Search
         || app.input_mode == InputMode::Search
@@ -64,19 +67,20 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     }
 
     if let Some(confirm) = &app.confirm {
-        draw_confirm_dialog(f, confirm);
+        draw_confirm_dialog(f, confirm, &palette);
     }
 
     if app.input_mode == InputMode::VersionInput {
-        draw_version_input_dialog(f, app);
+        draw_version_input_dialog(f, app, &palette);
     }
 
     if app.show_help {
-        draw_help_overlay(f, app);
+        draw_help_overlay(f, app, &palette);
     }
 }
 
 fn draw_header(f: &mut Frame, app: &mut App, area: Rect) {
+    let palette = &app.theme;
     // Split: logo on left (34 chars) | spacing (3 chars) | tabs on right
     let logo_width = 33u16; // 31 word-art + 1 padding each side
     let gap = 4u16;
@@ -93,8 +97,10 @@ fn draw_header(f: &mut Frame, app: &mut App, area: Rect) {
     app.layout.tab_bar = chunks[2];
 
     // Draw pixel-art logo (vertically centered in the area, excluding spacing row)
-    let logo_lines = theme::logo_lines();
-    let logo = Paragraph::new(logo_lines).alignment(Alignment::Center);
+    let logo_lines = theme::logo_lines(palette);
+    let logo = Paragraph::new(logo_lines)
+        .style(theme::root(palette))
+        .alignment(Alignment::Center);
     f.render_widget(logo, chunks[0]);
 
     // Draw tabs vertically centered in the right area
@@ -116,9 +122,9 @@ fn draw_header(f: &mut Frame, app: &mut App, area: Rect) {
         .iter()
         .flat_map(|(mode, label)| {
             let style = if *mode == app.mode {
-                theme::navbar_active()
+                theme::navbar_active(palette)
             } else {
-                theme::navbar_inactive()
+                theme::navbar_inactive(palette)
             };
             let tab_text = format!(" {} ", label);
             let tab_width = UnicodeWidthStr::width(tab_text.as_str()) as u16;
@@ -144,7 +150,7 @@ fn draw_header(f: &mut Frame, app: &mut App, area: Rect) {
         height: 1,
     };
     let version = Paragraph::new(format!("v{APP_VERSION}"))
-        .style(Style::default().fg(theme::TEXT_SECONDARY))
+        .style(theme::secondary(palette))
         .alignment(Alignment::Right);
     f.render_widget(version, version_rect);
 
@@ -152,14 +158,15 @@ fn draw_header(f: &mut Frame, app: &mut App, area: Rect) {
 }
 
 fn draw_search_bar(f: &mut Frame, app: &mut App, area: Rect) {
+    let palette = &app.theme;
     // Store region for mouse clicks
     app.layout.search_bar = area;
 
     let search_style =
         if app.input_mode == InputMode::Search || app.input_mode == InputMode::LocalFilter {
-            Style::default().fg(theme::TEXT_PRIMARY).bg(theme::SURFACE)
+            theme::surface(palette)
         } else {
-            Style::default().fg(theme::TEXT_SECONDARY)
+            theme::secondary(palette)
         };
 
     let (active_text, placeholder) = if app.mode == AppMode::Search {
@@ -204,6 +211,7 @@ fn draw_main_content(f: &mut Frame, app: &mut App, area: Rect) {
 }
 
 fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
+    let palette = &app.theme;
     let is_focused = app.focus == FocusZone::PackageList;
 
     let title = match app.mode {
@@ -253,7 +261,7 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
     let header = Row::new(
         header_cells
             .iter()
-            .map(|h| Cell::from(h.as_ref()).style(theme::table_header())),
+            .map(|h| Cell::from(h.as_ref()).style(theme::table_header(palette))),
     )
     .height(1);
 
@@ -265,11 +273,11 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
             let is_selected = i == app.selected;
             let is_marked = app.mode == AppMode::Upgrades && app.selected_packages.contains(&i);
             let style = if is_selected {
-                theme::selected_row()
+                theme::selected_row(palette)
             } else if is_marked {
-                theme::marked_row()
+                theme::marked_row(palette)
             } else {
-                Style::default()
+                theme::root(palette)
             };
 
             let prefix = if app.mode == AppMode::Upgrades {
@@ -289,6 +297,11 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
             };
 
             let cells: Vec<Cell> = if app.mode == AppMode::Upgrades {
+                let available_style = if is_selected {
+                    theme::selected_row(palette)
+                } else {
+                    theme::success_text(palette)
+                };
                 vec![
                     Cell::from(format!(
                         "{}{}{}",
@@ -298,10 +311,7 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
                     )),
                     Cell::from(truncate(&pkg.id, 25)),
                     Cell::from(pkg.version.as_str()),
-                    Cell::from(Span::styled(
-                        &pkg.available_version,
-                        Style::default().fg(theme::SUCCESS),
-                    )),
+                    Cell::from(Span::styled(&pkg.available_version, available_style)),
                     Cell::from(pkg.source.as_str()),
                 ]
             } else {
@@ -340,17 +350,23 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
     };
 
     let border_style = if is_focused {
-        theme::border_focused()
+        theme::border_focused(palette)
     } else {
-        theme::border_unfocused()
+        theme::border_unfocused(palette)
     };
+    let focus_marker = if is_focused { ">" } else { " " };
 
     let block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
         .border_style(border_style)
-        .title(format!(" {} ({}) ", title, app.filtered_packages.len()))
-        .title_style(theme::title())
+        .title(format!(
+            " {focus_marker} {} ({}) ",
+            title,
+            app.filtered_packages.len()
+        ))
+        .title_style(theme::title(palette))
+        .style(theme::root(palette))
         .padding(ratatui::widgets::Padding::top(1));
 
     // Loading / empty state
@@ -393,7 +409,7 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
     if let Some(msg) = loading_msg {
         let p = Paragraph::new(msg)
             .block(block)
-            .style(Style::default().fg(theme::TEXT_SECONDARY));
+            .style(theme::secondary(palette));
         f.render_widget(p, area);
         return;
     }
@@ -423,6 +439,7 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
 }
 
 fn draw_detail_panel(f: &mut Frame, app: &mut App, area: Rect) {
+    let palette = &app.theme;
     let is_focused = app.focus == FocusZone::DetailPanel;
 
     let title = if app.detail_loading {
@@ -430,11 +447,13 @@ fn draw_detail_panel(f: &mut Frame, app: &mut App, area: Rect) {
     } else {
         " Package Details ".to_string()
     };
+    let focus_marker = if is_focused { ">" } else { " " };
+    let title = format!(" {focus_marker}{title}");
 
     let border_style = if is_focused {
-        theme::border_focused()
+        theme::border_focused(palette)
     } else {
-        theme::border_unfocused()
+        theme::border_unfocused(palette)
     };
 
     let block = Block::default()
@@ -442,11 +461,12 @@ fn draw_detail_panel(f: &mut Frame, app: &mut App, area: Rect) {
         .border_type(BorderType::Rounded)
         .border_style(border_style)
         .title(title)
-        .title_style(theme::title())
+        .title_style(theme::title(palette))
+        .style(theme::root(palette))
         .padding(ratatui::widgets::Padding::top(1));
 
     if let Some(detail) = &app.detail {
-        let label_style = theme::detail_label();
+        let label_style = theme::detail_label(palette);
 
         let available_version = app
             .selected_package()
@@ -460,7 +480,7 @@ fn draw_detail_panel(f: &mut Frame, app: &mut App, area: Rect) {
             ]),
             Line::from(vec![
                 Span::styled("  ID        ", label_style),
-                Span::styled(&detail.id, Style::default().fg(theme::INFO)),
+                Span::styled(&detail.id, theme::info_text(palette)),
             ]),
             Line::from(vec![
                 Span::styled("  Version   ", label_style),
@@ -473,9 +493,7 @@ fn draw_detail_panel(f: &mut Frame, app: &mut App, area: Rect) {
                 Span::styled("  Available ", label_style),
                 Span::styled(
                     available_version.to_string(),
-                    Style::default()
-                        .fg(theme::SUCCESS)
-                        .add_modifier(Modifier::BOLD),
+                    theme::success_text(palette).add_modifier(Modifier::BOLD),
                 ),
             ]));
         }
@@ -494,7 +512,7 @@ fn draw_detail_panel(f: &mut Frame, app: &mut App, area: Rect) {
         if detail.pin_state.is_pinned() {
             lines.push(Line::from(vec![
                 Span::styled("  Pin       ", label_style),
-                Span::styled("📌 ", Style::default().fg(theme::ACCENT)),
+                Span::styled("📌 ", theme::table_header(palette)),
                 Span::raw(detail.pin_state.label()),
             ]));
         }
@@ -512,9 +530,7 @@ fn draw_detail_panel(f: &mut Frame, app: &mut App, area: Rect) {
                 Span::raw("  "),
                 Span::styled(
                     &detail.homepage,
-                    Style::default()
-                        .fg(theme::INFO)
-                        .add_modifier(Modifier::UNDERLINED),
+                    theme::info_text(palette).add_modifier(Modifier::UNDERLINED),
                 ),
             ]));
         }
@@ -524,12 +540,10 @@ fn draw_detail_panel(f: &mut Frame, app: &mut App, area: Rect) {
                 lines.push(Line::raw(""));
             }
             lines.push(Line::from(vec![
-                Span::styled("  📋 ", Style::default().fg(theme::INFO)),
+                Span::styled("  📋 ", theme::info_text(palette)),
                 Span::styled(
                     &detail.release_notes_url,
-                    Style::default()
-                        .fg(theme::INFO)
-                        .add_modifier(Modifier::UNDERLINED),
+                    theme::info_text(palette).add_modifier(Modifier::UNDERLINED),
                 ),
             ]));
         }
@@ -538,7 +552,7 @@ fn draw_detail_panel(f: &mut Frame, app: &mut App, area: Rect) {
             lines.push(Line::raw(""));
             lines.push(Line::from(Span::styled("  Description", label_style)));
             // Manually word-wrap description to maintain consistent 2-space indent
-            let desc_style = Style::default().fg(theme::TEXT_SECONDARY);
+            let desc_style = theme::secondary(palette);
             let indent = "  ";
             // Available width: area minus borders (2) minus block padding (0 horiz) minus indent (2)
             let max_width = (area.width as usize).saturating_sub(4);
@@ -558,13 +572,13 @@ fn draw_detail_panel(f: &mut Frame, app: &mut App, area: Rect) {
             AppMode::Search => {
                 lines.push(Line::from(vec![
                     Span::raw("  "),
-                    Span::styled(" i ", theme::action_install()),
+                    Span::styled(" i ", theme::action_install(palette)),
                     Span::raw(" Install"),
                 ]));
                 lines.push(Line::raw(""));
                 lines.push(Line::from(vec![
                     Span::raw("  "),
-                    Span::styled(" I ", theme::action_install()),
+                    Span::styled(" I ", theme::action_install(palette)),
                     Span::raw(" Install specific version"),
                 ]));
             }
@@ -572,20 +586,20 @@ fn draw_detail_panel(f: &mut Frame, app: &mut App, area: Rect) {
                 if has_upgrade {
                     lines.push(Line::from(vec![
                         Span::raw("  "),
-                        Span::styled(" u ", theme::action_key()),
+                        Span::styled(" u ", theme::action_key(palette)),
                         Span::raw(" Upgrade"),
                     ]));
                     lines.push(Line::raw(""));
                 }
                 lines.push(Line::from(vec![
                     Span::raw("  "),
-                    Span::styled(" x ", theme::action_danger()),
+                    Span::styled(" x ", theme::action_danger(palette)),
                     Span::raw(" Uninstall"),
                 ]));
                 lines.push(Line::raw(""));
                 lines.push(Line::from(vec![
                     Span::raw("  "),
-                    Span::styled(" p ", theme::action_key()),
+                    Span::styled(" p ", theme::action_key(palette)),
                     Span::raw(if detail.pin_state.is_pinned() {
                         " Remove pin"
                     } else {
@@ -596,31 +610,31 @@ fn draw_detail_panel(f: &mut Frame, app: &mut App, area: Rect) {
             AppMode::Upgrades => {
                 lines.push(Line::from(vec![
                     Span::raw("  "),
-                    Span::styled(" u ", theme::action_key()),
+                    Span::styled(" u ", theme::action_key(palette)),
                     Span::raw(" Upgrade"),
                 ]));
                 lines.push(Line::raw(""));
                 lines.push(Line::from(vec![
                     Span::raw("  "),
-                    Span::styled(" x ", theme::action_danger()),
+                    Span::styled(" x ", theme::action_danger(palette)),
                     Span::raw(" Uninstall"),
                 ]));
                 lines.push(Line::raw(""));
                 lines.push(Line::from(vec![
                     Span::raw("  "),
-                    Span::styled(" Spc ", theme::action_key()),
+                    Span::styled(" Spc ", theme::action_key(palette)),
                     Span::raw(" Select"),
                 ]));
                 lines.push(Line::raw(""));
                 lines.push(Line::from(vec![
                     Span::raw("  "),
-                    Span::styled(" a ", theme::action_key()),
+                    Span::styled(" a ", theme::action_key(palette)),
                     Span::raw(" All"),
                 ]));
                 lines.push(Line::raw(""));
                 lines.push(Line::from(vec![
                     Span::raw("  "),
-                    Span::styled(" p ", theme::action_key()),
+                    Span::styled(" p ", theme::action_key(palette)),
                     Span::raw(if detail.pin_state.is_pinned() {
                         " Remove pin"
                     } else {
@@ -631,7 +645,7 @@ fn draw_detail_panel(f: &mut Frame, app: &mut App, area: Rect) {
                     lines.push(Line::raw(""));
                     lines.push(Line::from(vec![
                         Span::raw("  "),
-                        Span::styled(" U ", theme::action_key()),
+                        Span::styled(" U ", theme::action_key(palette)),
                         Span::raw(format!(" Upgrade {}", app.selected_packages.len())),
                     ]));
                 }
@@ -642,7 +656,7 @@ fn draw_detail_panel(f: &mut Frame, app: &mut App, area: Rect) {
             lines.push(Line::raw(""));
             lines.push(Line::from(vec![
                 Span::raw("  "),
-                Span::styled(" o ", theme::action_key()),
+                Span::styled(" o ", theme::action_key(palette)),
                 Span::raw(" Open homepage"),
             ]));
         }
@@ -650,7 +664,7 @@ fn draw_detail_panel(f: &mut Frame, app: &mut App, area: Rect) {
             lines.push(Line::raw(""));
             lines.push(Line::from(vec![
                 Span::raw("  "),
-                Span::styled(" c ", theme::action_key()),
+                Span::styled(" c ", theme::action_key(palette)),
                 Span::raw(" Open changelog"),
             ]));
         }
@@ -695,12 +709,13 @@ fn draw_detail_panel(f: &mut Frame, app: &mut App, area: Rect) {
         };
         let p = Paragraph::new(msg)
             .block(block)
-            .style(Style::default().fg(theme::TEXT_SECONDARY));
+            .style(theme::secondary(palette));
         f.render_widget(p, area);
     }
 }
 
 fn draw_status_bar(f: &mut Frame, app: &App, area: Rect) {
+    let palette = &app.theme;
     let filter_text = format!(" {} ", app.source_filter);
     let filter_len = UnicodeWidthStr::width(filter_text.as_str()) as u16 + 2; // + padding
     let show_pin_badge = app.mode != AppMode::Search;
@@ -727,30 +742,18 @@ fn draw_status_bar(f: &mut Frame, app: &App, area: Rect) {
 
     // Filter badge
     let filter_style = match app.source_filter {
-        crate::models::SourceFilter::All => {
-            Style::default().fg(theme::TEXT_PRIMARY).bg(theme::SURFACE)
-        }
-        crate::models::SourceFilter::Winget => {
-            Style::default().fg(theme::TEXT_ON_ACCENT).bg(theme::INFO)
-        }
-        crate::models::SourceFilter::MsStore => Style::default()
-            .fg(theme::TEXT_ON_ACCENT)
-            .bg(theme::SELECTION),
+        crate::models::SourceFilter::All => theme::surface(palette),
+        crate::models::SourceFilter::Winget => theme::source_winget(palette),
+        crate::models::SourceFilter::MsStore => theme::source_msstore(palette),
     };
     let filter_badge = Paragraph::new(filter_text).style(filter_style);
     f.render_widget(filter_badge, chunks[0]);
 
     if show_pin_badge {
         let pin_style = match app.pin_filter {
-            crate::models::PinFilter::All => {
-                Style::default().fg(theme::TEXT_PRIMARY).bg(theme::SURFACE)
-            }
-            crate::models::PinFilter::PinnedOnly => {
-                Style::default().fg(theme::TEXT_ON_ACCENT).bg(theme::ACCENT)
-            }
-            crate::models::PinFilter::UnpinnedOnly => {
-                Style::default().fg(theme::TEXT_ON_ACCENT).bg(theme::INFO)
-            }
+            crate::models::PinFilter::All => theme::surface(palette),
+            crate::models::PinFilter::PinnedOnly => theme::navbar_active(palette),
+            crate::models::PinFilter::UnpinnedOnly => theme::source_winget(palette),
         };
         let pin_badge = Paragraph::new(pin_text).style(pin_style);
         f.render_widget(pin_badge, chunks[1]);
@@ -764,21 +767,19 @@ fn draw_status_bar(f: &mut Frame, app: &App, area: Rect) {
     };
     let status_style =
         if app.status_message.contains("failed") || app.status_message.contains("Error") {
-            theme::status_error()
+            theme::status_error(palette)
         } else if app.loading {
-            theme::status_loading()
+            theme::status_loading(palette)
         } else {
-            theme::status_normal()
+            theme::status_normal(palette)
         };
     let status = Paragraph::new(status_text).style(status_style);
     f.render_widget(status, chunks[2]);
 
     // Global hotkey badges
-    let key_style = theme::action_key();
+    let key_style = theme::action_key(palette);
     let sep = Span::raw(" ");
-    let label_style = Style::default()
-        .fg(theme::TEXT_SECONDARY)
-        .bg(theme::SURFACE);
+    let label_style = theme::surface_secondary(palette);
 
     let hotkeys = match app.input_mode {
         InputMode::Search => Line::from(vec![
@@ -836,26 +837,22 @@ fn draw_status_bar(f: &mut Frame, app: &App, area: Rect) {
     };
 
     let hints = Paragraph::new(hotkeys)
-        .style(Style::default().bg(theme::SURFACE))
+        .style(theme::surface(palette))
         .alignment(Alignment::Right);
     f.render_widget(hints, chunks[3]);
 }
 
-fn draw_confirm_dialog(f: &mut Frame, confirm: &ConfirmDialog) {
+fn draw_confirm_dialog(f: &mut Frame, confirm: &ConfirmDialog, palette: &theme::Theme) {
     let area = centered_rect(50, 20, f.area());
     f.render_widget(Clear, area);
 
     let block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
-        .border_style(theme::border_focused())
+        .border_style(Style::default().fg(palette.accent).bg(palette.surface))
         .title(" Confirm ")
-        .title_style(
-            Style::default()
-                .fg(theme::ACCENT)
-                .add_modifier(Modifier::BOLD),
-        )
-        .style(Style::default().bg(theme::SURFACE));
+        .title_style(theme::help_section(palette))
+        .style(theme::surface(palette));
 
     let lines = vec![
         Line::raw(""),
@@ -863,20 +860,21 @@ fn draw_confirm_dialog(f: &mut Frame, confirm: &ConfirmDialog) {
         Line::raw(""),
         Line::from(vec![
             Span::raw("  "),
-            Span::styled(" y ", theme::action_confirm()),
+            Span::styled(" y ", theme::action_confirm(palette)),
             Span::raw(" Yes   "),
-            Span::styled(" n ", theme::action_danger()),
+            Span::styled(" n ", theme::action_danger(palette)),
             Span::raw(" No"),
         ]),
     ];
 
     let p = Paragraph::new(lines)
         .block(block)
+        .style(theme::surface(palette))
         .wrap(Wrap { trim: false });
     f.render_widget(p, area);
 }
 
-fn draw_version_input_dialog(f: &mut Frame, app: &App) {
+fn draw_version_input_dialog(f: &mut Frame, app: &App, palette: &theme::Theme) {
     let area = centered_rect(55, 25, f.area());
     f.render_widget(Clear, area);
 
@@ -889,15 +887,14 @@ fn draw_version_input_dialog(f: &mut Frame, app: &App) {
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
         .title(" 📦 Install Specific Version ")
-        .title_style(
-            Style::default()
-                .fg(theme::ACCENT)
-                .add_modifier(Modifier::BOLD),
-        )
-        .border_style(theme::border_focused())
-        .style(Style::default().bg(theme::SURFACE));
+        .title_style(theme::help_section(palette))
+        .border_style(Style::default().fg(palette.accent).bg(palette.surface))
+        .style(theme::surface(palette));
 
-    let label_style = theme::detail_label();
+    let label_style = Style::default()
+        .fg(palette.accent)
+        .bg(palette.surface)
+        .add_modifier(Modifier::BOLD);
 
     let lines = vec![
         Line::raw(""),
@@ -910,24 +907,23 @@ fn draw_version_input_dialog(f: &mut Frame, app: &App) {
             Span::raw("  Version: "),
             Span::styled(
                 &app.version_input,
-                Style::default()
-                    .fg(theme::TEXT_PRIMARY)
-                    .add_modifier(Modifier::BOLD),
+                theme::surface(palette).add_modifier(Modifier::BOLD),
             ),
-            Span::styled("█", Style::default().fg(theme::ACCENT)),
+            Span::styled("█", Style::default().fg(palette.accent).bg(palette.surface)),
         ]),
         Line::raw(""),
         Line::from(vec![
             Span::raw("  "),
-            Span::styled(" Enter ", theme::action_confirm()),
+            Span::styled(" Enter ", theme::action_confirm(palette)),
             Span::raw(" Confirm   "),
-            Span::styled(" Esc ", theme::action_danger()),
+            Span::styled(" Esc ", theme::action_danger(palette)),
             Span::raw(" Cancel"),
         ]),
     ];
 
     let p = Paragraph::new(lines)
         .block(block)
+        .style(theme::surface(palette))
         .wrap(Wrap { trim: false });
     f.render_widget(p, area);
 
@@ -937,26 +933,22 @@ fn draw_version_input_dialog(f: &mut Frame, app: &App) {
     f.set_cursor_position((cursor_x, cursor_y));
 }
 
-fn draw_help_overlay(f: &mut Frame, app: &mut App) {
+fn draw_help_overlay(f: &mut Frame, app: &mut App, palette: &theme::Theme) {
     let area = centered_rect(60, 70, f.area());
     f.render_widget(Clear, area);
 
     let block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
-        .border_style(theme::border_focused())
+        .border_style(Style::default().fg(palette.accent).bg(palette.surface))
         .title(format!(
             " Help -- winget-tui v{APP_VERSION} -- Keybindings  ↑↓ to scroll "
         ))
-        .title_style(
-            Style::default()
-                .fg(theme::ACCENT)
-                .add_modifier(Modifier::BOLD),
-        )
-        .style(Style::default().bg(theme::SURFACE));
+        .title_style(theme::help_section(palette))
+        .style(theme::surface(palette));
 
-    let section = theme::help_section();
-    let key = theme::help_key();
+    let section = theme::help_section(palette);
+    let key = theme::help_key(palette);
 
     let help_text = vec![
         Line::raw(""),
@@ -1089,6 +1081,7 @@ fn draw_help_overlay(f: &mut Frame, app: &mut App) {
 
     let p = Paragraph::new(help_text)
         .block(block)
+        .style(theme::surface(palette))
         .wrap(Wrap { trim: false })
         .scroll((app.help_scroll, 0));
     f.render_widget(p, area);
@@ -1227,8 +1220,210 @@ fn word_wrap(text: &str, max_width: usize) -> Vec<String> {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+
+    use anyhow::Result;
+    use async_trait::async_trait;
+    use ratatui::{backend::TestBackend, buffer::Buffer, style::Color, Terminal};
+
     use super::*;
-    use crate::models::{SortDir, SortField};
+    use crate::backend::WingetBackend;
+    use crate::models::{
+        Operation, Package, PackageDetail, PackagePin, SortDir, SortField, Source, SourceFilter,
+    };
+    use crate::theme::Theme;
+
+    struct NoopBackend;
+
+    #[async_trait]
+    impl WingetBackend for NoopBackend {
+        async fn search(&self, _: &str, _: Option<&str>) -> Result<Vec<Package>> {
+            Ok(Vec::new())
+        }
+
+        async fn list_installed(&self, _: Option<&str>) -> Result<Vec<Package>> {
+            Ok(Vec::new())
+        }
+
+        async fn list_upgrades(&self, _: Option<&str>) -> Result<Vec<Package>> {
+            Ok(Vec::new())
+        }
+
+        async fn show(&self, _: &str) -> Result<PackageDetail> {
+            Ok(PackageDetail::default())
+        }
+
+        async fn install(&self, _: &str, _: Option<&str>) -> Result<String> {
+            Ok(String::new())
+        }
+
+        async fn uninstall(&self, _: &str) -> Result<String> {
+            Ok(String::new())
+        }
+
+        async fn upgrade(&self, _: &str) -> Result<String> {
+            Ok(String::new())
+        }
+
+        async fn list_pins(&self) -> Result<Vec<PackagePin>> {
+            Ok(Vec::new())
+        }
+
+        async fn pin(&self, _: &str) -> Result<String> {
+            Ok(String::new())
+        }
+
+        async fn unpin(&self, _: &str) -> Result<String> {
+            Ok(String::new())
+        }
+
+        async fn list_sources(&self) -> Result<Vec<Source>> {
+            Ok(Vec::new())
+        }
+    }
+
+    fn render(theme: Theme, configure: impl FnOnce(&mut App)) -> Buffer {
+        let mut app = App::new(Arc::new(NoopBackend), crate::config::Config::default());
+        app.theme = theme;
+        configure(&mut app);
+
+        let backend = TestBackend::new(160, 40);
+        let mut terminal = Terminal::new(backend).expect("test terminal");
+        terminal
+            .draw(|frame| draw(frame, &mut app))
+            .expect("render succeeds");
+        terminal.backend().buffer().clone()
+    }
+
+    fn find_text(buffer: &Buffer, needle: &str) -> (u16, u16) {
+        for y in 0..buffer.area().height {
+            for start_x in 0..buffer.area().width {
+                let suffix: String = (start_x..buffer.area().width)
+                    .map(|x| buffer[(x, y)].symbol())
+                    .collect();
+                if suffix.starts_with(needle) {
+                    return (start_x, y);
+                }
+            }
+        }
+        panic!("did not find {needle:?} in rendered buffer");
+    }
+
+    fn is_wide_continuation(buffer: &Buffer, index: usize) -> bool {
+        let width = buffer.area().width as usize;
+        let x = index % width;
+        x > 0 && UnicodeWidthStr::width(buffer.content()[index - 1].symbol()) > 1
+    }
+
+    fn assert_no_reset_cells(buffer: &Buffer, area: Rect) {
+        for y in area.y..area.y + area.height {
+            for x in area.x..area.x + area.width {
+                let index = y as usize * buffer.area().width as usize + x as usize;
+                if is_wide_continuation(buffer, index) {
+                    continue;
+                }
+                let cell = &buffer[(x, y)];
+                assert_ne!(cell.fg, Color::Reset, "reset foreground at ({x}, {y})");
+                assert_ne!(cell.bg, Color::Reset, "reset background at ({x}, {y})");
+            }
+        }
+    }
+
+    fn assert_text_style(buffer: &Buffer, needle: &str, foreground: Color, background: Color) {
+        let (x, y) = find_text(buffer, needle);
+        let cell = &buffer[(x, y)];
+        assert_eq!(cell.fg, foreground, "{needle:?} foreground");
+        assert_eq!(cell.bg, background, "{needle:?} background");
+    }
+
+    #[test]
+    fn every_preset_owns_the_rendered_root_colors() {
+        for theme in [Theme::original(), Theme::retro(), Theme::nord()] {
+            let buffer = render(theme, |_| {});
+            assert_no_reset_cells(&buffer, *buffer.area());
+
+            let spacer = &buffer[(0, theme::LOGO_HEIGHT)];
+            assert_eq!(spacer.fg, theme.text_primary);
+            assert_eq!(spacer.bg, theme.background);
+        }
+    }
+
+    #[test]
+    fn rendered_status_and_badges_use_concrete_theme_pairs() {
+        for theme in [Theme::original(), Theme::retro(), Theme::nord()] {
+            let error = render(theme, |app| {
+                app.status_message = "Error: test".to_string();
+            });
+            assert_text_style(&error, "Error: test", theme.error, theme.surface);
+
+            let msstore = render(theme, |app| {
+                app.source_filter = SourceFilter::MsStore;
+            });
+            assert_text_style(&msstore, "msstore", theme.on_selection, theme.selection);
+        }
+    }
+
+    #[test]
+    fn overlays_repaint_cells_after_clear() {
+        for theme in [Theme::original(), Theme::retro(), Theme::nord()] {
+            let confirm = render(theme, |app| {
+                app.confirm = Some(ConfirmDialog {
+                    message: "Proceed with operation?".to_string(),
+                    operation: Operation::Upgrade {
+                        id: "Example.Package".to_string(),
+                    },
+                });
+            });
+            assert_text_style(
+                &confirm,
+                "Proceed with operation?",
+                theme.text_primary,
+                theme.surface,
+            );
+            assert_no_reset_cells(&confirm, centered_rect(50, 20, *confirm.area()));
+
+            let help = render(theme, |app| app.show_help = true);
+            assert_text_style(&help, "Move up / down", theme.text_primary, theme.surface);
+            assert_no_reset_cells(&help, centered_rect(60, 70, *help.area()));
+
+            let version = render(theme, |app| {
+                app.input_mode = InputMode::VersionInput;
+                app.version_input = "1.2.3".to_string();
+            });
+            assert_text_style(&version, "1.2.3", theme.text_primary, theme.surface);
+            assert_no_reset_cells(&version, centered_rect(55, 25, *version.area()));
+        }
+    }
+
+    #[test]
+    fn selected_upgrade_row_keeps_a_continuous_selection_background() {
+        for theme in [Theme::original(), Theme::retro(), Theme::nord()] {
+            let buffer = render(theme, |app| {
+                app.mode = AppMode::Upgrades;
+                app.packages = vec![Package {
+                    name: "Example Package".to_string(),
+                    id: "Example.Package".to_string(),
+                    version: "1.0".to_string(),
+                    available_version: "2.0".to_string(),
+                    source: "winget".to_string(),
+                    pin_state: Default::default(),
+                }];
+                app.filtered_packages = app.packages.clone();
+            });
+            assert_text_style(&buffer, "2.0", theme.on_accent, theme.accent);
+        }
+    }
+
+    #[test]
+    fn focused_panel_has_a_non_color_marker() {
+        let list_focused = render(Theme::original(), |_| {});
+        find_text(&list_focused, "> Installed");
+
+        let detail_focused = render(Theme::original(), |app| {
+            app.focus = FocusZone::DetailPanel;
+        });
+        find_text(&detail_focused, "> Package Details");
+    }
 
     #[test]
     fn truncate_ascii_within_limit() {
