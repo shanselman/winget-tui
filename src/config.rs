@@ -10,6 +10,7 @@
 /// default_source     = "all"         # "all" | "winget" | "msstore"
 /// default_sort       = "name"        # name | name_desc | id | id_desc | version | version_desc | none
 /// default_pin_filter = "all"         # "all" | "pinned" | "hide_pinned"
+/// theme              = "original"    # "original" | "retro" | "nord"
 /// ```
 use crate::app::AppMode;
 use crate::models::{PinFilter, SortDir, SortField, SourceFilter};

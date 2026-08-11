@@ -23,7 +23,7 @@ A terminal user interface for [Windows Package Manager (winget)](https://github.
 - **Package Details** — View publisher, description, license, homepage, and release notes
 - **Graceful Local Package Info** — Non-winget installs still show a useful explanation when rich manifest metadata is unavailable
 - **Scrollable Details Pane** — Read long descriptions without losing your place in the package list
-- **Configurable Startup Defaults** — Set your default view and source in `config.toml`
+- **Configurable Themes and Startup Defaults** — Select an accessible color preset and default view in `config.toml`
 - **Keyboard-Driven** — Vim-style navigation, no mouse needed
 - **Non-Blocking** — Install/uninstall/upgrade run in the background
 - **Single Binary** — No runtime dependencies beyond winget itself
@@ -166,6 +166,7 @@ default_view = "upgrades"          # installed | search | upgrades
 default_source = "winget"          # all | winget | msstore
 default_sort = "name"              # name | name_desc | id | id_desc | version | version_desc | none
 default_pin_filter = "hide_pinned" # all | pinned | hide_pinned
+theme = "retro"                    # original | retro | nord
 ```
 
 ## Architecture
