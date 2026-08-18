@@ -1449,6 +1449,59 @@ Git  Git.Git 2.53.0  2.54.0    winget
     }
 
     #[test]
+    fn parse_upgrade_table_second_table_missing_separator_is_ignored() {
+        let backend = CliBackend::new();
+        // If the trailing pin-table text does not contain a valid dashed
+        // separator (e.g. winget emits only a note with no table), the
+        // parser must not panic and must still return the main table's
+        // packages.
+        let output = "\
+Name                           Id                          Version     Available   Source
+-------------------------------------------------------------------------------------------------
+Google Chrome                  Google.Chrome               131.0.6778  132.0.6834  winget
+1 upgrades available.
+
+1 package(s) have a pin that needs to be removed before upgrade
+No packages found matching input criteria.
+";
+        let packages = backend.parse_packages_from_table(output);
+        assert_eq!(
+            packages.len(),
+            1,
+            "malformed/absent second table must not add spurious packages or panic"
+        );
+        assert_eq!(packages[0].id, "Google.Chrome");
+    }
+
+    #[test]
+    fn list_upgrades_pipeline_dedupes_package_repeated_in_pin_table() {
+        // Regression coverage for the full list_upgrades pipeline: a package
+        // that (incorrectly) appears in both the main table and the trailing
+        // pin table for the same id+source must be deduped to a single entry,
+        // matching the behavior of list_upgrades/list_installed/search which
+        // all pipe parse_packages_from_table through dedupe_packages.
+        let backend = CliBackend::new();
+        let output = "\
+Name                           Id                          Version     Available   Source
+-------------------------------------------------------------------------------------------------
+Git                            Git.Git                     2.53.0      2.54.0      winget
+1 upgrades available.
+
+1 package(s) have a pin that needs to be removed before upgrade
+Name Id      Version Available Source
+-------------------------------------
+Git  Git.Git 2.53.0  2.54.0    winget
+";
+        let packages = CliBackend::dedupe_packages(backend.parse_packages_from_table(output));
+        assert_eq!(
+            packages.len(),
+            1,
+            "duplicate id+source across main and pin tables must be deduped"
+        );
+        assert_eq!(packages[0].id, "Git.Git");
+    }
+
+    #[test]
     fn parse_table_with_digit_starting_package_name() {
         let backend = CliBackend::new();
         // 7-Zip starts with a digit — must NOT be treated as a footer line
