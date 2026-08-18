@@ -1,47 +1,14 @@
 {
-  "last_run": "2026-08-06",
-  "last_run_id": "31105157191",
+  "last_run": "2026-08-18",
+  "last_run_id": "32196586249",
   "monthly_summary_disabled": true,
   "monthly_summary_note": "2026-06-08: Maintainer closed issue #222. Do NOT create monthly activity summary issues.",
   "comments_made": {
-    "275": "2026-07-06: Commented that PR #275 is superseded by #298",
-    "233": "2026-07-07: Commented that PR #241 already implements the available-version sort feature",
-    "296": "2026-07-08: Commented that PR #296 is superseded by #297, test name collision",
-    "273": "2026-07-08: Commented that PR #273 has 4 test name conflicts with #297",
-    "280": "2026-07-21: Commented that PR #280 is superseded by #315",
-    "307": "2026-07-21: Commented that PR #307 is superseded by #309",
-    "313": "2026-07-21: Commented that PR #313 is superseded by #316",
-    "310": "2026-07-21: Commented that PR #310 is superseded by #326",
-    "324": "2026-07-21: Commented that PR #324 is superseded by #327",
-    "312": "2026-07-22: Commented superseded by new bundled deps PR",
-    "332": "2026-07-23: Commented superseded by #338",
-    "333": "2026-07-23: Commented superseded by #338",
-    "334": "2026-07-23: Commented superseded by #338",
-    "335": "2026-07-23: Commented superseded by #338",
-    "336": "2026-07-23: Commented superseded by #338",
-    "314": "2026-07-26: Commented that PR #314 is superseded by #341",
     "347": "2026-07-31: Commented with root cause analysis and debugging suggestions"
   },
   "open_repo_assist_prs": [
-    {"pr": 348, "title": "chore: update Cargo.lock to latest compatible dependency versions (Jul 2026)"},
-    {"pr": 349, "title": "fix: handle inline TOML comments in config parser"},
-    {"pr": 351, "title": "fix: Ctrl+C always quits regardless of active input mode"},
-    {"pr": 352, "title": "feat: sort Upgrades view by available version"},
-    {"pr": 354, "title": "refactor: simplify handler return types from Result<bool> to Result<()>"},
-    {"pr": 355, "title": "perf: use to_ascii_lowercase in filter/sort; remove per-part alloc in version_key"},
-    {"pr": 356, "title": "fix: restore cursor to previously selected package when clearing local filter"},
-    {"pr": 357, "title": "improve: backspace on empty local filter exits filter mode"},
-    {"pr": 358, "title": "chore: remove unused serde_json dependency"},
-    {"pr": 359, "title": "feat: add w key to open package page on winget.run"},
-    {"pr": 360, "title": "fix: show 'No packages match the filter' when local filter has no results"},
-    {"pr": 364, "title": "perf: only build Row structs for visible viewport in draw_package_list"},
-    {"pr": 366, "title": "feat: add y key to copy package ID to system clipboard"},
-    {"pr": 367, "title": "ci: bundle Dependabot GitHub Actions updates (Aug 2026)"}
-  ],
-  "merged_or_closed_prs": [
-    {"pr": 353, "title": "feat: add g/G vim-style navigation shortcuts", "status": "closed by maintainer (confirmed 2026-08-02)"}
+    {"pr": "TBD-test-pin-table", "title": "test: cover malformed/duplicate pin-table parsing paths in upgrade output (2026-08-18)"}
   ],
   "ci_note": "All repo-assist branch PRs show pending CI (fork protection). Infrastructure issue, not code failures.",
-  "handler_conflict_note": "PRs 354, 351, 356, 357, 359, 366 all touch handler.rs. If merged sequentially, later ones may conflict.",
-  "notes": "Run 31105157191 (2026-08-06): Tasks 5+3 selected. No user issues accessible (integrity filtered). Codebase clean: zero compiler warnings, zero clippy warnings, no TODOs/FIXMEs. 14 open Repo Assist PRs already covering most improvements. No action taken - await maintainer reviews."
+  "notes": "Run 32196586249 (2026-08-18): Tasks 3+9 selected. Task 3 blocked - issues #383, #372 and PR #381 all integrity-filtered/inaccessible (cannot read content, so cannot investigate/fix). Task 9: added 2 targeted tests for pin-table parsing edge cases (malformed second table, cross-table dedup) in cli_backend.rs - found via coverage audit, no existing tests hit these paths. 376 tests pass, fmt/clippy clean. Created PR on branch repo-assist/test-pin-table-parsing-coverage. Prior memory.json had a large backlog of PR numbers (348-369) that could not be re-verified this run due to integrity filtering on issue/PR reads - future runs should re-check these via safe, filtered-appropriate means. Skipped Task 11 (monthly summary) per maintainer instruction to not create these issues (see monthly_summary_note)."
 }
