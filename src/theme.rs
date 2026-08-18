@@ -75,7 +75,7 @@ impl Theme {
             background: Color::Rgb(46, 52, 64),
             surface: Color::Rgb(59, 66, 82),
             text_primary: Color::Rgb(236, 239, 244),
-            text_secondary: Color::Rgb(216, 222, 233),
+            text_secondary: Color::Rgb(168, 180, 198),
             accent: Color::Rgb(136, 192, 208),
             accent_dim: Color::Rgb(115, 128, 151),
             success: Color::Rgb(163, 190, 140),
@@ -93,11 +93,35 @@ impl Theme {
         }
     }
 
+    pub const fn terminal() -> Self {
+        Self {
+            background: Color::Reset,
+            surface: Color::Reset,
+            text_primary: Color::Reset,
+            text_secondary: Color::Reset,
+            accent: Color::Cyan,
+            accent_dim: Color::DarkGray,
+            success: Color::Green,
+            error: Color::LightRed,
+            info: Color::LightCyan,
+            selection: Color::Magenta,
+            install: Color::Yellow,
+            danger: Color::Red,
+            on_accent: Color::Black,
+            on_success: Color::Black,
+            on_info: Color::Black,
+            on_selection: Color::White,
+            on_install: Color::Black,
+            on_danger: Color::White,
+        }
+    }
+
     pub const fn from_name(name: ThemeName) -> Self {
         match name {
             ThemeName::Original => Self::original(),
             ThemeName::Retro => Self::retro(),
             ThemeName::Nord => Self::nord(),
+            ThemeName::Terminal => Self::terminal(),
         }
     }
 }
@@ -113,6 +137,7 @@ pub enum ThemeName {
     Original,
     Retro,
     Nord,
+    Terminal,
 }
 
 impl ThemeName {
@@ -121,6 +146,8 @@ impl ThemeName {
             Self::Retro
         } else if value.eq_ignore_ascii_case("nord") {
             Self::Nord
+        } else if value.eq_ignore_ascii_case("terminal") || value.eq_ignore_ascii_case("system") {
+            Self::Terminal
         } else {
             Self::Original
         }
@@ -136,13 +163,23 @@ pub fn surface(theme: &Theme) -> Style {
 }
 
 pub fn secondary(theme: &Theme) -> Style {
-    Style::default()
+    let style = Style::default()
         .fg(theme.text_secondary)
-        .bg(theme.background)
+        .bg(theme.background);
+    if theme.text_secondary == Color::Reset {
+        style.add_modifier(Modifier::DIM)
+    } else {
+        style
+    }
 }
 
 pub fn surface_secondary(theme: &Theme) -> Style {
-    Style::default().fg(theme.text_secondary).bg(theme.surface)
+    let style = Style::default().fg(theme.text_secondary).bg(theme.surface);
+    if theme.text_secondary == Color::Reset {
+        style.add_modifier(Modifier::DIM)
+    } else {
+        style
+    }
 }
 
 pub fn success_text(theme: &Theme) -> Style {
@@ -321,15 +358,15 @@ mod tests {
     const MIN_TEXT_CONTRAST: f64 = 4.5;
     const MIN_NON_TEXT_CONTRAST: f64 = 3.0;
 
-    fn rgb(color: Color) -> (u8, u8, u8) {
+    fn rgb(color: Color) -> Option<(u8, u8, u8)> {
         match color {
-            Color::Rgb(red, green, blue) => (red, green, blue),
-            other => panic!("theme colors must be RGB, got {other:?}"),
+            Color::Rgb(red, green, blue) => Some((red, green, blue)),
+            _ => None,
         }
     }
 
-    fn relative_luminance(color: Color) -> f64 {
-        let (red, green, blue) = rgb(color);
+    fn relative_luminance(color: Color) -> Option<f64> {
+        let (red, green, blue) = rgb(color)?;
         let channel = |value: u8| {
             let value = f64::from(value) / 255.0;
             if value <= 0.04045 {
@@ -338,18 +375,18 @@ mod tests {
                 ((value + 0.055) / 1.055).powf(2.4)
             }
         };
-        0.2126 * channel(red) + 0.7152 * channel(green) + 0.0722 * channel(blue)
+        Some(0.2126 * channel(red) + 0.7152 * channel(green) + 0.0722 * channel(blue))
     }
 
-    fn contrast(foreground: Color, background: Color) -> f64 {
-        let foreground = relative_luminance(foreground);
-        let background = relative_luminance(background);
+    fn contrast(foreground: Color, background: Color) -> Option<f64> {
+        let foreground = relative_luminance(foreground)?;
+        let background = relative_luminance(background)?;
         let (lighter, darker) = if foreground > background {
             (foreground, background)
         } else {
             (background, foreground)
         };
-        (lighter + 0.05) / (darker + 0.05)
+        Some((lighter + 0.05) / (darker + 0.05))
     }
 
     fn assert_contrast(
@@ -359,7 +396,9 @@ mod tests {
         background: Color,
         minimum: f64,
     ) {
-        let ratio = contrast(foreground, background);
+        let Some(ratio) = contrast(foreground, background) else {
+            return;
+        };
         assert!(
             ratio >= minimum,
             "{theme_name} {pair_name} contrast {ratio:.2}:1 is below {minimum:.1}:1"
@@ -371,6 +410,8 @@ mod tests {
         assert_eq!(ThemeName::parse("ORIGINAL"), ThemeName::Original);
         assert_eq!(ThemeName::parse("ReTrO"), ThemeName::Retro);
         assert_eq!(ThemeName::parse("NORD"), ThemeName::Nord);
+        assert_eq!(ThemeName::parse("terminal"), ThemeName::Terminal);
+        assert_eq!(ThemeName::parse("SYSTEM"), ThemeName::Terminal);
         assert_eq!(ThemeName::parse("unknown"), ThemeName::Original);
     }
 
@@ -416,7 +457,28 @@ mod tests {
             ] {
                 assert_contrast(name, pair, foreground, background, MIN_NON_TEXT_CONTRAST);
             }
+
+            assert_contrast(
+                name,
+                "primary/secondary role separation",
+                theme.text_primary,
+                theme.text_secondary,
+                1.5,
+            );
         }
+    }
+
+    #[test]
+    fn terminal_theme_inherits_terminal_foreground_and_background() {
+        let theme = Theme::terminal();
+        assert_eq!(theme.background, Color::Reset);
+        assert_eq!(theme.surface, Color::Reset);
+        assert_eq!(theme.text_primary, Color::Reset);
+        assert_eq!(theme.text_secondary, Color::Reset);
+        assert!(secondary(&theme).add_modifier.contains(Modifier::DIM));
+        assert!(surface_secondary(&theme)
+            .add_modifier
+            .contains(Modifier::DIM));
     }
 
     #[test]

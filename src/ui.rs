@@ -1349,6 +1349,15 @@ mod tests {
     }
 
     #[test]
+    fn terminal_preset_preserves_terminal_default_colors() {
+        let theme = Theme::terminal();
+        let buffer = render(theme, |_| {});
+        let spacer = &buffer[(0, theme::LOGO_HEIGHT)];
+        assert_eq!(spacer.fg, Color::Reset);
+        assert_eq!(spacer.bg, Color::Reset);
+    }
+
+    #[test]
     fn rendered_status_and_badges_use_concrete_theme_pairs() {
         for theme in [Theme::original(), Theme::retro(), Theme::nord()] {
             let error = render(theme, |app| {

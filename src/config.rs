@@ -10,7 +10,7 @@
 /// default_source     = "all"         # "all" | "winget" | "msstore"
 /// default_sort       = "name"        # name | name_desc | id | id_desc | version | version_desc | none
 /// default_pin_filter = "all"         # "all" | "pinned" | "hide_pinned"
-/// theme              = "original"    # "original" | "retro" | "nord"
+/// theme              = "original"    # "original" | "retro" | "nord" | "terminal"
 /// ```
 use crate::app::AppMode;
 use crate::models::{PinFilter, SortDir, SortField, SourceFilter};
@@ -169,6 +169,14 @@ mod tests {
         );
         assert_eq!(Config::parse(r#"theme = "ReTrO""#).theme, ThemeName::Retro);
         assert_eq!(Config::parse(r#"theme = "NORD""#).theme, ThemeName::Nord);
+        assert_eq!(
+            Config::parse(r#"theme = "terminal""#).theme,
+            ThemeName::Terminal
+        );
+        assert_eq!(
+            Config::parse(r#"theme = "system""#).theme,
+            ThemeName::Terminal
+        );
     }
 
     #[test]

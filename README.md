@@ -166,8 +166,12 @@ default_view = "upgrades"          # installed | search | upgrades
 default_source = "winget"          # all | winget | msstore
 default_sort = "name"              # name | name_desc | id | id_desc | version | version_desc | none
 default_pin_filter = "hide_pinned" # all | pinned | hide_pinned
-theme = "retro"                    # original | retro | nord
+theme = "retro"                    # original | retro | nord | terminal
 ```
+
+The `terminal` theme inherits the terminal profile's foreground and background
+colors, preserving transparency, custom color schemes, and system contrast
+settings. `system` is accepted as an alias.
 
 ## Architecture
 
