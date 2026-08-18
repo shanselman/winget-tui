@@ -2,7 +2,7 @@
 name = "winget-tui"
 version = "0.13.2"
 edition = "2021"
-rust-version = "1.86"
+rust-version = "1.88"
 description = "A terminal user interface for Windows Package Manager (winget)"
 homepage = "https://github.com/shanselman/winget-tui"
 repository = "https://github.com/shanselman/winget-tui"

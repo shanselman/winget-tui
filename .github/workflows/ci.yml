@@ -11,6 +11,17 @@ permissions:
   checks: write
 
 jobs:
+  msrv:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - name: Install Rust 1.88
+        uses: dtolnay/rust-toolchain@1.88.0
+
+      - name: Check
+        run: cargo check --locked --all-targets
+
   check:
     runs-on: windows-latest
     steps:

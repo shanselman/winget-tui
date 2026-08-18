@@ -16,12 +16,16 @@ pub struct CliBackend;
 /// `"3 Pakete verfügen über Pins…"`.
 ///
 /// These lines start with one or more ASCII digits immediately followed by a
-/// space.  A plain digit-prefixed package name such as `"7-Zip 25.01 (x64)"`
-/// is **not** a footer because the digit sequence is followed by `'-'`, not `' '`.
+/// space and end with a period. Console control bytes may precede the count.
 fn is_winget_footer_line(line: &str) -> bool {
-    let bytes = line.trim_start().as_bytes();
+    let bytes = line.as_bytes();
+    let start = bytes
+        .iter()
+        .take_while(|b| b.is_ascii_whitespace() || b.is_ascii_control())
+        .count();
+    let bytes = &bytes[start..];
     let d = bytes.iter().take_while(|b| b.is_ascii_digit()).count();
-    d > 0 && d < bytes.len() && bytes[d] == b' '
+    d > 0 && d < bytes.len() && bytes[d] == b' ' && line.trim_end().ends_with('.')
 }
 
 /// Strip ASCII control characters (0x00–0x1F, 0x7F) except tab and newline.
@@ -308,33 +312,23 @@ impl CliBackend {
         // then data rows. Column positions are determined by the header.
         // winget also emits short progress lines like "-", "\", "|" before the table.
         let lines: Vec<&str> = output.lines().collect();
+        let mut packages = Vec::new();
+        let mut search_start = 0;
 
-        let sep_idx = match Self::find_table_separator(&lines) {
-            Some(i) => i,
-            None => return Vec::new(),
-        };
+        while let Some(relative_sep) = Self::find_table_separator(&lines[search_start..]) {
+            let sep_idx = search_start + relative_sep;
+            let header = lines[sep_idx - 1];
+            let col_positions = Self::detect_columns(header);
+            let col_map = Self::package_column_map(&col_positions);
+            let data_start = sep_idx + 1;
+            let (table_packages, footer_offset) =
+                self.parse_package_table_section(&lines[data_start..], &col_positions, col_map);
+            packages.extend(table_packages);
 
-        let header = lines[sep_idx - 1];
-        let col_positions = Self::detect_columns(header);
-        let col_map = Self::package_column_map(&col_positions);
-
-        let remaining = &lines[sep_idx + 1..];
-        let (mut packages, footer_offset) =
-            self.parse_package_table_section(remaining, &col_positions, col_map);
-
-        // When `--include-pinned` is used, winget may append a second table
-        // after the footer for packages whose pins block upgrade. Parse that
-        // table too so pinned packages appear in the Upgrades view.
-        if let Some(footer_offset) = footer_offset {
-            let after_footer = &remaining[footer_offset + 1..];
-            if let Some(sep2) = Self::find_table_separator(after_footer) {
-                let header2 = after_footer[sep2 - 1];
-                let cols2 = Self::detect_columns(header2);
-                let map2 = Self::package_column_map(&cols2);
-                let (extra, _) =
-                    self.parse_package_table_section(&after_footer[sep2 + 1..], &cols2, map2);
-                packages.extend(extra);
-            }
+            let Some(footer_offset) = footer_offset else {
+                break;
+            };
+            search_start = data_start + footer_offset + 1;
         }
 
         packages
@@ -353,21 +347,11 @@ impl CliBackend {
                 continue;
             }
 
-            let package = self.parse_table_row(line, cols, pcols);
-            // A digit-space prefix alone is ambiguous: package names such as
-            // "20 Minutes Till Dawn" have the same shape as winget count
-            // footers. A real row must also contain a whitespace-free manifest
-            // or Store ID, or a backslash-qualified ARP/MSIX ID.
             if is_winget_footer_line(line) {
-                let has_package_id = package.as_ref().is_some_and(|package| {
-                    !package.id.chars().any(char::is_whitespace) || package.id.contains('\\')
-                });
-                if !has_package_id {
-                    return (packages, Some(offset));
-                }
+                return (packages, Some(offset));
             }
 
-            if let Some(package) = package {
+            if let Some(package) = self.parse_table_row(line, cols, pcols) {
                 packages.push(package);
             }
         }
@@ -1449,6 +1433,36 @@ Git  Git.Git 2.53.0  2.54.0    winget
     }
 
     #[test]
+    fn parse_upgrade_output_with_three_footer_delimited_tables() {
+        let backend = CliBackend::new();
+        let output = "\
+Name           Id             Version Available Source
+-----------------------------------------------------
+Regular        Example.One    1.0     2.0       winget
+\u{0008}\u{001b}1 upgrade available.
+
+The following package was explicitly targeted:
+Name           Id             Version Available Source
+-----------------------------------------------------
+Targeted       Example.Two    1.0     2.0       winget
+1 upgrade available.
+
+The following package has a pin that prevents upgrade:
+Name           Id             Version Available Source
+-----------------------------------------------------
+Pinned         Example.Three  1.0     2.0       winget
+";
+        let packages = backend.parse_packages_from_table(output);
+        let ids: Vec<&str> = packages.iter().map(|package| package.id.as_str()).collect();
+
+        assert_eq!(ids, ["Example.One", "Example.Two", "Example.Three"]);
+        assert!(
+            packages.iter().all(|package| package.name != "Name"),
+            "table headers and separators must not be parsed as packages"
+        );
+    }
+
+    #[test]
     fn parse_table_with_digit_starting_package_name() {
         let backend = CliBackend::new();
         // 7-Zip starts with a digit — must NOT be treated as a footer line
@@ -1830,6 +1844,10 @@ Google Chrome  Google.Chrome  131.0
         assert!(super::is_winget_footer_line("1 upgrade available."));
         // Large count
         assert!(super::is_winget_footer_line("123 packages found."));
+        // Console control bytes can precede footer output
+        assert!(super::is_winget_footer_line(
+            "\u{0008}\u{001b}2 upgrades available."
+        ));
     }
 
     #[test]
@@ -1847,6 +1865,8 @@ Google Chrome  Google.Chrome  131.0
         // Leading whitespace still checks trimmed content
         assert!(super::is_winget_footer_line("  2 upgrades available."));
         assert!(!super::is_winget_footer_line("  7-Zip 25.01 (x64)"));
+        // A digit-space package name is not a footer without the trailing period
+        assert!(!super::is_winget_footer_line("20 Minutes Till Dawn"));
     }
 
     // ── detect_columns ───────────────────────────────────────────────────────
