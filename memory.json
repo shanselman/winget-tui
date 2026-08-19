@@ -1,15 +1,14 @@
 {
   "last_run": "2026-08-19",
-  "last_run_id": "32203828058",
+  "last_run_id": "32255987175",
   "monthly_summary_disabled": true,
   "monthly_summary_note": "2026-06-08: Maintainer closed issue #222. Do NOT create monthly activity summary issues.",
   "comments_made": {
     "347": "2026-07-31: Commented with root cause analysis and debugging suggestions"
   },
   "open_repo_assist_prs": [
-    {"pr": "TBD-test-pin-table", "title": "test: cover malformed/duplicate pin-table parsing paths in upgrade output (2026-08-18)"},
-    {"pr": "TBD-eng-update-deps", "title": "chore: update dependencies to latest compatible versions (2026-08-19)"}
+    {"pr": 395, "title": "chore: update dependencies to latest compatible versions"}
   ],
   "ci_note": "All repo-assist branch PRs show pending CI (fork protection). Infrastructure issue, not code failures.",
-  "notes": "Run 32203828058 (2026-08-19): Tasks 4+5 selected (0 open issues per task_selection.json). Task 4: ran `cargo update` bringing 50+ transitive deps to latest semver-compatible versions, no direct Cargo.toml constraint changes, no new deps. cargo check/fmt/test(388 passed)/clippy all clean. Created draft PR on branch repo-assist/eng-update-deps-2026-08-19. Task 5: audited codebase for low-risk improvements - found 4 pre-existing #[allow(dead_code)] attrs (app.rs AppMode::label, backend.rs list_sources trait fn, cli_backend.rs parse_sources_from_table, models.rs Source struct) which appear to be intentional scaffolding for a future 'list sources' feature, not dead code to remove - left alone as not high-confidence. No other obvious high-value low-risk improvements found this run; did not force a Task 5 PR. Skipped Task 11 (monthly summary) per maintainer instruction (see monthly_summary_note)."
+  "notes": "Run 32255987175 (2026-08-19): Tasks 3+5 selected. 0 open issues in repo (confirmed via list_issues) so Task 3 (fix) had nothing to work on. Task 5: audited codebase again - cargo check/fmt/test/clippy(default) all clean, no warnings. Reviewed help overlay (ui.rs draw_help_overlay) vs README keybindings table vs AGENTS.md - all three consistent, no doc drift found. Reviewed the previously-flagged #[allow(dead_code)] items (app.rs AppMode::label, backend.rs list_sources, cli_backend.rs parse_sources_from_table, models.rs Source) again - still appear to be intentional scaffolding, left alone. Ran clippy::pedantic - found ~96 pedantic-level lints, but these are broad/subjective style suggestions not part of the repo's configured lint baseline (repo only enforces default clippy -D warnings which is clean); did not force a large pedantic-cleanup PR as that would violate 'small, focused, high-confidence' guidance and risk churn. No genuinely high-value, high-confidence, low-risk improvement found this run. Did not force a PR. Skipped Task 11 (monthly summary) per maintainer instruction (see monthly_summary_note). PR #395 (eng-update-deps) still open awaiting maintainer review/CI."
 }
