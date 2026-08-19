@@ -1,14 +1,15 @@
 {
-  "last_run": "2026-08-18",
-  "last_run_id": "32196586249",
+  "last_run": "2026-08-19",
+  "last_run_id": "32203828058",
   "monthly_summary_disabled": true,
   "monthly_summary_note": "2026-06-08: Maintainer closed issue #222. Do NOT create monthly activity summary issues.",
   "comments_made": {
     "347": "2026-07-31: Commented with root cause analysis and debugging suggestions"
   },
   "open_repo_assist_prs": [
-    {"pr": "TBD-test-pin-table", "title": "test: cover malformed/duplicate pin-table parsing paths in upgrade output (2026-08-18)"}
+    {"pr": "TBD-test-pin-table", "title": "test: cover malformed/duplicate pin-table parsing paths in upgrade output (2026-08-18)"},
+    {"pr": "TBD-eng-update-deps", "title": "chore: update dependencies to latest compatible versions (2026-08-19)"}
   ],
   "ci_note": "All repo-assist branch PRs show pending CI (fork protection). Infrastructure issue, not code failures.",
-  "notes": "Run 32196586249 (2026-08-18): Tasks 3+9 selected. Task 3 blocked - issues #383, #372 and PR #381 all integrity-filtered/inaccessible (cannot read content, so cannot investigate/fix). Task 9: added 2 targeted tests for pin-table parsing edge cases (malformed second table, cross-table dedup) in cli_backend.rs - found via coverage audit, no existing tests hit these paths. 376 tests pass, fmt/clippy clean. Created PR on branch repo-assist/test-pin-table-parsing-coverage. Prior memory.json had a large backlog of PR numbers (348-369) that could not be re-verified this run due to integrity filtering on issue/PR reads - future runs should re-check these via safe, filtered-appropriate means. Skipped Task 11 (monthly summary) per maintainer instruction to not create these issues (see monthly_summary_note)."
+  "notes": "Run 32203828058 (2026-08-19): Tasks 4+5 selected (0 open issues per task_selection.json). Task 4: ran `cargo update` bringing 50+ transitive deps to latest semver-compatible versions, no direct Cargo.toml constraint changes, no new deps. cargo check/fmt/test(388 passed)/clippy all clean. Created draft PR on branch repo-assist/eng-update-deps-2026-08-19. Task 5: audited codebase for low-risk improvements - found 4 pre-existing #[allow(dead_code)] attrs (app.rs AppMode::label, backend.rs list_sources trait fn, cli_backend.rs parse_sources_from_table, models.rs Source struct) which appear to be intentional scaffolding for a future 'list sources' feature, not dead code to remove - left alone as not high-confidence. No other obvious high-value low-risk improvements found this run; did not force a Task 5 PR. Skipped Task 11 (monthly summary) per maintainer instruction (see monthly_summary_note)."
 }
