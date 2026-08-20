@@ -1,14 +1,14 @@
 {
   "last_run": "2026-08-20",
-  "last_run_id": "32319885673",
+  "last_run_id": "32372219961",
   "monthly_summary_disabled": true,
   "monthly_summary_note": "2026-06-08: Maintainer closed issue #222. Do NOT create monthly activity summary issues.",
   "comments_made": {
     "347": "2026-07-31: Commented with root cause analysis and debugging suggestions"
   },
   "open_repo_assist_prs": [
-    {"pr": 395, "title": "chore: update dependencies to latest compatible versions", "status": "open draft, no new commits, awaiting maintainer review; CI shows no check runs (fork protection)"}
+    {"pr": 395, "title": "chore: update dependencies to latest compatible versions", "status": "open draft, no new commits, awaiting maintainer review; CI shows no check runs (fork protection) - unchanged since last run"}
   ],
   "ci_note": "All repo-assist branch PRs show pending/no CI (fork protection). Infrastructure issue, not code failures.",
-  "notes": "Run 32319885673 (2026-08-20): Tasks 4+5 selected. 0 open issues, 0 unlabelled. Task 4: PR #395 (eng-update-deps, created 2026-08-19) already covers latest cargo update and is still open/draft/unmerged with no new upstream commits since - did not duplicate. Checked GH Actions versions in workflows (checkout@v7.0.1, cache@v6, rust-toolchain@stable/1.88.0) - all current, no update needed. Dependabot config (.github/dependabot.yml) already ignores major bumps and covers cargo+github-actions ecosystems weekly - no open dependabot PRs to bundle. Task 5: cargo fmt/clippy --all-targets clean, no warnings. Re-checked the 4 #[allow(dead_code)] items (app.rs:84, backend.rs:39, cli_backend.rs:704, models.rs:238) - same as prior run, still look like intentional scaffolding, left alone. No new high-confidence low-risk improvement found. Did not force a PR. Skipped Task 11 (monthly summary) per maintainer instruction (see monthly_summary_note)."
+  "notes": "Run 32372219961 (2026-08-20): Tasks 9 (Testing Improvements) + 6 (Maintain Repo Assist PRs) selected. 0 open issues, 0 unlabelled. Task 9: reviewed cli_backend.rs test coverage (90 existing tests) - found compare_versions_like had no coverage for the branch comparing a numeric-parsed segment vs a non-numeric segment (e.g. \"1.0\" vs \"1.beta\") or case-insensitivity of non-numeric segment comparison. Added 2 targeted unit tests (compare_versions_like_numeric_part_vs_non_numeric_part, compare_versions_like_non_numeric_parts_are_case_insensitive) on branch repo-assist/test-version-compare-mixed-parts-20260820. cargo fmt clean, clippy --all-targets clean, cargo test: 390 passed (was 388). Created draft PR via create_pull_request. Task 6: checked PR #395 - still open draft, 0 check runs (fork protection, same as prior runs), no comments, no new upstream commits - no action needed, left as-is for maintainer review. Skipped Task 11 (monthly summary) per maintainer instruction (see monthly_summary_note)."
 }
