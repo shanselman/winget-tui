@@ -1085,6 +1085,29 @@ Google Chrome                  Google.Chrome               131.0.6  winget
         );
     }
 
+    #[test]
+    fn compare_versions_like_numeric_part_vs_non_numeric_part() {
+        // When one part parses as a number and the other doesn't, the
+        // comparison falls back to comparing the (empty for numeric,
+        // lowercased text for non-numeric) string representations.
+        assert_eq!(
+            CliBackend::compare_versions_like("1.0", "1.beta"),
+            Ordering::Less
+        );
+        assert_eq!(
+            CliBackend::compare_versions_like("1.beta", "1.0"),
+            Ordering::Greater
+        );
+    }
+
+    #[test]
+    fn compare_versions_like_non_numeric_parts_are_case_insensitive() {
+        assert_eq!(
+            CliBackend::compare_versions_like("1.RC", "1.rc"),
+            Ordering::Equal
+        );
+    }
+
     // ── parse_pin_state ──────────────────────────────────────────────────
 
     #[test]
