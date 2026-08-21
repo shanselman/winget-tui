@@ -1,14 +1,16 @@
 {
-  "last_run": "2026-08-20",
-  "last_run_id": "32372219961",
+  "last_run": "2026-08-21",
+  "last_run_id": "32435214874",
   "monthly_summary_disabled": true,
   "monthly_summary_note": "2026-06-08: Maintainer closed issue #222. Do NOT create monthly activity summary issues.",
   "comments_made": {
     "347": "2026-07-31: Commented with root cause analysis and debugging suggestions"
   },
   "open_repo_assist_prs": [
-    {"pr": 395, "title": "chore: update dependencies to latest compatible versions", "status": "open draft, no new commits, awaiting maintainer review; CI shows no check runs (fork protection) - unchanged since last run"}
+    {"pr": 395, "title": "chore: update dependencies to latest compatible versions", "status": "open draft; pushed a refresh commit 2026-08-21 updating darling 0.24.0->0.24.1 and either 1.17.0->1.18.0 (only 4 packages had moved since last update); cargo check/fmt/test/clippy all pass; awaiting maintainer review"},
+    {"pr": 396, "title": "test: cover mixed numeric/non-numeric version part comparison", "status": "open draft from 2026-08-20, no new commits since, unchanged - awaiting maintainer review"},
+    {"pr": "new", "title": "test: cover unquoted values and malformed lines in config parser", "status": "created 2026-08-21 on branch repo-assist/test-config-parse-gaps-20260821; added 2 unit tests for src/config.rs parser (unquoted values, lines without '=' sign); cargo test 390 passed (up from 388), fmt/clippy clean"}
   ],
   "ci_note": "All repo-assist branch PRs show pending/no CI (fork protection). Infrastructure issue, not code failures.",
-  "notes": "Run 32372219961 (2026-08-20): Tasks 9 (Testing Improvements) + 6 (Maintain Repo Assist PRs) selected. 0 open issues, 0 unlabelled. Task 9: reviewed cli_backend.rs test coverage (90 existing tests) - found compare_versions_like had no coverage for the branch comparing a numeric-parsed segment vs a non-numeric segment (e.g. \"1.0\" vs \"1.beta\") or case-insensitivity of non-numeric segment comparison. Added 2 targeted unit tests (compare_versions_like_numeric_part_vs_non_numeric_part, compare_versions_like_non_numeric_parts_are_case_insensitive) on branch repo-assist/test-version-compare-mixed-parts-20260820. cargo fmt clean, clippy --all-targets clean, cargo test: 390 passed (was 388). Created draft PR via create_pull_request. Task 6: checked PR #395 - still open draft, 0 check runs (fork protection, same as prior runs), no comments, no new upstream commits - no action needed, left as-is for maintainer review. Skipped Task 11 (monthly summary) per maintainer instruction (see monthly_summary_note)."
+  "notes": "Run 32435214874 (2026-08-21): Tasks 4 (Engineering Investments) + 9 (Testing Improvements) selected. 0 open issues, 0 unlabelled, 2 open Repo Assist PRs (#395, #396), 0 other PRs. Task 4: reviewed PR #395 (dependency update) - ran cargo update again, found only 4 transitive packages had moved (darling 0.24.0->0.24.1, either 1.17.0->1.18.0, 2 more), committed a refresh commit and pushed to the existing PR branch via push_to_pull_request_branch rather than opening a duplicate PR. Verified cargo check/fmt/test(388 passed)/clippy all clean before pushing. Task 9: reviewed src/config.rs test coverage - found two parser branches with no test coverage: unquoted config values (value without surrounding quotes) and lines lacking an '=' separator. Added 2 targeted unit tests, all pass, no prod code changed. Created draft PR via create_pull_request on branch repo-assist/test-config-parse-gaps-20260821. Skipped Task 11 (monthly summary) per maintainer instruction (see monthly_summary_note)."
 }
