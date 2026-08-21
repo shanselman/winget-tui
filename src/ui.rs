@@ -1470,6 +1470,23 @@ mod tests {
     }
 
     #[test]
+    fn truncate_empty_string() {
+        assert_eq!(truncate("", 5), "");
+    }
+
+    #[test]
+    fn truncate_max_zero_over_limit() {
+        // budget = max.saturating_sub(1) = 0, so nothing but the ellipsis fits
+        assert_eq!(truncate("hello", 0), "\u{2026}");
+    }
+
+    #[test]
+    fn truncate_max_one_over_limit() {
+        // budget = 0, so still just the ellipsis
+        assert_eq!(truncate("hello", 1), "\u{2026}");
+    }
+
+    #[test]
     fn sort_header_returns_plain_label_when_inactive() {
         assert_eq!(
             sort_header("Version", SortField::Version, SortField::Name, SortDir::Asc),
@@ -1627,5 +1644,21 @@ mod tests {
         // With max=4: "你好" (4) fits on one line, "世界" on the next
         let lines = word_wrap("你好世界", 4);
         assert_eq!(lines, vec!["你好", "世界"]);
+    }
+
+    #[test]
+    fn word_wrap_blank_line_between_paragraphs_preserved() {
+        // `str::lines()` yields an empty string for a blank line, so it
+        // should show up as an empty line in the output rather than
+        // being silently dropped.
+        let lines = word_wrap("first\n\nsecond", 80);
+        assert_eq!(lines, vec!["first", "", "second"]);
+    }
+
+    #[test]
+    fn word_wrap_trailing_whitespace_word_ignored() {
+        // Multiple spaces between words collapse; no empty "words" produced.
+        let lines = word_wrap("hello   world", 80);
+        assert_eq!(lines, vec!["hello world"]);
     }
 }
