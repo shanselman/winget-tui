@@ -670,9 +670,8 @@ impl CliBackend {
         }
 
         let lines: Vec<&str> = output.lines().collect();
-        let sep_idx = match Self::find_table_separator(&lines) {
-            Some(i) => i,
-            None => return Vec::new(),
+        let Some(sep_idx) = Self::find_table_separator(&lines) else {
+            return Vec::new();
         };
 
         let header = lines[sep_idx - 1];
@@ -704,9 +703,8 @@ impl CliBackend {
     #[allow(dead_code)]
     fn parse_sources_from_table(&self, output: &str) -> Vec<Source> {
         let lines: Vec<&str> = output.lines().collect();
-        let sep_idx = match Self::find_table_separator(&lines) {
-            Some(i) => i,
-            None => return Vec::new(),
+        let Some(sep_idx) = Self::find_table_separator(&lines) else {
+            return Vec::new();
         };
 
         let header = lines[sep_idx - 1];
