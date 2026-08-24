@@ -873,6 +873,142 @@ mod tests {
         assert_eq!(CliBackend::find_table_separator(&lines), None);
     }
 
+    // ── detect_columns ───────────────────────────────────────────────────────
+
+    #[test]
+    fn detect_columns_finds_names_and_display_offsets() {
+        let header = "Name                 Id       Version";
+        let cols = CliBackend::detect_columns(header);
+        assert_eq!(cols, vec![("Name", 0), ("Id", 21), ("Version", 30)]);
+    }
+
+    #[test]
+    fn detect_columns_handles_leading_and_trailing_whitespace() {
+        let header = "  Name   Id  ";
+        let cols = CliBackend::detect_columns(header);
+        assert_eq!(cols, vec![("Name", 2), ("Id", 9)]);
+    }
+
+    #[test]
+    fn detect_columns_empty_header_returns_empty() {
+        assert_eq!(CliBackend::detect_columns(""), Vec::<(&str, usize)>::new());
+    }
+
+    #[test]
+    fn detect_columns_counts_wide_chars_by_display_width() {
+        // CJK characters occupy 2 display columns each.
+        let header = "名前 Id";
+        let cols = CliBackend::detect_columns(header);
+        assert_eq!(cols, vec![("名前", 0), ("Id", 5)]);
+    }
+
+    // ── find_column_ci ───────────────────────────────────────────────────────
+
+    #[test]
+    fn find_column_ci_matches_case_insensitively() {
+        let cols = vec![("Name", 0), ("ID", 10), ("Version", 20)];
+        assert_eq!(CliBackend::find_column_ci(&cols, &["id"]), Some(1));
+        assert_eq!(CliBackend::find_column_ci(&cols, &["name"]), Some(0));
+    }
+
+    #[test]
+    fn find_column_ci_returns_none_when_no_match() {
+        let cols = vec![("Name", 0), ("ID", 10)];
+        assert_eq!(CliBackend::find_column_ci(&cols, &["source"]), None);
+    }
+
+    #[test]
+    fn find_column_ci_matches_first_alias_that_hits() {
+        let cols = vec![("Nom", 0), ("Id", 10)];
+        assert_eq!(
+            CliBackend::find_column_ci(&cols, &["name", "nom", "nombre"]),
+            Some(0)
+        );
+    }
+
+    // ── extract_field ────────────────────────────────────────────────────────
+
+    #[test]
+    fn extract_field_returns_trimmed_slice_between_column_bounds() {
+        let cols = vec![("Name", 0), ("Id", 10), ("Version", 20)];
+        let line = "Chrome    G.C       1.0";
+        assert_eq!(CliBackend::extract_field(line, &cols, 0), "Chrome");
+        assert_eq!(CliBackend::extract_field(line, &cols, 1), "G.C");
+        assert_eq!(CliBackend::extract_field(line, &cols, 2), "1.0");
+    }
+
+    #[test]
+    fn extract_field_out_of_range_index_returns_empty() {
+        let cols = vec![("Name", 0)];
+        assert_eq!(CliBackend::extract_field("Chrome", &cols, 5), "");
+    }
+
+    #[test]
+    fn extract_field_last_column_extends_to_end_of_line() {
+        let cols = vec![("Name", 0), ("Id", 10)];
+        let line = "Chrome    Some.Longer.Id.Value";
+        assert_eq!(
+            CliBackend::extract_field(line, &cols, 1),
+            "Some.Longer.Id.Value"
+        );
+    }
+
+    #[test]
+    fn extract_field_handles_multibyte_content_by_display_width() {
+        let cols = vec![("Name", 0), ("Id", 6)];
+        let line = "日本語 G.C";
+        assert_eq!(CliBackend::extract_field(line, &cols, 0), "日本語");
+        assert_eq!(CliBackend::extract_field(line, &cols, 1), "G.C");
+    }
+
+    // ── package_column_map ───────────────────────────────────────────────────
+
+    #[test]
+    fn package_column_map_finds_named_english_columns() {
+        let header = "Name       Id       Version  Available  Source";
+        let cols = CliBackend::detect_columns(header);
+        let map = CliBackend::package_column_map(&cols);
+        assert_eq!(map.name, Some(0));
+        assert_eq!(map.id, Some(1));
+        assert_eq!(map.version, Some(2));
+        assert_eq!(map.available, Some(3));
+        assert_eq!(map.source, Some(4));
+    }
+
+    #[test]
+    fn package_column_map_falls_back_positionally_for_unknown_locale_four_cols() {
+        // Unrecognized column names (e.g. CJK) with 4 columns: name, id, version, source
+        let cols = vec![
+            ("名前", 0),
+            ("識別子", 10),
+            ("バージョン", 20),
+            ("ソース", 30),
+        ];
+        let map = CliBackend::package_column_map(&cols);
+        assert_eq!(map.name, Some(0));
+        assert_eq!(map.id, Some(1));
+        assert_eq!(map.version, Some(2));
+        assert_eq!(map.source, Some(3));
+        assert_eq!(map.available, None);
+    }
+
+    #[test]
+    fn package_column_map_falls_back_positionally_for_unknown_locale_five_cols() {
+        let cols = vec![
+            ("名前", 0),
+            ("識別子", 10),
+            ("バージョン", 20),
+            ("利用可能", 30),
+            ("ソース", 40),
+        ];
+        let map = CliBackend::package_column_map(&cols);
+        assert_eq!(map.name, Some(0));
+        assert_eq!(map.id, Some(1));
+        assert_eq!(map.version, Some(2));
+        assert_eq!(map.available, Some(3));
+        assert_eq!(map.source, Some(4));
+    }
+
     #[test]
     fn parse_english_upgrade_table() {
         let backend = CliBackend::new();
