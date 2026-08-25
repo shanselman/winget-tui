@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@v7.0.1
 
       - name: Install Rust 1.88
-        uses: dtolnay/rust-toolchain@1.88.0
+        uses: dtolnay/rust-toolchain@1.100.0
 
       - name: Check
         run: cargo check --locked --all-targets
