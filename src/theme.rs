@@ -481,6 +481,63 @@ mod tests {
             .contains(Modifier::DIM));
     }
 
+    // ── logo_lines ────────────────────────────────────────────────────────────
+
+    #[test]
+    fn logo_lines_has_expected_dimensions() {
+        let theme = Theme::original();
+        let lines = logo_lines(&theme);
+        assert_eq!(lines.len(), 3, "logo should render exactly 3 text rows");
+        for line in &lines {
+            assert_eq!(line.spans.len(), 31, "each logo row should have 31 columns");
+        }
+    }
+
+    #[test]
+    fn logo_lines_uses_accent_on_background_style_for_glyphs() {
+        let theme = Theme::original();
+        let lines = logo_lines(&theme);
+        let expected_style = Style::default().fg(theme.accent).bg(theme.background);
+        for line in &lines {
+            for span in &line.spans {
+                if span.content != " " {
+                    assert_eq!(
+                        span.style, expected_style,
+                        "non-blank glyphs should use accent-on-background style"
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn logo_lines_first_row_starts_with_expected_glyph_pattern() {
+        // Column 0 of the grid is 1 in both top/bottom rows for text_row 0,
+        // so the first glyph should be a full block, and column 1 should be blank.
+        let theme = Theme::original();
+        let lines = logo_lines(&theme);
+        assert_eq!(lines[0].spans[0].content, "\u{2588}");
+        assert_eq!(lines[0].spans[1].content, " ");
+    }
+
+    #[test]
+    fn logo_lines_produces_only_known_glyphs() {
+        let theme = Theme::original();
+        let lines = logo_lines(&theme);
+        for line in &lines {
+            for span in &line.spans {
+                assert!(
+                    matches!(
+                        span.content.as_ref(),
+                        " " | "\u{2588}" | "\u{2580}" | "\u{2584}"
+                    ),
+                    "unexpected glyph: {:?}",
+                    span.content
+                );
+            }
+        }
+    }
+
     #[test]
     fn original_preserves_existing_colors_except_accessibility_exceptions() {
         let theme = Theme::original();
