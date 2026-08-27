@@ -1,26 +1,75 @@
 {
-  "last_run": "2026-08-26",
-  "last_run_id": "32972237327",
+  "last_run": "2026-08-27",
+  "last_run_id": "33032566671",
   "monthly_summary_disabled": true,
   "monthly_summary_note": "2026-06-08: Maintainer closed issue #222. Do NOT create monthly activity summary issues.",
   "comments_made": {
     "347": "2026-07-31: Commented with root cause analysis and debugging suggestions"
   },
   "open_repo_assist_prs": [
-    {"pr": 395, "title": "chore: update dependencies to latest compatible versions", "status": "open draft; awaiting maintainer review"},
-    {"pr": 396, "title": "test: cover mixed numeric/non-numeric version part comparison", "status": "open draft; awaiting maintainer review"},
-    {"pr": 397, "title": "test: cover unquoted values and malformed lines in config parser", "status": "open draft; awaiting maintainer review"},
-    {"pr": 398, "title": "test: cover truncate/word_wrap edge cases in ui.rs", "status": "open draft; awaiting maintainer review"},
-    {"pr": 401, "title": "perf: avoid per-package allocations in local search filter", "status": "open draft; awaiting maintainer review"},
-    {"pr": 402, "title": "refactor: use let-else for cleaner early returns", "status": "open draft; awaiting maintainer review"},
-    {"pr": 403, "title": "test: add direct unit tests for column detection helpers in cli_backend", "status": "open draft; awaiting maintainer review"},
-    {"pr": "new-eng-bundle-2", "title": "ci: bundle gh-aw-actions bumps to v0.87.4 (supersedes #404, #406) [re-created 2026-08-26]", "status": "open draft; created 2026-08-26; branch repo-assist/eng-bundle-ci-actions-2026-08-26b; awaiting maintainer review. NOTE: an earlier branch repo-assist/eng-bundle-ci-actions-2026-08-26-<hash> from the prior run appears to be identical to origin/main (no diff, no PR found) - likely the earlier attempt's PR creation did not persist or was not actually opened; this run recreated the change from scratch on a fresh branch."}
+    {
+      "pr": 395,
+      "title": "chore: update dependencies to latest compatible versions",
+      "status": "open draft; awaiting maintainer review"
+    },
+    {
+      "pr": 396,
+      "title": "test: cover mixed numeric/non-numeric version part comparison",
+      "status": "open draft; awaiting maintainer review"
+    },
+    {
+      "pr": 397,
+      "title": "test: cover unquoted values and malformed lines in config parser",
+      "status": "open draft; awaiting maintainer review"
+    },
+    {
+      "pr": 398,
+      "title": "test: cover truncate/word_wrap edge cases in ui.rs",
+      "status": "open draft; awaiting maintainer review"
+    },
+    {
+      "pr": 401,
+      "title": "perf: avoid per-package allocations in local search filter",
+      "status": "open draft; awaiting maintainer review"
+    },
+    {
+      "pr": 402,
+      "title": "refactor: use let-else for cleaner early returns",
+      "status": "open draft; awaiting maintainer review"
+    },
+    {
+      "pr": 403,
+      "title": "test: add direct unit tests for column detection helpers in cli_backend",
+      "status": "open draft; awaiting maintainer review"
+    },
+    {
+      "pr": "new-eng-bundle-2",
+      "title": "ci: bundle gh-aw-actions bumps to v0.87.4 (supersedes #404, #406) [re-created 2026-08-26]",
+      "status": "open draft; created 2026-08-26; branch repo-assist/eng-bundle-ci-actions-2026-08-26b; awaiting maintainer review. NOTE: an earlier branch repo-assist/eng-bundle-ci-actions-2026-08-26-<hash> from the prior run appears to be identical to origin/main (no diff, no PR found) - likely the earlier attempt's PR creation did not persist or was not actually opened; this run recreated the change from scratch on a fresh branch."
+    },
+    {
+      "pr": "new-test-logo-lines",
+      "title": "test: cover logo_lines rendering in theme.rs",
+      "status": "open draft; created 2026-08-27; branch repo-assist/test-logo-lines-coverage-20260827; awaiting maintainer review. Adds 4 unit tests for theme::logo_lines (previously untested pure function). 396 tests pass, fmt/clippy clean."
+    }
   ],
   "other_open_prs": [
-    {"pr": 404, "title": "ci: bump github/gh-aw-actions/setup-cli from 0.84.2 to 0.87.4", "status": "superseded by new bundled repo-assist PR; maintainer can close after merging bundle"},
-    {"pr": 405, "title": "ci: bump dtolnay/rust-toolchain from 1.88.0 to 1.100.0", "status": "SUSPECT: no such Rust release exists (1.100.0); would break msrv CI job if merged as-is. Recommend maintainer close or wait for Dependabot correction. NOT bundled."},
-    {"pr": 406, "title": "ci: bump github/gh-aw-actions/setup from 0.86.2 to 0.87.4", "status": "superseded by new bundled repo-assist PR; maintainer can close after merging bundle"}
+    {
+      "pr": 404,
+      "title": "ci: bump github/gh-aw-actions/setup-cli from 0.84.2 to 0.87.4",
+      "status": "superseded by new bundled repo-assist PR; maintainer can close after merging bundle"
+    },
+    {
+      "pr": 405,
+      "title": "ci: bump dtolnay/rust-toolchain from 1.88.0 to 1.100.0",
+      "status": "SUSPECT: no such Rust release exists (1.100.0); would break msrv CI job if merged as-is. Recommend maintainer close or wait for Dependabot correction. NOT bundled."
+    },
+    {
+      "pr": 406,
+      "title": "ci: bump github/gh-aw-actions/setup from 0.86.2 to 0.87.4",
+      "status": "superseded by new bundled repo-assist PR; maintainer can close after merging bundle"
+    }
   ],
   "ci_note": "All repo-assist branch PRs show no/pending CI runs to completion (fork/branch protection requires manual approval). This is an infrastructure limitation, not a code failure.",
-  "notes": "Run 32972237327 (2026-08-26): Tasks 3 (Issue Investigation and Fix) + 10 (Take Repository Forward) selected. Open issues #399, #400, #407 remain integrity-filtered/unreadable by GitHub MCP tools (same as prior runs), so no Task 3 fix work was possible on them. For Task 10: found the prior run's memory claimed a bundled CI-actions PR (branch repo-assist/eng-bundle-ci-actions-2026-08-26-77994b9138e5ad86) had been created for #404/#406, but that branch's SHA is identical to origin/main (no commits ahead) and no matching PR exists via search - the prior run's PR-creation apparently did not take effect. Recreated the fix on a fresh branch repo-assist/eng-bundle-ci-actions-2026-08-26b: bumped github/gh-aw-actions/setup-cli to v0.87.4 in copilot-setup-steps.yml, and github/gh-aw-actions/setup to v0.87.4 in repo-assist.lock.yml and .github/aw/actions-lock.json (fixed both version and sha fields, which the previous attempt's json key rename had left stale in this local check - now corrected). Verified cargo check --all-targets and cargo fmt --check pass. Created a real PR this time via create_pull_request. Did not exclude #405 (invalid rust-toolchain 1.100.0 bump) - flagged again for maintainer to close. With 8 Repo Assist PRs now open awaiting review, did not open further new feature/improvement PRs this run per 'quality over quantity'. monthly_summary_disabled remains true per maintainer instruction from 2026-06-08 (issue #222 closed) - Task 11 skipped again this run per that standing instruction."
+  "notes": "Run 33032566671 (2026-08-27): Tasks 9 (Testing Improvements) + 5 (Coding Improvements) selected. Task 9: found theme::logo_lines had zero direct test coverage; added 4 tests (dimensions, styling, first-row glyph pattern, glyph-set validation) in src/theme.rs. Verified cargo test (396 passed, was 392), cargo fmt --check, cargo clippy --all-targets -D warnings all pass. Created draft PR via create_pull_request. Task 5: surveyed models.rs, cli_backend.rs, handler.rs, app.rs, backend.rs for low-risk coding improvements but found nothing with obvious enough value beyond what's already covered by the 8+ open Repo Assist PRs awaiting review - deferred further Task 5 work to avoid PR pileup (quality over quantity). Issues #399, #400, #407, #408 remain integrity-filtered/unreadable by GitHub MCP tools (same as prior runs) - could not do Task 2/3 work on them even though not selected this run. monthly_summary_disabled remains true per maintainer instruction from 2026-06-08 (issue #222 closed) - Task 11 skipped again this run per that standing instruction. 9 Repo Assist PRs now open awaiting maintainer review/merge; other_open_prs (#404, #405, #406) status unchanged from prior run notes."
 }
