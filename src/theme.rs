@@ -416,6 +416,14 @@ mod tests {
     }
 
     #[test]
+    fn from_name_maps_each_variant_to_matching_theme() {
+        assert_eq!(Theme::from_name(ThemeName::Original), Theme::original());
+        assert_eq!(Theme::from_name(ThemeName::Retro), Theme::retro());
+        assert_eq!(Theme::from_name(ThemeName::Nord), Theme::nord());
+        assert_eq!(Theme::from_name(ThemeName::Terminal), Theme::terminal());
+    }
+
+    #[test]
     fn rendered_semantic_pairs_meet_contrast_floors() {
         for (name, theme) in [
             ("original", Theme::original()),
