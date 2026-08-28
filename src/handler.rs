@@ -1518,6 +1518,45 @@ mod tests {
     }
 
     #[test]
+    fn open_homepage_valid_https_url_shows_opening_status() {
+        let mut app = make_app();
+        app.detail = Some(PackageDetail {
+            homepage: "https://example.com".to_string(),
+            ..PackageDetail::default()
+        });
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('o'), KeyModifiers::NONE);
+        assert_eq!(app.status_message, "Opening https://example.com…");
+    }
+
+    #[test]
+    fn open_homepage_invalid_scheme_shows_blocked_status() {
+        let mut app = make_app();
+        app.detail = Some(PackageDetail {
+            homepage: "ftp://example.com".to_string(),
+            ..PackageDetail::default()
+        });
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('o'), KeyModifiers::NONE);
+        assert_eq!(
+            app.status_message,
+            "Blocked: URL must start with http:// or https://"
+        );
+    }
+
+    #[test]
+    fn open_changelog_valid_http_url_shows_opening_status() {
+        let mut app = make_app();
+        app.detail = Some(PackageDetail {
+            release_notes_url: "http://example.com/changelog".to_string(),
+            ..PackageDetail::default()
+        });
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('c'), KeyModifiers::NONE);
+        assert_eq!(
+            app.status_message,
+            "Opening changelog http://example.com/changelog…"
+        );
+    }
+
+    #[test]
     fn export_empty_list_shows_status() {
         let mut app = make_app();
         let _ = handle_normal_mode(&mut app, KeyCode::Char('e'), KeyModifiers::NONE);
