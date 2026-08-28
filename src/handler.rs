@@ -1921,7 +1921,7 @@ mod tests {
         let _guard = rt.enter();
         let mut app = make_app_with_pkgs(3);
         app.mode = AppMode::Upgrades;
-        app.selected_packages = [0usize, 1, 2].iter().cloned().collect();
+        app.selected_packages = [0usize, 1, 2].iter().copied().collect();
         // Left arrow switches Upgrades → Installed
         let _ = handle_normal_mode(&mut app, KeyCode::Left, KeyModifiers::NONE);
         assert!(
@@ -1984,7 +1984,7 @@ mod tests {
         let mut app = make_app_with_pkgs(2);
         app.mode = AppMode::Installed;
         app.local_filter = "keepme".to_string();
-        app.selected_packages = [0usize].iter().cloned().collect();
+        app.selected_packages = [0usize].iter().copied().collect();
         let gen_before = app.detail_generation;
         // Simulate a Left key from Installed, then immediately a Right key to go back.
         // Pressing Right from Installed → Upgrades, then Left from Upgrades → Installed
@@ -1999,7 +1999,7 @@ mod tests {
         // Actually test the private function directly.
         app.mode = AppMode::Installed;
         app.local_filter = "keepme".to_string();
-        app.selected_packages = [0usize].iter().cloned().collect();
+        app.selected_packages = [0usize].iter().copied().collect();
         let gen_at_test = app.detail_generation;
         // Call switch_view with the same mode (no-op path)
         switch_view(&mut app, AppMode::Installed);
