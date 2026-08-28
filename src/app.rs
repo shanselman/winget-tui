@@ -1295,7 +1295,7 @@ mod tests {
         let mut app = make_app(spy as Arc<dyn WingetBackend>);
         app.packages = make_packages(3);
         app.filtered_packages = app.packages.clone();
-        app.selected_packages = [0, 1, 2].iter().cloned().collect();
+        app.selected_packages = [0, 1, 2].iter().copied().collect();
         app.apply_filter();
         assert!(
             app.selected_packages.is_empty(),

@@ -702,7 +702,10 @@ fn draw_detail_panel(f: &mut Frame, app: &mut App, area: Rect) {
             "  No package selected".to_string()
         } else if app.loading {
             format!("  {} Loading...", app.spinner())
-        } else if app.selected_package().is_some_and(|p| p.is_truncated()) {
+        } else if app
+            .selected_package()
+            .is_some_and(crate::models::Package::is_truncated)
+        {
             "  Package ID is truncated — details unavailable".to_string()
         } else {
             "  Select a package to view details".to_string()

@@ -439,7 +439,7 @@ impl CliBackend {
         // Fast path: most keys from English winget output are already lowercase-only.
         // Avoid the `to_lowercase()` heap allocation when no uppercase ASCII is present.
         use std::borrow::Cow;
-        let lower: Cow<str> = if key.chars().any(|ch| ch.is_uppercase()) {
+        let lower: Cow<str> = if key.chars().any(char::is_uppercase) {
             Cow::Owned(key.to_lowercase())
         } else {
             Cow::Borrowed(key)
