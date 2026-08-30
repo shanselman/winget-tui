@@ -470,8 +470,7 @@ fn draw_detail_panel(f: &mut Frame, app: &mut App, area: Rect) {
 
         let available_version = app
             .selected_package()
-            .map(|p| p.available_version.as_str())
-            .unwrap_or("");
+            .map_or("", |p| p.available_version.as_str());
 
         let mut lines = vec![
             Line::from(vec![
@@ -880,8 +879,7 @@ fn draw_version_input_dialog(f: &mut Frame, app: &App, palette: &theme::Theme) {
 
     let pkg_name = app
         .selected_package()
-        .map(|p| p.name.as_str())
-        .unwrap_or("package");
+        .map_or("package", |p| p.name.as_str());
 
     let block = Block::default()
         .borders(Borders::ALL)
