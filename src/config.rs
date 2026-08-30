@@ -95,9 +95,9 @@ impl Config {
             //   search # comment    → search
             let raw = value.trim();
             let value = if let Some(inner) = raw.strip_prefix('"') {
-                inner.split_once('"').map(|(v, _)| v).unwrap_or(inner)
+                inner.split_once('"').map_or(inner, |(v, _)| v)
             } else {
-                raw.split_once('#').map(|(v, _)| v.trim()).unwrap_or(raw)
+                raw.split_once('#').map_or(raw, |(v, _)| v.trim())
             };
             match key {
                 "theme" => {
