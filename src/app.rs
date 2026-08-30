@@ -882,7 +882,7 @@ mod tests {
         }
     }
 
-    /// Simulate receiving a PackagesLoaded message synchronously (bypasses tokio channel).
+    /// Simulate receiving a `PackagesLoaded` message synchronously (bypasses tokio channel).
     fn deliver_packages(app: &mut App, packages: Vec<Package>) {
         let gen = app.view_generation;
         app.message_tx
