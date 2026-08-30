@@ -1229,7 +1229,8 @@ mod tests {
     use super::*;
     use crate::backend::WingetBackend;
     use crate::models::{
-        Operation, Package, PackageDetail, PackagePin, SortDir, SortField, Source, SourceFilter,
+        Operation, Package, PackageDetail, PackagePin, PinState, SortDir, SortField, Source,
+        SourceFilter,
     };
     use crate::theme::Theme;
 
@@ -1415,7 +1416,7 @@ mod tests {
                     version: "1.0".to_string(),
                     available_version: "2.0".to_string(),
                     source: "winget".to_string(),
-                    pin_state: Default::default(),
+                    pin_state: PinState::default(),
                 }];
                 app.filtered_packages = app.packages.clone();
             });
@@ -1605,13 +1606,7 @@ mod tests {
         let lines = word_wrap(text, max);
         for line in &lines {
             let w = unicode_width::UnicodeWidthStr::width(line.as_str());
-            assert!(
-                w <= max,
-                "line {:?} has display width {} > {}",
-                line,
-                w,
-                max
-            );
+            assert!(w <= max, "line {line:?} has display width {w} > {max}");
         }
         // Reassembled text should contain all words
         let rejoined = lines.join(" ");
