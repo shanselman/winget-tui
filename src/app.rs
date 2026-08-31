@@ -21,7 +21,7 @@ pub struct LayoutRegions {
     pub detail_panel: Rect,
     /// Y offset where the first data row starts in the package list (after header + border)
     pub list_content_y: u16,
-    /// Tab click regions: (start_x, end_x, mode)
+    /// Tab click regions: (`start_x`, `end_x`, mode)
     pub tab_regions: Vec<(u16, u16, AppMode)>,
 }
 
@@ -125,7 +125,7 @@ pub struct App {
     pub status_message: String,
     pub loading: bool,
     pub confirm: Option<ConfirmDialog>,
-    /// Version string being edited in the VersionInput prompt
+    /// Version string being edited in the `VersionInput` prompt
     pub version_input: String,
     pub show_help: bool,
     /// Scroll offset for the help overlay (in rendered lines)
@@ -152,7 +152,7 @@ pub struct App {
     pub detail_generation: u64,
     /// Cache of package details to avoid repeated winget show calls
     pub detail_cache: HashMap<String, PackageDetail>,
-    /// Indices into filtered_packages that are selected for batch operations
+    /// Indices into `filtered_packages` that are selected for batch operations
     pub selected_packages: HashSet<usize>,
     /// A high-signal status message to restore after the next list refresh completes.
     pub post_refresh_status: Option<String>,
