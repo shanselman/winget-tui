@@ -261,7 +261,7 @@ impl CliBackend {
             } else {
                 stderr.trim().to_string()
             };
-            bail!("winget failed: {}", detail);
+            bail!("winget failed: {detail}");
         }
 
         Ok(Self::clean_output(&stdout))

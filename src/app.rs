@@ -448,8 +448,7 @@ impl App {
                             Ok(pins) => Self::annotate_pins(&mut packages, pins),
                             Err(e) => {
                                 let _ = tx.send(AppMessage::StatusUpdate(format!(
-                                    "Pin info unavailable: {}",
-                                    e
+                                    "Pin info unavailable: {e}"
                                 )));
                             }
                         }
@@ -510,12 +509,11 @@ impl App {
                     },
                     pin_state: pkg.pin_state.clone(),
                     description: format!(
-                        "{}\n\n\
+                        "{kind}\n\n\
                          This package has no manifest in any configured winget source. \
                          Detailed metadata (publisher, homepage, license) is not available.\n\n\
                          To manage this package, use its original installer or \
-                         the Windows Settings > Apps panel.",
-                        kind
+                         the Windows Settings > Apps panel."
                     ),
                     ..PackageDetail::default()
                 };
@@ -579,11 +577,11 @@ impl App {
                             id
                         )));
                         if let Err(e) = backend.upgrade(id).await {
-                            failures.push(format!("{}: {}", id, e));
+                            failures.push(format!("{id}: {e}"));
                         }
                     }
                     if failures.is_empty() {
-                        Ok(format!("All {} packages upgraded successfully", total))
+                        Ok(format!("All {total} packages upgraded successfully"))
                     } else {
                         Err(anyhow::anyhow!(
                             "{}/{} succeeded, {} failed: {}",
