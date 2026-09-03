@@ -126,7 +126,7 @@ fn draw_header(f: &mut Frame, app: &mut App, area: Rect) {
             } else {
                 theme::navbar_inactive(palette)
             };
-            let tab_text = format!(" {} ", label);
+            let tab_text = format!(" {label} ");
             let tab_width = UnicodeWidthStr::width(tab_text.as_str()) as u16;
             tab_regions.push((current_x, current_x + tab_width, *mode));
             current_x += tab_width + 1;
@@ -181,7 +181,7 @@ fn draw_search_bar(f: &mut Frame, app: &mut App, area: Rect) {
     {
         placeholder.to_string()
     } else {
-        format!(" {}", active_text)
+        format!(" {active_text}")
     };
 
     let search = Paragraph::new(search_text).style(search_style);
@@ -220,7 +220,7 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
         AppMode::Upgrades => {
             let sel = app.selected_packages.len();
             if sel > 0 {
-                format!("Upgrades -- {} selected", sel)
+                format!("Upgrades -- {sel} selected")
             } else {
                 "Upgrades".to_string()
             }
