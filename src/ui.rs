@@ -226,14 +226,14 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
             }
         }
     };
-    let title = if app.mode != AppMode::Search {
+    let title = if app.mode == AppMode::Search {
+        title
+    } else {
         match app.pin_filter {
             crate::models::PinFilter::All => title,
             crate::models::PinFilter::PinnedOnly => format!("{title} -- only 📌"),
             crate::models::PinFilter::UnpinnedOnly => format!("{title} -- hide 📌"),
         }
-    } else {
-        title
     };
 
     let header_cells: Vec<Cow<'_, str>> = if app.mode == AppMode::Upgrades {
