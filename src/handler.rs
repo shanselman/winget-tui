@@ -420,10 +420,10 @@ fn handle_normal_mode(
                     );
                 } else {
                     // Pre-fill with available_version if present, else current version
-                    let prefill = if !pkg.available_version.is_empty() {
-                        pkg.available_version.clone()
-                    } else {
+                    let prefill = if pkg.available_version.is_empty() {
                         pkg.version.clone()
+                    } else {
+                        pkg.available_version.clone()
                     };
                     app.version_input = prefill;
                     app.input_mode = InputMode::VersionInput;
