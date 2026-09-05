@@ -45,7 +45,7 @@ async fn main() -> Result<()> {
     let mut terminal = Terminal::new(backend)?;
 
     // Run app
-    let result = run_app(&mut terminal).await;
+    let result = run_app(&mut terminal);
 
     // Restore terminal
     restore_terminal()?;
@@ -59,7 +59,7 @@ fn restore_terminal() -> Result<()> {
     Ok(())
 }
 
-async fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> Result<()> {
+fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> Result<()> {
     let backend = Arc::new(CliBackend::new());
     let cfg = Config::load();
     let mut app = App::new(backend, cfg);
