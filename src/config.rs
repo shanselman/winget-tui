@@ -388,4 +388,22 @@ default_pin_filter = \"pinned\" # pinned only
         assert_eq!(cfg.default_sort_field, SortField::None);
         assert_eq!(cfg.default_sort_dir, SortDir::Asc);
     }
+
+    #[test]
+    fn parse_unquoted_values_are_accepted() {
+        // Values without surrounding quotes should still parse correctly.
+        let input = "default_view = search\ndefault_source = msstore\n";
+        let cfg = Config::parse(input);
+        assert_eq!(cfg.default_view, AppMode::Search);
+        assert_eq!(cfg.default_source, SourceFilter::MsStore);
+    }
+
+    #[test]
+    fn parse_lines_without_equals_sign_are_skipped() {
+        // A line with no `=` has no key/value split and must be ignored
+        // rather than panicking or corrupting later parsing.
+        let input = "this is not a valid config line\ndefault_view = \"upgrades\"\n";
+        let cfg = Config::parse(input);
+        assert_eq!(cfg.default_view, AppMode::Upgrades);
+    }
 }
