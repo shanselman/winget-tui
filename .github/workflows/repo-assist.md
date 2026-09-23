@@ -22,6 +22,8 @@ on:
 
 timeout-minutes: 60
 
+model: claude-sonnet-5
+
 permissions: read-all
 
 network:
