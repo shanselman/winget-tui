@@ -7,6 +7,27 @@ Versions match the `v<major>.<minor>.<patch>` tags in git.
 
 ---
 
+## [0.14.0] – 2026-09-25
+
+### Added
+- Accessible `original`, `retro`, `nord`, and terminal-inheriting color themes,
+  selectable at startup with the new `theme` configuration key.
+
+### Fixed
+- Winget output parsing now handles any number of footer-delimited tables and
+  console control bytes without dropping targeted or pinned upgrades.
+- Digit-prefixed package names are no longer mistaken for winget footer lines.
+- Configuration parsing accepts quoted or unquoted values and safely ignores
+  malformed lines.
+
+### Other
+- Restored and continuously verifies the Rust 1.88 minimum supported version.
+- Updated compatible Rust dependencies and GitHub Actions dependencies.
+- Expanded coverage for configuration parsing, theme selection, and opening
+  package detail URLs.
+
+---
+
 ## [0.13.2] – 2026-08-08
 
 ### Fixed
