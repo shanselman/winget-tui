@@ -1976,6 +1976,35 @@ Google Chrome  Google.Chrome  131.0
         assert_eq!(CliBackend::extract_field("Chrome", &[], 0), "");
     }
 
+    #[test]
+    fn extract_field_handles_truncated_ellipsis_multibyte_char() {
+        // Regression for the display-width-vs-byte-offset distinction called
+        // out in extract_field's doc comment: '…' is 1 display column wide
+        // but 3 bytes in UTF-8. A naive byte-offset slice would corrupt or
+        // misplace this field; the char-by-char display-width walk must not.
+        let cols = vec![("Name", 0usize), ("Id", 12)];
+        let line = "Some Editor…Vendor.SomeEditor…truncated";
+        assert_eq!(CliBackend::extract_field(line, &cols, 0), "Some Editor…");
+        assert_eq!(
+            CliBackend::extract_field(line, &cols, 1),
+            "Vendor.SomeEditor…truncated"
+        );
+    }
+
+    #[test]
+    fn extract_field_handles_cjk_wide_characters_in_data() {
+        // CJK characters are 2 display columns wide but the header's column
+        // boundaries are computed in display-width units. A row whose data
+        // contains wide characters must still be sliced at the correct
+        // display-column boundary, not a raw char-count boundary.
+        let cols = vec![("Name", 0usize), ("Id", 10)];
+        // "编辑器" is 3 chars, 6 display columns wide, followed by 4 spaces
+        // to pad the Name column out to the Id column start at width 10.
+        let line = "编辑器    Vendor.Editor";
+        assert_eq!(CliBackend::extract_field(line, &cols, 0), "编辑器");
+        assert_eq!(CliBackend::extract_field(line, &cols, 1), "Vendor.Editor");
+    }
+
     // ── normalize_show_key ───────────────────────────────────────────────────
 
     #[test]
