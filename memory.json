@@ -1,6 +1,6 @@
 {
   "last_run": "2026-09-26",
-  "last_run_id": "36207477458",
+  "last_run_id": "36243198319",
   "monthly_summary_disabled": true,
   "monthly_summary_note": "2026-06-08: Maintainer closed issue #222. Do NOT create monthly activity summary issues. Still honored as of 2026-09-26.",
   "comments_made": {
@@ -8,19 +8,19 @@
   },
   "open_repo_assist_prs": [
     {
-      "pr": "new-test-extract-field-multibyte",
+      "pr": 435,
       "title": "test: cover multi-byte and wide-character fields in extract_field",
-      "status": "open draft; created 2026-09-26; branch repo-assist/test-extract-field-multibyte-20260926; awaiting maintainer review"
+      "status": "open draft; created 2026-09-26; branch repo-assist/test-extract-field-multibyte-20260926; still awaiting maintainer review as of run 36243198319"
     },
     {
-      "pr": "new-perf-local-filter-alloc",
+      "pr": 436,
       "title": "perf: avoid per-package allocations in local search filter",
-      "status": "open draft; created 2026-09-26; branch repo-assist/perf-local-filter-alloc-20260926; awaiting maintainer review; recreates previously-closed PR #401 which was never merged"
+      "status": "open draft; created 2026-09-26; branch repo-assist/perf-local-filter-alloc-20260926; still awaiting maintainer review as of run 36243198319; recreates previously-closed PR #401 which was never merged"
     }
   ],
-  "closed_repo_assist_prs_not_merged": "As of 2026-09-26, ALL previously tracked Repo Assist PRs (#395,396,397,398,401,402,403,409,411,412,415,417,419,422,424,425,426, and the eng-bundle/clippy-pedantic-round3 PRs) are now CLOSED (not merged) - maintainer appears to have done a bulk-close of the large unreviewed backlog. Only #432 and #433 (infra/model-resolution fixes, both merged by shanselman directly) went in. No open Repo Assist PRs existed at the start of this run.",
+  "closed_repo_assist_prs_not_merged": "As of 2026-09-26, ALL previously tracked Repo Assist PRs (#395,396,397,398,401,402,403,409,411,412,415,417,419,422,424,425,426, and the eng-bundle/clippy-pedantic-round3 PRs) are now CLOSED (not merged) - maintainer appears to have done a bulk-close of the large unreviewed backlog. Only #432 and #433 (infra/model-resolution fixes, both merged by shanselman directly) went in. This is a strong signal to slow down PR creation until #435/#436 get reviewed - do not keep piling on more unreviewed draft PRs.",
   "other_open_prs": [],
   "ci_note": "All repo-assist branch PRs historically show no/pending CI runs to completion (fork/branch protection requires manual approval). This is an infrastructure limitation, not a code failure.",
-  "issue_read_note": "2026-09-26: All 3 open issues (#399, #423, #434) were filtered by integrity policy this run ('lower integrity than agent requires') - same transient/recurring pattern as run 34003390531 (2026-09-06). Could not read issue content for Task 2/3 candidate work. Worth re-checking each run since this may resolve itself.",
-  "notes": "Run 36207477458 (2026-09-26): Tasks 9 (Testing Improvements) + 8 (Performance Improvements) selected. Discovered the entire prior backlog of 17+ open Repo Assist PRs has been closed by the maintainer without merging (likely bulk-close/reset) - starting fresh. Task 9: added 2 new unit tests to src/cli_backend.rs covering the documented-but-untested multi-byte-ellipsis and CJK-wide-character edge cases in extract_field (display-width column slicing). Task 8: recreated the contains_ignore_case allocation-avoidance optimization from closed PR #401 (never merged) in src/app.rs's apply_filter local-search-filter path, with its original 2 regression tests. Both changes are isolated (single-file diffs), build/format/lint/test clean (396 tests passing on each branch), and were submitted as two separate draft PRs to keep each concern focused. Could not read any open issue content this run due to integrity-policy filtering (see issue_read_note) - Tasks 2/3 were not attempted for this reason; will retry issue reads next run. monthly_summary_disabled remains true per maintainer instruction from 2026-06-08 (issue #222 closed) - Task 11 skipped again this run per that standing instruction."
+  "issue_read_note": "2026-09-26 (run 36243198319): All 3 open issues (#399, #423, #434) were STILL filtered by integrity policy this run ('lower integrity than agent requires') - 3rd consecutive occurrence of this pattern (also seen in runs 34003390531 on 2026-09-06 and 36207477458 on 2026-09-26). This appears to be a persistent, not transient, limitation for these specific issues. Task 2/3 candidate work on them remains blocked. Known content from prior successful reads: #399 is an eng/CI-cache issue that requires a human-authored workflow-file edit (Repo Assist cannot push to .github/workflows/*), already triaged as actionable-but-needs-human by shanselman on 2026-09-10. #423 is the auto-managed '[aw] Detection Runs' tracking issue - explicitly says 'No action to take - Do not assign to an agent.' #434 body remains unreadable.",
+  "notes": "Run 36243198319 (2026-09-26): Tasks 2 (Issue Investigation and Comment) + 10 (Take the Repository Forward) selected. Re-verified all 3 open issues (#399, #423, #434) are still integrity-filtered - cannot read/comment (Task 2 blocked for the 3rd run in a row). Reviewed repo state for Task 10: codebase is clean (clippy/build pass with no warnings), only 4 minor #[allow(dead_code)] items exist (AppMode::label, list_sources trait method + impls, parse_sources_from_table) which are all pre-existing intentional scaffolding for a not-yet-built source-listing feature, not garbage to remove. Deliberately chose NOT to open new PRs this run: PRs #435 and #436 from the previous run are still open drafts awaiting maintainer review, and repo history shows a bulk-close of 17+ unreviewed Repo Assist PRs previously - opening more work before the existing backlog is reviewed risks repeating that pattern and wasting maintainer attention. This is a deliberate restraint decision per the 'Quality over quantity' and 'When in doubt, do nothing' guidance, not an oversight. monthly_summary_disabled remains true per maintainer instruction from 2026-06-08 (issue #222 closed) - Task 11 skipped again this run per that standing instruction. Next run: re-check issue-read integrity status, and check whether #435/#436 have received maintainer feedback before considering further PR work."
 }
