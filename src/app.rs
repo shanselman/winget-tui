@@ -187,6 +187,28 @@ impl PartialOrd for VersionPart {
     }
 }
 
+/// Case-insensitive substring search that avoids allocating a lowercased
+/// copy of `haystack` on the common ASCII path (`needle` is already
+/// lowercased by the caller). Falls back to an allocating comparison only
+/// when `haystack` contains non-ASCII bytes, since ASCII case-folding via
+/// `eq_ignore_ascii_case` does not handle Unicode case mapping correctly.
+fn contains_ignore_case(haystack: &str, needle: &str) -> bool {
+    if needle.is_empty() {
+        return true;
+    }
+    if haystack.is_ascii() {
+        let hay = haystack.as_bytes();
+        let pat = needle.as_bytes();
+        if pat.len() > hay.len() {
+            return false;
+        }
+        hay.windows(pat.len())
+            .any(|window| window.eq_ignore_ascii_case(pat))
+    } else {
+        haystack.to_lowercase().contains(needle)
+    }
+}
+
 fn version_key(v: &str) -> Vec<VersionPart> {
     v.split(['.', '-', '+'])
         .map(|part| VersionPart {
@@ -270,8 +292,11 @@ impl App {
         }
         if self.mode != AppMode::Search && !self.local_filter.is_empty() {
             let query = self.local_filter.to_lowercase();
+            // Avoid allocating a lowercased copy of every package's name/id on
+            // every keystroke; scan case-insensitively without heap allocation
+            // instead (this list can be scanned many times per second while typing).
             self.filtered_packages.retain(|pkg| {
-                pkg.name.to_lowercase().contains(&query) || pkg.id.to_lowercase().contains(&query)
+                contains_ignore_case(&pkg.name, &query) || contains_ignore_case(&pkg.id, &query)
             });
         }
         if self.mode != AppMode::Search {
@@ -1498,6 +1523,33 @@ mod tests {
 
         assert_eq!(app.filtered_packages.len(), 1);
         assert_eq!(app.filtered_packages[0].id, "OpenWhisperSystems.Signal");
+    }
+
+    #[test]
+    fn local_filter_matches_unicode_names_case_insensitively() {
+        // Regression: the ASCII fast path in contains_ignore_case must fall
+        // back to an allocating lowercase comparison for non-ASCII text,
+        // since byte-wise eq_ignore_ascii_case does not case-fold Unicode.
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.mode = AppMode::Installed;
+        app.packages = vec![
+            make_package("Über Editor", "Vendor.UberEditor", "1.0"),
+            make_package("Google Chrome", "Google.Chrome", "120.0"),
+        ];
+        app.local_filter = "ÜBER".to_string();
+        app.apply_filter();
+
+        assert_eq!(app.filtered_packages.len(), 1);
+        assert_eq!(app.filtered_packages[0].id, "Vendor.UberEditor");
+    }
+
+    #[test]
+    fn contains_ignore_case_handles_ascii_and_empty_needle() {
+        assert!(contains_ignore_case("Microsoft.VisualStudioCode", "visual"));
+        assert!(!contains_ignore_case("Microsoft.VisualStudioCode", "xyz"));
+        assert!(contains_ignore_case("anything", ""));
+        assert!(!contains_ignore_case("abc", "abcd"));
     }
 
     #[test]
