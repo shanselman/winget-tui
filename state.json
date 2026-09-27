@@ -1,26 +1,37 @@
 {
-  "last_run": "2026-09-26",
-  "last_run_id": "36207477458",
+  "last_run": "2026-09-27",
+  "last_run_id": "36320451146",
   "monthly_summary_disabled": true,
-  "monthly_summary_note": "2026-06-08: Maintainer closed issue #222. Do NOT create monthly activity summary issues. Still honored as of 2026-09-26.",
+  "monthly_summary_note": "2026-06-08: Maintainer closed issue #222. Do NOT create monthly activity summary issues. Still honored as of 2026-09-27 (run 36320451146).",
   "comments_made": {
     "347": "2026-07-31: Commented with root cause analysis and debugging suggestions"
   },
   "open_repo_assist_prs": [
     {
-      "pr": "new-test-extract-field-multibyte",
+      "pr": 435,
       "title": "test: cover multi-byte and wide-character fields in extract_field",
-      "status": "open draft; created 2026-09-26; branch repo-assist/test-extract-field-multibyte-20260926; awaiting maintainer review"
+      "status": "open draft; created 2026-09-26; branch repo-assist/test-extract-field-multibyte-20260926; no reviews/comments as of run 36320451146; CI still pending/0-statuses (infra limitation)"
     },
     {
-      "pr": "new-perf-local-filter-alloc",
+      "pr": 436,
       "title": "perf: avoid per-package allocations in local search filter",
-      "status": "open draft; created 2026-09-26; branch repo-assist/perf-local-filter-alloc-20260926; awaiting maintainer review; recreates previously-closed PR #401 which was never merged"
+      "status": "open draft; created 2026-09-26; branch repo-assist/perf-local-filter-alloc-20260926; no reviews/comments as of run 36320451146"
+    },
+    {
+      "pr": 437,
+      "title": "refactor: reuse AppMode::label() for package list title",
+      "status": "open draft; created 2026-09-27; branch repo-assist/improve-appmode-label-dedup; no reviews/comments as of run 36320451146"
+    },
+    {
+      "pr": "new-improve-config-doc-default-sort",
+      "title": "docs: fix incorrect default_sort example in Config doc comment",
+      "status": "open draft; created 2026-09-27 (run 36320451146); branch repo-assist/improve-config-doc-default-sort; Task 5 (Coding Improvements). One-line doc fix: config.rs module doc showed default_sort = \"name\" as the default, but Config::default() uses SortField::None, matching AGENTS.md's correct \"none\" documentation. Build/fmt/clippy/test all clean, 394 tests pass."
     }
   ],
-  "closed_repo_assist_prs_not_merged": "As of 2026-09-26, ALL previously tracked Repo Assist PRs (#395,396,397,398,401,402,403,409,411,412,415,417,419,422,424,425,426, and the eng-bundle/clippy-pedantic-round3 PRs) are now CLOSED (not merged) - maintainer appears to have done a bulk-close of the large unreviewed backlog. Only #432 and #433 (infra/model-resolution fixes, both merged by shanselman directly) went in. No open Repo Assist PRs existed at the start of this run.",
+  "closed_repo_assist_prs_not_merged": "As of 2026-09-26, ALL previously tracked Repo Assist PRs (#395,396,397,398,401,402,403,409,411,412,415,417,419,422,424,425,426, and the eng-bundle/clippy-pedantic-round3 PRs) are CLOSED (not merged) - maintainer did a bulk-close of the unreviewed backlog. Only #432 and #433 went in (merged directly by shanselman). #435/#436/#437 still open and unreviewed as of 2026-09-27 - three PRs now awaiting review, plus a fourth (config doc fix) opened this run. Given the growing unreviewed backlog (4 open draft PRs), future runs should strongly favor NOT opening additional new PRs until at least some of these are reviewed/merged/closed, and should prioritize Task 6 (maintain existing Repo Assist PRs) and Task 2/3 (issue engagement) instead.",
   "other_open_prs": [],
-  "ci_note": "All repo-assist branch PRs historically show no/pending CI runs to completion (fork/branch protection requires manual approval). This is an infrastructure limitation, not a code failure.",
-  "issue_read_note": "2026-09-26: All 3 open issues (#399, #423, #434) were filtered by integrity policy this run ('lower integrity than agent requires') - same transient/recurring pattern as run 34003390531 (2026-09-06). Could not read issue content for Task 2/3 candidate work. Worth re-checking each run since this may resolve itself.",
-  "notes": "Run 36207477458 (2026-09-26): Tasks 9 (Testing Improvements) + 8 (Performance Improvements) selected. Discovered the entire prior backlog of 17+ open Repo Assist PRs has been closed by the maintainer without merging (likely bulk-close/reset) - starting fresh. Task 9: added 2 new unit tests to src/cli_backend.rs covering the documented-but-untested multi-byte-ellipsis and CJK-wide-character edge cases in extract_field (display-width column slicing). Task 8: recreated the contains_ignore_case allocation-avoidance optimization from closed PR #401 (never merged) in src/app.rs's apply_filter local-search-filter path, with its original 2 regression tests. Both changes are isolated (single-file diffs), build/format/lint/test clean (396 tests passing on each branch), and were submitted as two separate draft PRs to keep each concern focused. Could not read any open issue content this run due to integrity-policy filtering (see issue_read_note) - Tasks 2/3 were not attempted for this reason; will retry issue reads next run. monthly_summary_disabled remains true per maintainer instruction from 2026-06-08 (issue #222 closed) - Task 11 skipped again this run per that standing instruction."
+  "ci_note": "All repo-assist branch PRs historically show no/pending CI runs to completion (fork/branch protection requires manual approval). This is an infrastructure limitation, not a code failure. Confirmed again this run.",
+  "issue_read_note": "2026-09-27 (run 36320451146): Of the 3 open issues, #399 and #423 readable again this run. #434 STILL filtered by integrity policy (5th consecutive occurrence across runs) - body and comments both return empty/filtered; get_labels shows it has NO labels currently (totalCount:0). Cannot label it confidently since its content is unreadable - skipping Task-1 labelling for #434 again. #399 has labels: agentic-workflows, automation, repo-assist, performance (already labelled, eng/CI-cache PR blocked on human action per issue_read_note history). #423 has label: agentic-workflows only (auto-managed '[aw] Detection Runs' tracking issue, explicitly says no action needed - correctly already labelled/untouched).",
+  "notes": "Run 36320451146 (2026-09-27): Tasks 5 (Coding Improvements) + 1 (Issue Labelling) selected. Task 1: only unlabelled issue is #434, whose content remains unreadable by integrity policy for the 5th run in a row - cannot safely apply labels without reading it, so skipped (would be guessing). Task 5: found a small, safe, high-confidence documentation-accuracy fix in src/config.rs (default_sort doc example said \"name\" but actual default is SortField::None / \"none\", contradicting AGENTS.md's correct docs) - fixed and shipped as a one-line PR. Deliberately did NOT propose any larger refactor/feature this run given 3 existing open Repo Assist PRs (#435, #436, #437) are still unreviewed after 1-2 days - kept new work minimal and low-review-burden. IMPORTANT FOR NEXT RUN: the open-PR backlog is now 4 (435, 436, 437, new config-doc PR) - next run should check on their status, consider Task 6 (maintain Repo Assist PRs) if any need attention, and deprioritize opening more new PRs (favor Task 2/3 issue engagement or Task 7 nudges instead) until the backlog is reviewed. Also: #434 remains a genuine mystery - worth flagging to maintainer whenever monthly summary is re-enabled, since it's an issue we structurally cannot read or act on across 5+ runs.",
+  "monthly_summary_status_note": "Task 11 (Monthly Activity Summary) skipped this run per the standing maintainer instruction to keep it disabled (memory.monthly_summary_disabled = true, set 2026-06-08 per closed issue #222). Re-evaluate periodically whether enough time has passed to ask the maintainer if they want it re-enabled."
 }
