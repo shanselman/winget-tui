@@ -216,13 +216,13 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
 
     let title = match app.mode {
         AppMode::Search => "Search Results".to_string(),
-        AppMode::Installed => "Installed".to_string(),
+        AppMode::Installed => app.mode.label().to_string(),
         AppMode::Upgrades => {
             let sel = app.selected_packages.len();
             if sel > 0 {
-                format!("Upgrades -- {} selected", sel)
+                format!("{} -- {} selected", app.mode.label(), sel)
             } else {
-                "Upgrades".to_string()
+                app.mode.label().to_string()
             }
         }
     };
