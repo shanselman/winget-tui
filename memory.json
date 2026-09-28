@@ -1,21 +1,37 @@
 {
   "last_run": "2026-09-28",
-  "last_run_id": "36365614038",
+  "last_run_id": "36425439447",
   "monthly_summary_disabled": true,
   "monthly_summary_note": "2026-06-08: Maintainer closed issue #222. Do NOT create monthly activity summary issues. Still honored as of 2026-09-28 (run 36365614038) - no new maintainer comments requesting re-enable.",
   "comments_made": {
     "347": "2026-07-31: Commented with root cause analysis and debugging suggestions"
   },
   "open_repo_assist_prs": [
-    {"pr": 435, "title": "test: cover multi-byte and wide-character fields in extract_field", "status": "open draft; created 2026-09-26; CI blocked (action_required - branch protection infra gate, not a code failure); no reviews/comments as of 2026-09-28"},
-    {"pr": 436, "title": "perf: avoid per-package allocations in local search filter", "status": "open draft; created 2026-09-26; CI blocked (action_required); no reviews/comments as of 2026-09-28"},
-    {"pr": 437, "title": "refactor: reuse AppMode::label() for package list title", "status": "open draft; created 2026-09-27; CI blocked (action_required); no reviews/comments as of 2026-09-28"},
-    {"pr": 438, "title": "docs: fix incorrect default_sort example in Config doc comment", "status": "open draft; created 2026-09-27; CI blocked (action_required); no reviews/comments as of 2026-09-28"}
+    {
+      "pr": 435,
+      "title": "test: cover multi-byte and wide-character fields in extract_field",
+      "status": "open draft; created 2026-09-26; CI blocked (action_required - branch protection infra gate, not a code failure); no reviews/comments as of 2026-09-28"
+    },
+    {
+      "pr": 436,
+      "title": "perf: avoid per-package allocations in local search filter",
+      "status": "open draft; created 2026-09-26; CI blocked (action_required); no reviews/comments as of 2026-09-28"
+    },
+    {
+      "pr": 437,
+      "title": "refactor: reuse AppMode::label() for package list title",
+      "status": "open draft; created 2026-09-27; CI blocked (action_required); no reviews/comments as of 2026-09-28"
+    },
+    {
+      "pr": 438,
+      "title": "docs: fix incorrect default_sort example in Config doc comment",
+      "status": "open draft; created 2026-09-27; CI blocked (action_required); no reviews/comments as of 2026-09-28"
+    }
   ],
   "closed_repo_assist_prs_not_merged": "As of 2026-09-26, ALL previously tracked Repo Assist PRs (#395,396,397,398,401,402,403,409,411,412,415,417,419,422,424,425,426, and eng-bundle/clippy-pedantic-round3) are CLOSED (not merged) - maintainer bulk-closed the unreviewed backlog. Only #432/#433 went in (merged directly by shanselman). #435/#436/#437/#438 still open, unreviewed, and now ALL show CI status 'action_required' on every check (msrv/check/check-linux/build) - this is a GitHub Actions branch-protection/fork-approval gate requiring a human to manually approve workflow runs on PR branches, NOT a code/test failure. Confirmed again 2026-09-28.",
   "other_open_prs": [],
   "ci_note": "All repo-assist branch PRs show CI runs completed with conclusion 'action_required' (not failure) - this is an infrastructure/branch-protection limitation (manual workflow approval gate), confirmed again on run 36365614038. Cannot be fixed by pushing code changes.",
   "issue_read_note": "2026-09-28 (run 36365614038): #399 and #423 readable. #434 STILL filtered by integrity policy (6th consecutive occurrence) - cannot label/action it. #399 (ci: add cargo cache to msrv job) is blocked because it modifies a protected file (.github/workflows/ci.yml) which Repo Assist has no push permission for - documented in the issue body itself; this is a structural/permissions limitation for ALL Task 4 CI-file changes (ci.yml, build.yml, copilot-setup-steps.yml are all protected workflow files). #423 is the auto-managed '[aw] Detection Runs' tracking issue - no action needed, correctly labelled.",
-  "notes": "Run 36365614038 (2026-09-28): Tasks 4 (Engineering Investments) + 8 (Performance Improvements) selected. Investigated thoroughly: (1) Task 4 CI/tooling improvements are structurally blocked - any change to .github/workflows/*.yml cannot be pushed by Repo Assist (protected files, confirmed by issue #399's own body and repeated history). Dependency updates: 'cargo update --dry-run' showed only patch-level TRANSITIVE dependency bumps (bitflags, mio, syn, thiserror, etc.) - no direct Cargo.toml dependency has a new compatible version worth a targeted PR, and a similar broad Cargo.lock refresh (PR #422) was already bulk-closed unmerged by the maintainer, so repeating it would be duplicate/low-value spam. No open Dependabot PRs exist to bundle. (2) Task 8 Performance: reviewed cli_backend.rs (extract_field, clean_output, dedupe_packages, normalize_show_key, package_column_map) and app.rs (apply_filter, sort_by_cached_key usage) - all already carry recent perf-optimization comments/implementations from prior runs (allocation-free ASCII paths, O(1) hashmap dedup, sort_by_cached_key). The one remaining allocation (to_lowercase() in apply_filter's local-filter branch) is EXACTLY what already-open PR #436 fixes - would be a direct duplicate. No other clear, measurable, low-risk perf win found without broader refactoring risk. DECISION: given (a) both task areas are genuinely blocked/duplicated, (b) 4 open Repo Assist PRs are already awaiting review with zero maintainer engagement in 1-2 days, and (c) explicit standing guidance from my own last-run notes to avoid growing the unreviewed backlog further - I did NOT open a 5th PR this run. Verified per the workflow's own instructions before concluding 'no action': no issues lack a Repo Assist comment/label that I can act on (#434 unreadable, #423 auto-managed, #399 blocked-by-permissions and already documented), no bug-labeled issues exist, no fixable CI failures (infra-gated). NEXT RUN: re-check if any of #435/#436/#437/#438 have been reviewed/merged/closed; if the backlog clears, revisit Task 4 (dependency bump, but pick a narrower/smaller set than #422 to reduce rejection risk) and Task 8 (look at ui.rs render-loop allocations or handler.rs event-dispatch for any remaining low-risk wins not yet covered).",
+  "notes": "Run 36425439447 (2026-09-28, second run same day): Tasks 2 (Issue Investigation/Comment) + 1 (Issue Labelling) selected. Verified live state: still only 3 open issues (#399, #423, #434), 4 open Repo Assist PRs (#435-438), 0 other open PRs. Task 1: only unlabelled issue is #434 - STILL filtered by integrity policy (7th consecutive run), totalCount:0 labels, cannot action confidently. No other unlabelled items exist. Task 2: #399 (msrv cache CI issue) already has 2 Repo Assist comments across prior runs plus an owner reply (2026-09-10) confirming triage and explicitly stating a human must apply the fix - nothing new to add, re-commenting would be redundant/spammy. #423 is auto-managed [aw] Detection Runs tracking issue, explicitly says no action needed. #434 unreadable so cannot investigate/comment. No new human activity on any commentable issue since last run. Checked PRs #435-438 for new comments/reviews/CI changes: all still 0 comments, CI still pending/action_required (branch-protection infra gate unchanged since last run), no maintainer engagement yet (1-2 days old). Did not push updates or open a 5th PR given standing guidance to avoid growing an already-unreviewed 4-PR backlog with zero maintainer engagement. CONCLUSION: genuinely nothing safe/valuable to do for either selected task this run - called noop rather than posting a redundant comment or guessing labels on an unreadable issue. NEXT RUN: check if maintainer has reviewed/merged/closed any of #435-438 (would reopen capacity for Task 4/5/8 new PRs); check if #434 has become readable; check if #399 receives new maintainer activity.",
   "monthly_summary_status_note": "Task 11 (Monthly Activity Summary) skipped again per standing maintainer instruction (memory.monthly_summary_disabled = true, set 2026-06-08, issue #222 closed). No new instructions found."
 }
