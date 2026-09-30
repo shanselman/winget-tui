@@ -2483,6 +2483,13 @@ mod tests {
         assert_eq!(csv_escape("line1\nline2"), "\"line1\nline2\"");
     }
 
+    #[test]
+    fn csv_escape_lone_carriage_return_triggers_quoting() {
+        // A bare \r (no accompanying \n) must still be quoted so a CSV reader
+        // doesn't misinterpret it as a row terminator.
+        assert_eq!(csv_escape("line1\rline2"), "\"line1\rline2\"");
+    }
+
     // ── process_messages return value ─────────────────────────────────────────
 
     #[test]

@@ -1470,6 +1470,19 @@ mod tests {
     }
 
     #[test]
+    fn truncate_zero_max_over_limit_yields_bare_ellipsis() {
+        // budget = 0.saturating_sub(1) = 0, so no characters fit before the
+        // ellipsis is appended.
+        assert_eq!(truncate("hello", 0), "\u{2026}");
+    }
+
+    #[test]
+    fn truncate_empty_string_zero_max_is_unchanged() {
+        // Fast path: empty string always fits regardless of max.
+        assert_eq!(truncate("", 0), "");
+    }
+
+    #[test]
     fn sort_header_returns_plain_label_when_inactive() {
         assert_eq!(
             sort_header("Version", SortField::Version, SortField::Name, SortDir::Asc),
