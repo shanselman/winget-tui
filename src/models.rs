@@ -3,6 +3,9 @@ use std::fmt;
 use serde::Deserialize;
 
 /// Column to sort the package list by.
+///
+/// Note: there is no `cycle()` method here; `App::cycle_sort` implements the
+/// full sort-cycling state machine instead.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum SortField {
     /// No explicit sort; winget's natural order is preserved.
@@ -11,10 +14,6 @@ pub enum SortField {
     Name,
     Id,
     Version,
-}
-
-impl SortField {
-    // No cycle helper needed; App::cycle_sort implements the full state machine.
 }
 
 impl fmt::Display for SortField {
