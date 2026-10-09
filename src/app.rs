@@ -1854,6 +1854,57 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn process_messages_batch_upgrade_completion_invalidates_all_detail_caches() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.detail_cache.insert(
+            "Pkg.One".to_string(),
+            PackageDetail {
+                id: "Pkg.One".to_string(),
+                ..PackageDetail::default()
+            },
+        );
+        app.detail_cache.insert(
+            "Pkg.Two".to_string(),
+            PackageDetail {
+                id: "Pkg.Two".to_string(),
+                ..PackageDetail::default()
+            },
+        );
+        app.detail_cache.insert(
+            "Pkg.Unrelated".to_string(),
+            PackageDetail {
+                id: "Pkg.Unrelated".to_string(),
+                ..PackageDetail::default()
+            },
+        );
+        app.message_tx
+            .send(AppMessage::OperationComplete(OpResult {
+                operation: Operation::BatchUpgrade {
+                    ids: vec!["Pkg.One".into(), "Pkg.Two".into()],
+                },
+                success: true,
+                message: "done".into(),
+            }))
+            .unwrap();
+
+        app.process_messages();
+
+        assert!(
+            !app.detail_cache.contains_key("Pkg.One"),
+            "batch upgrade should invalidate the cache for each upgraded id"
+        );
+        assert!(
+            !app.detail_cache.contains_key("Pkg.Two"),
+            "batch upgrade should invalidate the cache for each upgraded id"
+        );
+        assert!(
+            app.detail_cache.contains_key("Pkg.Unrelated"),
+            "unrelated cached details should be left untouched"
+        );
+    }
+
+    #[tokio::test]
     async fn process_messages_packages_loaded_updates_list() {
         let spy = SpyBackend::new();
         let mut app = make_app(spy as Arc<dyn WingetBackend>);
@@ -1961,6 +2012,24 @@ mod tests {
     }
 
     #[test]
+    fn export_list_csv_writes_file_with_expected_name_and_content() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.mode = AppMode::Search;
+        app.filtered_packages = make_packages(2);
+
+        let result = app.export_list_csv();
+        assert_eq!(result.as_deref(), Ok("winget-search.csv"));
+
+        let filename = result.unwrap();
+        let content = std::fs::read_to_string(&filename).expect("exported file should exist");
+        std::fs::remove_file(&filename).expect("cleanup should succeed");
+
+        assert!(content.starts_with("Name,Id,Version,Source\n"));
+        assert_eq!(content.lines().count(), 3, "header + 2 data rows");
+    }
+
+    #[test]
     fn process_messages_stale_packages_discarded() {
         let spy = SpyBackend::new();
         let mut app = make_app(spy as Arc<dyn WingetBackend>);
@@ -2027,6 +2096,60 @@ mod tests {
                 .description
                 .contains("Additional metadata is not available"),
             "sparse details should explain why rich metadata is missing"
+        );
+    }
+
+    #[test]
+    fn sparse_detail_with_empty_source_mentions_configured_sources() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.detail_generation = 1;
+        app.detail = Some(PackageDetail {
+            id: "Some.Package".to_string(),
+            name: "Some Package".to_string(),
+            version: "1.0".to_string(),
+            source: String::new(),
+            ..PackageDetail::default()
+        });
+        app.message_tx
+            .send(AppMessage::DetailLoaded {
+                generation: 1,
+                detail: PackageDetail::default(),
+            })
+            .unwrap();
+        app.process_messages();
+        let loaded = app.detail.as_ref().expect("detail should be set");
+        assert!(
+            loaded.description.contains("configured winget sources"),
+            "empty source should mention the configured sources fallback, got: {:?}",
+            loaded.description
+        );
+    }
+
+    #[test]
+    fn sparse_detail_with_remote_source_mentions_package_manifest() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.detail_generation = 1;
+        app.detail = Some(PackageDetail {
+            id: "Some.Package".to_string(),
+            name: "Some Package".to_string(),
+            version: "1.0".to_string(),
+            source: "winget".to_string(),
+            ..PackageDetail::default()
+        });
+        app.message_tx
+            .send(AppMessage::DetailLoaded {
+                generation: 1,
+                detail: PackageDetail::default(),
+            })
+            .unwrap();
+        app.process_messages();
+        let loaded = app.detail.as_ref().expect("detail should be set");
+        assert!(
+            loaded.description.contains("the package manifest"),
+            "non-local, non-empty source should mention the package manifest fallback, got: {:?}",
+            loaded.description
         );
     }
 
