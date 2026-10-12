@@ -409,6 +409,22 @@ impl CliBackend {
             usize::MAX
         };
 
+        // Fast path: for ASCII lines, byte offsets and display-width columns are
+        // identical (every ASCII char is 1 byte / 1 column), so column boundaries
+        // can be used as byte indices directly via a single slice + trim, skipping
+        // the char-by-char width-accumulation loop below. This is the common case:
+        // winget table rows are overwhelmingly ASCII, and this function runs 4+
+        // times per row for every package parsed (name/id/version/source/available).
+        if line.is_ascii() {
+            let start = col_start.min(line.len());
+            let end = col_end.min(line.len());
+            return if start < end {
+                line[start..end].trim().to_string()
+            } else {
+                String::new()
+            };
+        }
+
         let mut result = String::new();
         let mut width = 0usize;
         for ch in line.chars() {
@@ -1974,6 +1990,29 @@ Google Chrome  Google.Chrome  131.0
         let cols = vec![("Name", 0usize)];
         assert_eq!(CliBackend::extract_field("Chrome", &cols, 1), "");
         assert_eq!(CliBackend::extract_field("Chrome", &[], 0), "");
+    }
+
+    #[test]
+    fn extract_field_ascii_line_shorter_than_column_bounds() {
+        // Regression: the ASCII fast path slices by byte offset directly, so it
+        // must clamp start/end to the line's actual length instead of panicking
+        // when a short line (e.g. a sparse row) doesn't reach later column starts.
+        let cols = vec![("Name", 0usize), ("Id", 10), ("Version", 40)];
+        assert_eq!(CliBackend::extract_field("A", &cols, 0), "A");
+        assert_eq!(CliBackend::extract_field("A", &cols, 1), "");
+        assert_eq!(CliBackend::extract_field("A", &cols, 2), "");
+    }
+
+    #[test]
+    fn extract_field_non_ascii_line_uses_display_width() {
+        // Regression: non-ASCII lines (e.g. CJK names) must still use the
+        // display-width column-walking slow path, not the ASCII byte-offset
+        // fast path (which would misalign on multi-byte characters).
+        // "日本語" is 3 chars at display width 2 each = 6 columns, plus a space = 7.
+        let cols = vec![("Name", 0usize), ("Id", 7)];
+        let line = "日本語 Google.Chrome";
+        assert_eq!(CliBackend::extract_field(line, &cols, 0), "日本語");
+        assert_eq!(CliBackend::extract_field(line, &cols, 1), "Google.Chrome");
     }
 
     // ── normalize_show_key ───────────────────────────────────────────────────
