@@ -196,6 +196,24 @@ fn version_key(v: &str) -> Vec<VersionPart> {
         .collect()
 }
 
+/// Case-insensitive ordering comparator for Name/Id sorting that avoids
+/// allocating lowercased copies of `a`/`b` on the common ASCII path (package
+/// names/ids are overwhelmingly ASCII). Falls back to an allocating
+/// `to_lowercase()` comparison only when either string contains non-ASCII
+/// bytes, since byte-wise ASCII case-folding does not correctly case-fold
+/// Unicode. Used with `sort_by` (not `sort_by_cached_key`): each comparison
+/// here performs zero heap allocations for the ASCII case, which is cheaper
+/// overall than caching one lowercased `String` per element up front.
+fn cmp_ignore_case(a: &str, b: &str) -> std::cmp::Ordering {
+    if a.is_ascii() && b.is_ascii() {
+        a.bytes()
+            .map(|c| c.to_ascii_lowercase())
+            .cmp(b.bytes().map(|c| c.to_ascii_lowercase()))
+    } else {
+        a.to_lowercase().cmp(&b.to_lowercase())
+    }
+}
+
 #[cfg(test)]
 fn compare_versions(a: &str, b: &str) -> std::cmp::Ordering {
     version_key(a).cmp(&version_key(b))
@@ -279,21 +297,23 @@ impl App {
                 .retain(|pkg| self.pin_filter.matches(&pkg.pin_state));
         }
         // Apply sort if a field is selected.
-        // sort_by_cached_key computes the key exactly once per element (O(N))
-        // rather than on every comparison (O(N log N)), avoiding repeated heap
-        // allocations from to_lowercase() for Name and Id sorts.
+        // Name/Id use `sort_by` with an allocation-free ASCII comparator
+        // (`cmp_ignore_case`) instead of `sort_by_cached_key(|p| ...to_lowercase())`,
+        // which previously allocated one lowercased `String` per package every
+        // time the filter/sort is reapplied (e.g. on every keystroke while
+        // typing in a sorted list).
         match self.sort_field {
             SortField::None => {}
             SortField::Name => {
                 self.filtered_packages
-                    .sort_by_cached_key(|p| p.name.to_lowercase());
+                    .sort_by(|a, b| cmp_ignore_case(&a.name, &b.name));
                 if self.sort_dir == SortDir::Desc {
                     self.filtered_packages.reverse();
                 }
             }
             SortField::Id => {
                 self.filtered_packages
-                    .sort_by_cached_key(|p| p.id.to_lowercase());
+                    .sort_by(|a, b| cmp_ignore_case(&a.id, &b.id));
                 if self.sort_dir == SortDir::Desc {
                     self.filtered_packages.reverse();
                 }
@@ -1391,6 +1411,30 @@ mod tests {
     }
 
     #[test]
+    fn apply_filter_sort_by_name_handles_unicode_case_insensitively() {
+        // Regression: the ASCII fast path in `cmp_ignore_case` must fall back
+        // correctly for non-ASCII names so sort order remains case-insensitive
+        // (note: 'ü' sorts after ASCII letters under simple codepoint
+        // comparison, matching `to_lowercase().cmp(...)`'s prior behavior).
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.packages = vec![
+            make_package("Zebra", "Z.Zebra", "1.0"),
+            make_package("ÜBER Editor", "V.UberEditor", "1.0"),
+            make_package("Apple", "A.Apple", "1.0"),
+        ];
+        app.sort_field = crate::models::SortField::Name;
+        app.sort_dir = crate::models::SortDir::Asc;
+        app.apply_filter();
+        let names: Vec<&str> = app
+            .filtered_packages
+            .iter()
+            .map(|p| p.name.as_str())
+            .collect();
+        assert_eq!(names, ["Apple", "Zebra", "ÜBER Editor"]);
+    }
+
+    #[test]
     fn apply_filter_sort_by_id_desc() {
         let spy = SpyBackend::new();
         let mut app = make_app(spy as Arc<dyn WingetBackend>);
@@ -1643,6 +1687,42 @@ mod tests {
             compare_versions("1.0+20240101", "1.0+20230101"),
             std::cmp::Ordering::Greater
         );
+    }
+
+    // ── cmp_ignore_case ──────────────────────────────────────────────────────
+
+    #[test]
+    fn cmp_ignore_case_ascii_is_case_insensitive() {
+        use std::cmp::Ordering;
+        assert_eq!(cmp_ignore_case("apple", "Apple"), Ordering::Equal);
+        assert_eq!(cmp_ignore_case("Apple", "banana"), Ordering::Less);
+        assert_eq!(cmp_ignore_case("Zebra", "apple"), Ordering::Greater);
+    }
+
+    #[test]
+    fn cmp_ignore_case_unicode_falls_back_to_allocating_compare() {
+        use std::cmp::Ordering;
+        // Regression: the ASCII fast path must not run on non-ASCII input,
+        // since byte-wise `to_ascii_lowercase` does not case-fold Unicode
+        // (e.g. 'Ü' vs 'ü' are different bytes that ASCII folding won't match).
+        assert_eq!(cmp_ignore_case("Über", "über"), Ordering::Equal);
+        assert_eq!(cmp_ignore_case("Äpfel", "Zebra"), Ordering::Greater);
+    }
+
+    #[test]
+    fn cmp_ignore_case_matches_to_lowercase_comparison_semantics() {
+        // Sanity check: for ASCII input, the fast path agrees with the
+        // original `to_lowercase().cmp(...)` behavior it replaces.
+        for (a, b) in [
+            ("Google.Chrome", "google.chrome"),
+            ("A.App", "Z.App"),
+            ("Microsoft.VisualStudioCode", "microsoft.VisualStudio"),
+        ] {
+            assert_eq!(
+                cmp_ignore_case(a, b),
+                a.to_lowercase().cmp(&b.to_lowercase())
+            );
+        }
     }
 
     #[test]
