@@ -139,10 +139,20 @@ fn handle_search_input(app: &mut App, key: KeyCode) -> anyhow::Result<bool> {
         KeyCode::Enter => {
             app.input_mode = InputMode::Normal;
             if !app.search_query.is_empty() {
-                app.mode = AppMode::Search;
-                app.loading = true;
-                app.set_status("Searching...");
-                app.refresh_view();
+                app.discard_cached_view(AppMode::Search);
+                if app.mode != AppMode::Search {
+                    switch_view(app, AppMode::Search);
+                } else {
+                    app.selected = 0;
+                    app.selected_packages.clear();
+                    *app.table_state.offset_mut() = 0;
+                    app.detail = None;
+                    app.detail_scroll = 0;
+                    app.detail_generation += 1;
+                    app.loading = true;
+                    app.set_status("Searching...");
+                    app.refresh_view();
+                }
             }
         }
         KeyCode::Backspace => {
@@ -432,6 +442,11 @@ fn handle_normal_mode(
         }
 
         // Uninstall
+        KeyCode::Char('x')
+            if app.mode == AppMode::Installed && !app.selected_packages.is_empty() =>
+        {
+            confirm_batch_uninstall(app);
+        }
         KeyCode::Char('x') => {
             if let Some(pkg) = app.selected_package() {
                 if pkg.is_truncated() {
@@ -510,9 +525,17 @@ fn handle_normal_mode(
             }
         }
 
+        // Batch uninstall shortcut (X; lowercase x also uses a selection)
+        KeyCode::Char('X')
+            if app.mode == AppMode::Installed && !app.selected_packages.is_empty() =>
+        {
+            confirm_batch_uninstall(app);
+        }
+
         // Toggle selection (Space)
         KeyCode::Char(' ')
-            if app.mode == AppMode::Upgrades && !app.filtered_packages.is_empty() =>
+            if matches!(app.mode, AppMode::Installed | AppMode::Upgrades)
+                && !app.filtered_packages.is_empty() =>
         {
             let idx = app.selected;
             if app.selected_packages.contains(&idx) {
@@ -526,7 +549,8 @@ fn handle_normal_mode(
 
         // Select all / deselect all
         KeyCode::Char('a')
-            if app.mode == AppMode::Upgrades && !app.filtered_packages.is_empty() =>
+            if matches!(app.mode, AppMode::Installed | AppMode::Upgrades)
+                && !app.filtered_packages.is_empty() =>
         {
             if app.selected_packages.len() == app.filtered_packages.len() {
                 app.selected_packages.clear();
@@ -551,7 +575,7 @@ fn handle_normal_mode(
             "Opening changelog ",
         ),
 
-        // Sort: cycle through Name↑ → Name↓ → ID↑ → ID↓ → Version↑ → Version↓ → None
+        // Sort: cycle through Name, ID, Version, Publisher, Size and None.
         KeyCode::Char('S') => {
             app.cycle_sort();
         }
@@ -561,24 +585,95 @@ fn handle_normal_mode(
     Ok(false)
 }
 
-/// Switch the active view/mode, resetting selection and triggering a refresh
+fn confirm_batch_uninstall(app: &mut App) {
+    let selected_count = app.selected_packages.len();
+    let ids: Vec<String> = app
+        .selected_packages
+        .iter()
+        .filter_map(|&idx| {
+            app.filtered_packages
+                .get(idx)
+                .filter(|p| !p.is_truncated())
+                .map(|p| p.id.clone())
+        })
+        .collect();
+    if ids.is_empty() {
+        app.set_status(
+            "Cannot uninstall: all selected packages have truncated IDs — use winget directly",
+        );
+    } else {
+        let count = ids.len();
+        let skipped = selected_count.saturating_sub(count);
+        let skipped_note = if skipped > 0 {
+            format!(
+                " ({} skipped — truncated ID{})",
+                skipped,
+                if skipped == 1 { "" } else { "s" }
+            )
+        } else {
+            String::new()
+        };
+        app.confirm = Some(ConfirmDialog {
+            message: format!(
+                "Uninstall {} selected package{}{}?",
+                count,
+                if count == 1 { "" } else { "s" },
+                skipped_note
+            ),
+            operation: Operation::BatchUninstall { ids },
+        });
+    }
+}
+
+/// Switch views, restoring cached state or loading the view for the first time.
 fn switch_view(app: &mut App, new_mode: AppMode) {
     if new_mode == app.mode {
         return;
     }
+    app.cache_current_view();
     app.mode = new_mode;
     app.input_mode = InputMode::Normal;
-    app.local_filter.clear();
-    app.selected = 0;
-    app.selected_packages.clear();
     app.detail = None;
     app.detail_loading = false;
     // Invalidate any in-flight detail requests from the previous view
     app.detail_generation += 1;
-    app.focus = FocusZone::PackageList;
-    app.loading = true;
-    app.set_status("Loading...");
-    app.refresh_view();
+    app.post_refresh_status = None;
+
+    match app.restore_cached_view(new_mode) {
+        Some(true) => {
+            // Invalidate any in-flight list load from the previous view.
+            app.view_generation += 1;
+            app.loading = false;
+            app.set_status(format!(
+                "Restored {} cached package{}",
+                app.filtered_packages.len(),
+                if app.filtered_packages.len() == 1 {
+                    ""
+                } else {
+                    "s"
+                }
+            ));
+            let detail_scroll = app.detail_scroll;
+            load_detail_for_selected(app);
+            app.detail_scroll = detail_scroll;
+        }
+        cached_state => {
+            if cached_state.is_none() {
+                app.local_filter.clear();
+                app.selected = 0;
+                app.selected_packages.clear();
+                app.packages.clear();
+                app.filtered_packages.clear();
+                app.table_state.select(None);
+                *app.table_state.offset_mut() = 0;
+                app.detail_scroll = 0;
+                app.focus = FocusZone::PackageList;
+            }
+            app.loading = true;
+            app.set_status("Loading...");
+            app.refresh_view();
+        }
+    }
 }
 
 /// Returns the number of visible data rows in the package list, based on the
@@ -627,33 +722,48 @@ fn click_sort_header(app: &mut App, col: u16) {
     let offset = col - x0;
 
     // Determine the sort field based on column percentages defined in ui.rs.
-    // Non-Upgrades: Name 25%, ID 35%, Version 20%, Source 20% (unsortable)
-    // Upgrades:     Name 25%, ID 30%, Version 15%, Available 15% (unsortable), Source 15% (unsortable)
+    // Installed: Name 19%, ID 24%, Version 12%, Publisher 20%, size 12%, Source 13%.
+    // Upgrades: Name 18%, ID 22%, Version 11%, Available 11%, Publisher 16%, size 10%, Source 12%.
     let field = if app.mode == AppMode::Upgrades {
-        let boundary_name = content_width * 25 / 100;
-        let boundary_id = boundary_name + content_width * 30 / 100;
-        let boundary_version = boundary_id + content_width * 15 / 100;
+        let boundary_name = content_width * 18 / 100;
+        let boundary_id = boundary_name + content_width * 22 / 100;
+        let boundary_version = boundary_id + content_width * 11 / 100;
+        let boundary_available = boundary_version + content_width * 11 / 100;
+        let boundary_publisher = boundary_available + content_width * 16 / 100;
+        let boundary_size = boundary_publisher + content_width * 10 / 100;
         if offset < boundary_name {
             SortField::Name
         } else if offset < boundary_id {
             SortField::Id
         } else if offset < boundary_version {
             SortField::Version
+        } else if offset < boundary_available {
+            return; // Available is not sortable
+        } else if offset < boundary_publisher {
+            SortField::Publisher
+        } else if offset < boundary_size {
+            SortField::Size
         } else {
-            return; // Available or Source — not sortable
+            return; // Source is not sortable
         }
     } else {
-        let boundary_name = content_width * 25 / 100;
-        let boundary_id = boundary_name + content_width * 35 / 100;
-        let boundary_version = boundary_id + content_width * 20 / 100;
+        let boundary_name = content_width * 19 / 100;
+        let boundary_id = boundary_name + content_width * 24 / 100;
+        let boundary_version = boundary_id + content_width * 12 / 100;
+        let boundary_publisher = boundary_version + content_width * 20 / 100;
+        let boundary_size = boundary_publisher + content_width * 12 / 100;
         if offset < boundary_name {
             SortField::Name
         } else if offset < boundary_id {
             SortField::Id
         } else if offset < boundary_version {
             SortField::Version
+        } else if offset < boundary_publisher {
+            SortField::Publisher
+        } else if offset < boundary_size {
+            SortField::Size
         } else {
-            return; // Source — not sortable
+            return; // Source is not sortable
         }
     };
 
@@ -889,7 +999,7 @@ mod tests {
     use ratatui::layout::Rect;
 
     use super::*;
-    use crate::app::{App, ConfirmDialog, InputMode};
+    use crate::app::{App, AppMessage, ConfirmDialog, InputMode};
     use crate::backend::WingetBackend;
     use crate::models::{Operation, Package, PackageDetail, PackagePin, PinState, Source};
 
@@ -953,6 +1063,8 @@ mod tests {
             id: id.to_string(),
             name: "Test Package".to_string(),
             version: version.to_string(),
+            publisher: String::new(),
+            size: String::new(),
             source: "winget".to_string(),
             available_version: available.to_string(),
             pin_state: PinState::None,
@@ -969,6 +1081,8 @@ mod tests {
                 id: format!("pkg{i}"),
                 name: format!("Package {i}"),
                 version: "1.0.0".to_string(),
+                publisher: String::new(),
+                size: String::new(),
                 source: "winget".to_string(),
                 available_version: String::new(),
                 pin_state: PinState::None,
@@ -1182,6 +1296,8 @@ mod tests {
                 id: "Google.Chrome".to_string(),
                 name: "Google Chrome".to_string(),
                 version: "1.0".to_string(),
+                publisher: String::new(),
+                size: String::new(),
                 source: "winget".to_string(),
                 available_version: String::new(),
                 pin_state: PinState::None,
@@ -1190,6 +1306,8 @@ mod tests {
                 id: "Mozilla.Firefox".to_string(),
                 name: "Mozilla Firefox".to_string(),
                 version: "1.0".to_string(),
+                publisher: String::new(),
+                size: String::new(),
                 source: "winget".to_string(),
                 available_version: String::new(),
                 pin_state: PinState::None,
@@ -1396,6 +1514,62 @@ mod tests {
     }
 
     #[test]
+    fn batch_uninstall_confirm_works_in_installed_view() {
+        let mut app = make_app_with_pkgs(2);
+        app.mode = AppMode::Installed;
+        app.selected_packages = [0usize, 1usize].into_iter().collect();
+
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('x'), KeyModifiers::NONE);
+
+        let confirm = app.confirm.expect("confirm dialog should be set");
+        assert_eq!(confirm.message, "Uninstall 2 selected packages?");
+        match confirm.operation {
+            Operation::BatchUninstall { ids } => assert_eq!(ids.len(), 2),
+            _ => panic!("expected BatchUninstall operation"),
+        }
+    }
+
+    #[test]
+    fn batch_uninstall_skips_truncated_ids() {
+        let mut app = make_app();
+        app.mode = AppMode::Installed;
+        app.packages = vec![
+            Package {
+                id: "Good.App".to_string(),
+                name: "Good".to_string(),
+                version: "1.0".to_string(),
+                publisher: String::new(),
+                size: String::new(),
+                source: "winget".to_string(),
+                available_version: String::new(),
+                pin_state: PinState::None,
+            },
+            Package {
+                id: "Bad.App...".to_string(),
+                name: "Bad".to_string(),
+                version: "1.0".to_string(),
+                publisher: String::new(),
+                size: String::new(),
+                source: "winget".to_string(),
+                available_version: String::new(),
+                pin_state: PinState::None,
+            },
+        ];
+        app.filtered_packages = app.packages.clone();
+        app.selected_packages = [0usize, 1usize].into_iter().collect();
+
+        let _ = handle_normal_mode(&mut app, KeyCode::Char('X'), KeyModifiers::NONE);
+
+        let confirm = app.confirm.expect("confirm dialog should be set");
+        assert!(confirm.message.contains("Uninstall 1 selected package"));
+        assert!(confirm.message.contains("1 skipped"));
+        match confirm.operation {
+            Operation::BatchUninstall { ids } => assert_eq!(ids, vec!["Good.App".to_string()]),
+            _ => panic!("expected BatchUninstall operation"),
+        }
+    }
+
+    #[test]
     fn single_upgrade_with_truncated_id_uses_name_query() {
         let mut app = make_app_with_pkg("Microsoft.Azure.Function...", "4.0", "4.1");
         app.mode = AppMode::Upgrades;
@@ -1422,6 +1596,8 @@ mod tests {
                 id: "Good.App".to_string(),
                 name: "Good".to_string(),
                 version: "1.0".to_string(),
+                publisher: String::new(),
+                size: String::new(),
                 source: "winget".to_string(),
                 available_version: "1.1".to_string(),
                 pin_state: PinState::None,
@@ -1430,6 +1606,8 @@ mod tests {
                 id: "Bad.App...".to_string(),
                 name: "Bad".to_string(),
                 version: "1.0".to_string(),
+                publisher: String::new(),
+                size: String::new(),
                 source: "winget".to_string(),
                 available_version: "1.1".to_string(),
                 pin_state: PinState::None,
@@ -1457,6 +1635,8 @@ mod tests {
             id: "Only.Bad...".to_string(),
             name: "Bad".to_string(),
             version: "1.0".to_string(),
+            publisher: String::new(),
+            size: String::new(),
             source: "winget".to_string(),
             available_version: "1.1".to_string(),
             pin_state: PinState::None,
@@ -1937,7 +2117,7 @@ mod tests {
         assert_eq!(app.table_state.offset(), 2); // scrolled up by 3
     }
 
-    // ── switch_view state reset ───────────────────────────────────────────────
+    // ── switch_view caching and state ─────────────────────────────────────────
 
     #[test]
     fn switch_view_clears_local_filter() {
@@ -2346,9 +2526,76 @@ mod tests {
     #[test]
     fn click_sort_header_version_column_sets_version_sort() {
         let mut app = make_app_with_list_layout();
-        // Version starts at ~58 (25+34=59 rounded); click at col=65
-        click_sort_header(&mut app, 65);
+        // Version occupies 43–55% after the added publisher column.
+        click_sort_header(&mut app, 50);
         assert_eq!(app.sort_field, SortField::Version);
+        assert_eq!(app.sort_dir, SortDir::Asc);
+    }
+
+    #[test]
+    fn switching_back_restores_cached_packages_and_tab_state() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app_with_pkgs(4);
+        app.mode = AppMode::Installed;
+        app.view_generation = 1;
+        app.message_tx
+            .send(AppMessage::PackagesLoaded {
+                generation: 1,
+                packages: app.packages.clone(),
+            })
+            .unwrap();
+        app.process_messages();
+        app.local_filter = "Package".to_string();
+        app.selected = 2;
+        app.selected_packages = [2usize].into_iter().collect();
+        app.sort_field = crate::models::SortField::Size;
+        app.sort_dir = crate::models::SortDir::Desc;
+        app.source_filter = crate::models::SourceFilter::Winget;
+        app.pin_filter = crate::models::PinFilter::PinnedOnly;
+        app.focus = crate::app::FocusZone::DetailPanel;
+        app.detail_scroll = 7;
+        *app.table_state.offset_mut() = 1;
+
+        let _ = handle_normal_mode(&mut app, KeyCode::Right, KeyModifiers::NONE);
+        assert_eq!(app.mode, AppMode::Upgrades);
+        assert!(app.packages.is_empty());
+        app.source_filter = crate::models::SourceFilter::MsStore;
+        app.pin_filter = crate::models::PinFilter::UnpinnedOnly;
+
+        let _ = handle_normal_mode(&mut app, KeyCode::Left, KeyModifiers::NONE);
+        assert_eq!(app.mode, AppMode::Installed);
+        assert_eq!(app.packages.len(), 4);
+        assert_eq!(app.filtered_packages.len(), 4);
+        assert_eq!(app.local_filter, "Package");
+        assert_eq!(app.selected, 2);
+        assert_eq!(app.selected_packages, [2usize].into_iter().collect());
+        assert_eq!(app.sort_field, crate::models::SortField::Size);
+        assert_eq!(app.sort_dir, crate::models::SortDir::Desc);
+        assert_eq!(app.source_filter, crate::models::SourceFilter::Winget);
+        assert_eq!(app.pin_filter, crate::models::PinFilter::PinnedOnly);
+        assert_eq!(app.focus, crate::app::FocusZone::DetailPanel);
+        assert_eq!(app.detail_scroll, 7);
+        assert_eq!(app.table_state.offset(), 1);
+        assert!(
+            !app.loading,
+            "restoring a cached view should avoid a reload"
+        );
+    }
+
+    #[test]
+    fn click_sort_header_publisher_column_sets_publisher_sort() {
+        let mut app = make_app_with_list_layout();
+        click_sort_header(&mut app, 65);
+        assert_eq!(app.sort_field, SortField::Publisher);
+        assert_eq!(app.sort_dir, SortDir::Asc);
+    }
+
+    #[test]
+    fn click_sort_header_size_column_sets_size_sort() {
+        let mut app = make_app_with_list_layout();
+        click_sort_header(&mut app, 80);
+        assert_eq!(app.sort_field, SortField::Size);
         assert_eq!(app.sort_dir, SortDir::Asc);
     }
 

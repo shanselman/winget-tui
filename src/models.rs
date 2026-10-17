@@ -11,6 +11,8 @@ pub enum SortField {
     Name,
     Id,
     Version,
+    Publisher,
+    Size,
 }
 
 impl SortField {
@@ -24,6 +26,8 @@ impl fmt::Display for SortField {
             Self::Name => write!(f, "Name"),
             Self::Id => write!(f, "ID"),
             Self::Version => write!(f, "Version"),
+            Self::Publisher => write!(f, "Publisher"),
+            Self::Size => write!(f, "Size"),
         }
     }
 }
@@ -158,6 +162,10 @@ pub struct Package {
     pub name: String,
     #[serde(alias = "PackageVersion", alias = "Version", default)]
     pub version: String,
+    #[serde(alias = "Publisher", default)]
+    pub publisher: String,
+    #[serde(default)]
+    pub size: String,
     #[serde(alias = "Source", default)]
     pub source: String,
     /// Only present in upgrade listings
@@ -253,6 +261,7 @@ pub enum Operation {
     Pin { id: String },
     Unpin { id: String },
     BatchUpgrade { ids: Vec<String> },
+    BatchUninstall { ids: Vec<String> },
 }
 
 impl fmt::Display for Operation {
@@ -270,6 +279,7 @@ impl fmt::Display for Operation {
             Self::Pin { id } => write!(f, "Pinning {id}"),
             Self::Unpin { id } => write!(f, "Unpinning {id}"),
             Self::BatchUpgrade { ids } => write!(f, "Batch upgrading {} packages", ids.len()),
+            Self::BatchUninstall { ids } => write!(f, "Batch uninstalling {} packages", ids.len()),
         }
     }
 }
@@ -291,6 +301,8 @@ mod tests {
             id: id.to_string(),
             name: "Test".to_string(),
             version: "1.0".to_string(),
+            publisher: String::new(),
+            size: String::new(),
             source: "winget".to_string(),
             available_version: String::new(),
             pin_state: PinState::None,
@@ -599,6 +611,8 @@ mod tests {
         assert_eq!(SortField::Name.to_string(), "Name");
         assert_eq!(SortField::Id.to_string(), "ID");
         assert_eq!(SortField::Version.to_string(), "Version");
+        assert_eq!(SortField::Publisher.to_string(), "Publisher");
+        assert_eq!(SortField::Size.to_string(), "Size");
     }
 
     #[test]
