@@ -166,39 +166,31 @@ pub struct App {
 /// Version strings are split on `.`, `-`, and `+`. Each component is compared
 /// numerically when both sides parse as `u64`; otherwise lexicographically.
 /// This avoids the lexicographic pitfall where `"10.0"` sorts before `"2.0"`.
-#[derive(Debug, Clone, Eq, PartialEq)]
-struct VersionPart {
-    num: Option<u64>,
-    src: String,
-}
-
-impl Ord for VersionPart {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        match (self.num, other.num) {
-            (Some(left), Some(right)) => left.cmp(&right),
-            _ => self.src.cmp(&other.src),
+///
+/// Walks both split iterators lazily and compares components directly,
+/// without collecting either version into a `Vec` of owned parts first: this
+/// runs on every Version-sorted re-sort (every keystroke, pin toggle, source
+/// switch), so avoiding a per-component `String` allocation for every package
+/// noticeably reduces allocator pressure on large Installed/Upgrades lists.
+fn compare_versions(a: &str, b: &str) -> std::cmp::Ordering {
+    let mut a_parts = a.split(['.', '-', '+']);
+    let mut b_parts = b.split(['.', '-', '+']);
+    loop {
+        match (a_parts.next(), b_parts.next()) {
+            (None, None) => return std::cmp::Ordering::Equal,
+            (None, Some(_)) => return std::cmp::Ordering::Less,
+            (Some(_), None) => return std::cmp::Ordering::Greater,
+            (Some(ap), Some(bp)) => {
+                let ord = match (ap.parse::<u64>().ok(), bp.parse::<u64>().ok()) {
+                    (Some(l), Some(r)) => l.cmp(&r),
+                    _ => ap.cmp(bp),
+                };
+                if ord != std::cmp::Ordering::Equal {
+                    return ord;
+                }
+            }
         }
     }
-}
-
-impl PartialOrd for VersionPart {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-fn version_key(v: &str) -> Vec<VersionPart> {
-    v.split(['.', '-', '+'])
-        .map(|part| VersionPart {
-            num: part.parse::<u64>().ok(),
-            src: part.to_string(),
-        })
-        .collect()
-}
-
-#[cfg(test)]
-fn compare_versions(a: &str, b: &str) -> std::cmp::Ordering {
-    version_key(a).cmp(&version_key(b))
 }
 
 impl App {
@@ -300,7 +292,7 @@ impl App {
             }
             SortField::Version => {
                 self.filtered_packages
-                    .sort_by_cached_key(|pkg| version_key(&pkg.version));
+                    .sort_by(|a, b| compare_versions(&a.version, &b.version));
                 if self.sort_dir == SortDir::Desc {
                     self.filtered_packages.reverse();
                 }
@@ -1637,10 +1629,22 @@ mod tests {
 
     #[test]
     fn compare_versions_build_metadata_separator() {
-        // Build metadata delimited by '+' — version_key splits on '+' as well.
+        // Build metadata delimited by '+' — compare_versions splits on '+' as well.
         // "1.0+20240101" => [1, 0, 20240101]; "1.0+20230101" => [1, 0, 20230101]
         assert_eq!(
             compare_versions("1.0+20240101", "1.0+20230101"),
+            std::cmp::Ordering::Greater
+        );
+    }
+
+    #[test]
+    fn compare_versions_shorter_component_list_is_less_when_prefix_equal() {
+        // Regression: when both sides share an equal-valued prefix of
+        // components, the side with fewer components must sort first
+        // (mirrors the old Vec-length comparison semantics).
+        assert_eq!(compare_versions("1.2", "1.2.0"), std::cmp::Ordering::Less);
+        assert_eq!(
+            compare_versions("1.2.0", "1.2"),
             std::cmp::Ordering::Greater
         );
     }
