@@ -1006,7 +1006,7 @@ mod tests {
     #[tokio::test]
     async fn load_detail_proceeds_for_normal_id() {
         let spy = SpyBackend::new();
-        let mut app = make_app(spy.clone() as Arc<dyn WingetBackend>);
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
         app.load_detail("Google.Chrome");
         // detail_generation was incremented — an async fetch was started
         assert_eq!(
@@ -2334,7 +2334,7 @@ mod tests {
     #[test]
     fn load_detail_local_stub_is_cached() {
         let spy = SpyBackend::new();
-        let mut app = make_app(spy.clone() as Arc<dyn WingetBackend>);
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
         let arp_id = "ARP\\Machine\\X64\\SomeApp";
         app.filtered_packages = vec![Package {
             id: arp_id.to_string(),
