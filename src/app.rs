@@ -7,8 +7,8 @@ use ratatui::widgets::TableState;
 use crate::backend::WingetBackend;
 use crate::config::Config;
 use crate::models::{
-    OpResult, Operation, Package, PackageDetail, PackagePin, PinFilter, SortDir, SortField,
-    SourceFilter,
+    contains_ignore_ascii_case, OpResult, Operation, Package, PackageDetail, PackagePin, PinFilter,
+    SortDir, SortField, SourceFilter,
 };
 use crate::theme::Theme;
 
@@ -271,7 +271,8 @@ impl App {
         if self.mode != AppMode::Search && !self.local_filter.is_empty() {
             let query = self.local_filter.to_lowercase();
             self.filtered_packages.retain(|pkg| {
-                pkg.name.to_lowercase().contains(&query) || pkg.id.to_lowercase().contains(&query)
+                contains_ignore_ascii_case(&pkg.name, &query)
+                    || contains_ignore_ascii_case(&pkg.id, &query)
             });
         }
         if self.mode != AppMode::Search {
