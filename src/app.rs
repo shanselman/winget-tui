@@ -257,26 +257,50 @@ impl App {
     }
 
     pub fn apply_filter(&mut self) {
+        // Filter first against the borrowed `self.packages`, then clone only
+        // the packages that survive. The previous implementation cloned the
+        // entire list up front and then used `retain()` to drop non-matching
+        // entries, which allocated (and immediately discarded) a `Package`
+        // clone — including a `String` copy of every field — for every row
+        // the local/pin filters would go on to reject. On large Installed
+        // lists with an active filter this wasted the majority of the
+        // allocations `apply_filter` performed, and it reruns on every
+        // keystroke while typing a filter query.
+        let apply_local_filter = self.mode != AppMode::Search && !self.local_filter.is_empty();
+        let query = if apply_local_filter {
+            self.local_filter.to_lowercase()
+        } else {
+            String::new()
+        };
+        let apply_pin_filter = self.mode != AppMode::Search;
+
+        self.filtered_packages = self
+            .packages
+            .iter()
+            .filter(|pkg| {
+                if apply_local_filter
+                    && !(pkg.name.to_lowercase().contains(&query)
+                        || pkg.id.to_lowercase().contains(&query))
+                {
+                    return false;
+                }
+                if apply_pin_filter && !self.pin_filter.matches(&pkg.pin_state) {
+                    return false;
+                }
+                true
+            })
+            .cloned()
+            .collect();
+
         // When a source filter is active, winget already filters server-side
         // (and omits the Source column), so accept all returned packages.
         // Backfill the source field when winget omitted it (single-source query).
-        self.filtered_packages = self.packages.clone();
         if let Some(src) = self.source_filter.as_arg() {
             for pkg in &mut self.filtered_packages {
                 if pkg.source.is_empty() {
                     pkg.source = src.to_string();
                 }
             }
-        }
-        if self.mode != AppMode::Search && !self.local_filter.is_empty() {
-            let query = self.local_filter.to_lowercase();
-            self.filtered_packages.retain(|pkg| {
-                pkg.name.to_lowercase().contains(&query) || pkg.id.to_lowercase().contains(&query)
-            });
-        }
-        if self.mode != AppMode::Search {
-            self.filtered_packages
-                .retain(|pkg| self.pin_filter.matches(&pkg.pin_state));
         }
         // Apply sort if a field is selected.
         // sort_by_cached_key computes the key exactly once per element (O(N))
