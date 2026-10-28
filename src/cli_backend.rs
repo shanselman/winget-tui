@@ -87,7 +87,7 @@ impl CliBackend {
         args
     }
 
-    fn list_installed_scope_args(scope: &str, source: Option<&str>) -> Vec<&str> {
+    fn list_installed_scope_args<'a>(scope: &'a str, source: Option<&'a str>) -> Vec<&'a str> {
         let mut args = vec!["list", "--accept-source-agreements", "--scope", scope];
         if let Some(src) = source {
             args.push("--source");
@@ -573,7 +573,7 @@ impl CliBackend {
         // but 3 bytes, so we walk chars counting display width to find correct slice points.
         let field = |idx| Self::extract_field(line, cols, idx);
 
-        let id = pcols.id.map(&field).unwrap_or_default();
+        let id = pcols.id.map(field).unwrap_or_default();
         if id.is_empty() {
             return None;
         }
@@ -587,11 +587,11 @@ impl CliBackend {
         }
 
         Some(Package {
-            name: sanitize_text(&pcols.name.map(&field).unwrap_or_default()),
+            name: sanitize_text(&pcols.name.map(field).unwrap_or_default()),
             id: sanitize_text(&id),
-            version: sanitize_text(&pcols.version.map(&field).unwrap_or_default()),
-            source: sanitize_text(&pcols.source.map(&field).unwrap_or_default()),
-            available_version: sanitize_text(&pcols.available.map(&field).unwrap_or_default()),
+            version: sanitize_text(&pcols.version.map(field).unwrap_or_default()),
+            source: sanitize_text(&pcols.source.map(field).unwrap_or_default()),
+            available_version: sanitize_text(&pcols.available.map(field).unwrap_or_default()),
             install_scope: InstallScope::Unknown,
             pin_state: PinState::None,
         })
@@ -754,13 +754,13 @@ impl CliBackend {
             .filter_map(|line| {
                 let field = |idx| Self::extract_field(line, &col_positions, idx);
 
-                let id = col_map.id.map(&field).unwrap_or_default();
+                let id = col_map.id.map(field).unwrap_or_default();
                 if id.is_empty() {
                     return None;
                 }
 
-                let pinned_version = col_map.pinned_version.map(&field).unwrap_or_default();
-                let pin_type = col_map.pin_type.map(&field).unwrap_or_default();
+                let pinned_version = col_map.pinned_version.map(field).unwrap_or_default();
+                let pin_type = col_map.pin_type.map(field).unwrap_or_default();
 
                 Some(PackagePin {
                     id: sanitize_text(&id),
@@ -788,15 +788,15 @@ impl CliBackend {
             .filter_map(|line| {
                 let field = |idx| Self::extract_field(line, &col_positions, idx);
 
-                let name = col_map.name.map(&field).unwrap_or_default();
+                let name = col_map.name.map(field).unwrap_or_default();
                 if name.is_empty() {
                     return None;
                 }
 
                 Some(Source {
                     name,
-                    url: col_map.arg.map(&field).unwrap_or_default(),
-                    source_type: col_map.source_type.map(&field).unwrap_or_default(),
+                    url: col_map.arg.map(field).unwrap_or_default(),
+                    source_type: col_map.source_type.map(field).unwrap_or_default(),
                 })
             })
             .collect()
