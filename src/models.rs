@@ -217,6 +217,21 @@ impl Package {
     }
 }
 
+/// Returns true if `haystack` contains `needle_lower` as a case-insensitive
+/// substring. `needle_lower` must already be lowercased by the caller.
+///
+/// Avoids the `to_lowercase()` heap allocation when `haystack` has no
+/// uppercase ASCII characters (the common case for package names/IDs typed
+/// in lowercase), matching the fast-path pattern already used elsewhere in
+/// this codebase (see `cli_backend::normalize_show_key`).
+pub(crate) fn contains_ignore_ascii_case(haystack: &str, needle_lower: &str) -> bool {
+    if haystack.bytes().any(|b| b.is_ascii_uppercase()) {
+        haystack.to_lowercase().contains(needle_lower)
+    } else {
+        haystack.contains(needle_lower)
+    }
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct PackageDetail {
     pub id: String,
@@ -502,6 +517,32 @@ mod tests {
     #[test]
     fn is_truncated_name_ellipsis_not_id() {
         assert!(!pkg("Microsoft.DotNet.DesktopRuntime.10").is_truncated());
+    }
+
+    // ── contains_ignore_ascii_case ────────────────────────────────────────────
+
+    #[test]
+    fn contains_ignore_ascii_case_all_lowercase_fast_path() {
+        assert!(contains_ignore_ascii_case("google.chrome", "chrome"));
+    }
+
+    #[test]
+    fn contains_ignore_ascii_case_mixed_case_haystack() {
+        assert!(contains_ignore_ascii_case("Google.Chrome", "chrome"));
+        assert!(contains_ignore_ascii_case(
+            "Google.Chrome",
+            "GOOGLE".to_lowercase().as_str()
+        ));
+    }
+
+    #[test]
+    fn contains_ignore_ascii_case_no_match() {
+        assert!(!contains_ignore_ascii_case("Google.Chrome", "firefox"));
+    }
+
+    #[test]
+    fn contains_ignore_ascii_case_empty_needle_matches_anything() {
+        assert!(contains_ignore_ascii_case("Google.Chrome", ""));
     }
 
     // ── Operation::Display ────────────────────────────────────────────────────
