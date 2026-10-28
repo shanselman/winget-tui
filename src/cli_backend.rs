@@ -271,11 +271,9 @@ impl CliBackend {
         }
         let machine_args = Self::list_installed_scope_args("machine", source);
         let user_args = Self::list_installed_scope_args("user", source);
-        let (machine_output, user_output) = tokio::try_join!(
-            self.run_winget(&machine_args),
-            self.run_winget(&user_args)
-        )
-        .context("Failed to determine installed package scope")?;
+        let (machine_output, user_output) =
+            tokio::try_join!(self.run_winget(&machine_args), self.run_winget(&user_args))
+                .context("Failed to determine installed package scope")?;
         let machine_packages = self.parse_packages_from_table(&machine_output);
         let user_packages = self.parse_packages_from_table(&user_output);
         Self::assign_install_scopes(packages, &machine_packages, &user_packages);
@@ -823,9 +821,7 @@ impl WingetBackend for CliBackend {
     async fn list_installed(&self, source: Option<&str>) -> Result<Vec<Package>> {
         let args = Self::list_installed_args(source);
         let output = self.run_winget(&args).await?;
-        let mut packages = Self::dedupe_packages(
-            self.parse_packages_from_table(&output),
-        );
+        let mut packages = Self::dedupe_packages(self.parse_packages_from_table(&output));
         self.populate_install_scopes(&mut packages, source).await?;
         Ok(packages)
     }
@@ -833,9 +829,7 @@ impl WingetBackend for CliBackend {
     async fn list_upgrades(&self, source: Option<&str>) -> Result<Vec<Package>> {
         let args = Self::list_upgrades_args(source);
         let output = self.run_winget(&args).await?;
-        let mut packages = Self::dedupe_packages(
-            self.parse_packages_from_table(&output),
-        );
+        let mut packages = Self::dedupe_packages(self.parse_packages_from_table(&output));
         self.populate_install_scopes(&mut packages, source).await?;
         Ok(packages)
     }

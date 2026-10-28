@@ -29,12 +29,12 @@ A terminal user interface for [Windows Package Manager (winget)](https://github.
 - **Non-Blocking** — Install/uninstall/upgrade run in the background
 - **Single Binary** — No runtime dependencies beyond winget itself
 
-## Prerequisites
-
 Scope is determined from `winget list --scope user` and `--scope machine`. A
 package found in both scopes is shown as **Both**; unmatched or truncated IDs
 are shown as **Unknown**. Neither case forces a scope when upgrading, so the app
 does not guess. Search results describe available packages, not installed scope.
+
+## Prerequisites
 
 - Windows 10/11
 - [winget](https://github.com/microsoft/winget-cli) 1.4+ installed

@@ -883,7 +883,9 @@ mod tests {
     use super::*;
     use crate::app::{App, ConfirmDialog, InputMode};
     use crate::backend::WingetBackend;
-    use crate::models::{InstallScope, Operation, Package, PackageDetail, PackagePin, PinState, Source};
+    use crate::models::{
+        InstallScope, Operation, Package, PackageDetail, PackagePin, PinState, Source,
+    };
 
     // ── helpers ──────────────────────────────────────────────────────────────
 
@@ -1776,7 +1778,13 @@ mod tests {
         assert!(app.confirm.is_some());
         let confirm = app.confirm.unwrap();
         assert!(confirm.message.contains("User"));
-        assert!(matches!(confirm.operation, Operation::Upgrade { scope: InstallScope::User, .. }));
+        assert!(matches!(
+            confirm.operation,
+            Operation::Upgrade {
+                scope: InstallScope::User,
+                ..
+            }
+        ));
     }
 
     #[test]

@@ -862,10 +862,13 @@ mod tests {
             Ok(String::new())
         }
         async fn upgrade(&self, id: &str, scope: crate::models::InstallScope) -> Result<String> {
-            self.upgrade_calls.lock().unwrap().push(crate::models::UpgradeTarget {
-                id: id.to_string(),
-                scope,
-            });
+            self.upgrade_calls
+                .lock()
+                .unwrap()
+                .push(crate::models::UpgradeTarget {
+                    id: id.to_string(),
+                    scope,
+                });
             Ok(String::new())
         }
         async fn list_pins(&self) -> Result<Vec<PackagePin>> {
@@ -905,21 +908,39 @@ mod tests {
         let spy = SpyBackend::new();
         let mut app = make_app(spy.clone() as Arc<dyn WingetBackend>);
         let targets = vec![
-            UpgradeTarget { id: "Machine.App".into(), scope: InstallScope::Machine },
-            UpgradeTarget { id: "User.App".into(), scope: InstallScope::User },
-            UpgradeTarget { id: "Unknown.App".into(), scope: InstallScope::Unknown },
-            UpgradeTarget { id: "Both.App".into(), scope: InstallScope::Both },
+            UpgradeTarget {
+                id: "Machine.App".into(),
+                scope: InstallScope::Machine,
+            },
+            UpgradeTarget {
+                id: "User.App".into(),
+                scope: InstallScope::User,
+            },
+            UpgradeTarget {
+                id: "Unknown.App".into(),
+                scope: InstallScope::Unknown,
+            },
+            UpgradeTarget {
+                id: "Both.App".into(),
+                scope: InstallScope::Both,
+            },
         ];
         for operation in [
-            Operation::Upgrade { id: targets[0].id.clone(), scope: targets[0].scope },
-            Operation::BatchUpgrade { packages: targets.clone() },
+            Operation::Upgrade {
+                id: targets[0].id.clone(),
+                scope: targets[0].scope,
+            },
+            Operation::BatchUpgrade {
+                packages: targets.clone(),
+            },
         ] {
             app.execute_operation(operation);
             loop {
-                let message = tokio::time::timeout(
-                    std::time::Duration::from_secs(5),
-                    app.message_rx.recv(),
-                ).await.expect("operation completes").expect("channel open");
+                let message =
+                    tokio::time::timeout(std::time::Duration::from_secs(5), app.message_rx.recv())
+                        .await
+                        .expect("operation completes")
+                        .expect("channel open");
                 if let AppMessage::OperationComplete(result) = message {
                     assert!(result.success);
                     break;
