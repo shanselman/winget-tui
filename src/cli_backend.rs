@@ -293,7 +293,7 @@ impl CliBackend {
                 .map(|part| {
                     part.parse::<u64>()
                         .map(|n| (Some(n), String::new()))
-                        .unwrap_or((None, part.to_ascii_lowercase()))
+                        .unwrap_or_else(|_| (None, part.to_ascii_lowercase()))
                 })
                 .collect::<Vec<_>>()
         };
