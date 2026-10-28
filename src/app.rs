@@ -65,6 +65,14 @@ pub enum AppMode {
 }
 
 impl AppMode {
+    pub fn package_column_percentages(self) -> &'static [u16] {
+        match self {
+            Self::Search => &[25, 35, 20, 20],
+            Self::Installed => &[22, 31, 17, 16, 14],
+            Self::Upgrades => &[22, 26, 13, 13, 13, 13],
+        }
+    }
+
     pub fn cycle(&self) -> Self {
         match self {
             Self::Search => Self::Installed,
@@ -564,22 +572,23 @@ impl App {
             let result = match &op {
                 Operation::Install { id, version } => backend.install(id, version.as_deref()).await,
                 Operation::Uninstall { id } => backend.uninstall(id).await,
-                Operation::Upgrade { id } => backend.upgrade(id).await,
+                Operation::Upgrade { id, scope } => backend.upgrade(id, *scope).await,
                 Operation::Pin { id } => backend.pin(id).await,
                 Operation::Unpin { id } => backend.unpin(id).await,
-                Operation::BatchUpgrade { ids } => {
+                Operation::BatchUpgrade { packages } => {
                     // Execute sequentially to avoid Windows Installer conflicts
-                    let total = ids.len();
+                    let total = packages.len();
                     let mut failures: Vec<String> = Vec::new();
-                    for (i, id) in ids.iter().enumerate() {
+                    for (i, package) in packages.iter().enumerate() {
                         let _ = tx.send(AppMessage::StatusUpdate(format!(
-                            "Upgrading {}/{}: {}...",
+                            "Upgrading {}/{}: {} (scope: {})...",
                             i + 1,
                             total,
-                            id
+                            package.id,
+                            package.scope.label()
                         )));
-                        if let Err(e) = backend.upgrade(id).await {
-                            failures.push(format!("{}: {}", id, e));
+                        if let Err(e) = backend.upgrade(&package.id, package.scope).await {
+                            failures.push(format!("{}: {}", package.id, e));
                         }
                     }
                     if failures.is_empty() {
@@ -742,14 +751,14 @@ impl App {
                     match &result.operation {
                         Operation::Install { id, .. }
                         | Operation::Uninstall { id }
-                        | Operation::Upgrade { id }
+                        | Operation::Upgrade { id, .. }
                         | Operation::Pin { id }
                         | Operation::Unpin { id } => {
                             self.detail_cache.remove(id);
                         }
-                        Operation::BatchUpgrade { ids } => {
-                            for id in ids {
-                                self.detail_cache.remove(id);
+                        Operation::BatchUpgrade { packages } => {
+                            for package in packages {
+                                self.detail_cache.remove(&package.id);
                             }
                             self.selected_packages.clear();
                         }
@@ -815,12 +824,14 @@ mod tests {
     /// Minimal backend that records `show` calls
     struct SpyBackend {
         show_calls: std::sync::Mutex<Vec<String>>,
+        upgrade_calls: std::sync::Mutex<Vec<crate::models::UpgradeTarget>>,
     }
 
     impl SpyBackend {
         fn new() -> Arc<Self> {
             Arc::new(Self {
                 show_calls: std::sync::Mutex::new(Vec::new()),
+                upgrade_calls: std::sync::Mutex::new(Vec::new()),
             })
         }
 
@@ -850,7 +861,14 @@ mod tests {
         async fn uninstall(&self, _: &str) -> Result<String> {
             Ok(String::new())
         }
-        async fn upgrade(&self, _: &str) -> Result<String> {
+        async fn upgrade(&self, id: &str, scope: crate::models::InstallScope) -> Result<String> {
+            self.upgrade_calls
+                .lock()
+                .unwrap()
+                .push(crate::models::UpgradeTarget {
+                    id: id.to_string(),
+                    scope,
+                });
             Ok(String::new())
         }
         async fn list_pins(&self) -> Result<Vec<PackagePin>> {
@@ -878,8 +896,60 @@ mod tests {
             version: "1.0".to_string(),
             source: "winget".to_string(),
             available_version: String::new(),
+            install_scope: Default::default(),
             pin_state: PinState::None,
         }
+    }
+
+    #[tokio::test]
+    async fn single_and_batch_upgrades_pass_each_scope_to_backend() {
+        use crate::models::{InstallScope, UpgradeTarget};
+
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy.clone() as Arc<dyn WingetBackend>);
+        let targets = vec![
+            UpgradeTarget {
+                id: "Machine.App".into(),
+                scope: InstallScope::Machine,
+            },
+            UpgradeTarget {
+                id: "User.App".into(),
+                scope: InstallScope::User,
+            },
+            UpgradeTarget {
+                id: "Unknown.App".into(),
+                scope: InstallScope::Unknown,
+            },
+            UpgradeTarget {
+                id: "Both.App".into(),
+                scope: InstallScope::Both,
+            },
+        ];
+        for operation in [
+            Operation::Upgrade {
+                id: targets[0].id.clone(),
+                scope: targets[0].scope,
+            },
+            Operation::BatchUpgrade {
+                packages: targets.clone(),
+            },
+        ] {
+            app.execute_operation(operation);
+            loop {
+                let message =
+                    tokio::time::timeout(std::time::Duration::from_secs(5), app.message_rx.recv())
+                        .await
+                        .expect("operation completes")
+                        .expect("channel open");
+                if let AppMessage::OperationComplete(result) = message {
+                    assert!(result.success);
+                    break;
+                }
+            }
+        }
+        let calls = spy.upgrade_calls.lock().unwrap();
+        assert_eq!(calls[0], targets[0]);
+        assert_eq!(calls[1..], targets);
     }
 
     /// Simulate receiving a PackagesLoaded message synchronously (bypasses tokio channel).
@@ -1048,6 +1118,7 @@ mod tests {
                 version: "1.0".to_string(),
                 source: "winget".to_string(),
                 available_version: String::new(),
+                install_scope: Default::default(),
                 pin_state: PinState::None,
             })
             .collect()
@@ -1226,6 +1297,7 @@ mod tests {
             version: version.to_string(),
             source: "winget".to_string(),
             available_version: String::new(),
+            install_scope: Default::default(),
             pin_state: PinState::None,
         }
     }
@@ -1314,6 +1386,7 @@ mod tests {
             version: "1.0.0".to_string(),
             source: String::new(),
             available_version: String::new(),
+            install_scope: Default::default(),
             pin_state: PinState::None,
         }];
 
@@ -1700,6 +1773,7 @@ mod tests {
             .send(AppMessage::OperationComplete(OpResult {
                 operation: Operation::Upgrade {
                     id: "Google.Chrome".to_string(),
+                    scope: crate::models::InstallScope::Unknown,
                 },
                 success: true,
                 message: String::new(),
@@ -1840,7 +1914,16 @@ mod tests {
         app.message_tx
             .send(AppMessage::OperationComplete(OpResult {
                 operation: Operation::BatchUpgrade {
-                    ids: vec!["Pkg.One".into(), "Pkg.Two".into()],
+                    packages: vec![
+                        crate::models::UpgradeTarget {
+                            id: "Pkg.One".into(),
+                            scope: crate::models::InstallScope::Unknown,
+                        },
+                        crate::models::UpgradeTarget {
+                            id: "Pkg.Two".into(),
+                            scope: crate::models::InstallScope::Unknown,
+                        },
+                    ],
                 },
                 success: true,
                 message: "done".into(),
@@ -1937,6 +2020,7 @@ mod tests {
             version: "1.0".to_string(),
             source: "winget".to_string(),
             available_version: String::new(),
+            install_scope: Default::default(),
             pin_state: PinState::None,
         }];
 
@@ -2045,6 +2129,7 @@ mod tests {
             version: "0.96.0".to_string(),
             source: "winget".to_string(),
             available_version: "0.98.1".to_string(),
+            install_scope: Default::default(),
             pin_state: PinState::None,
         }];
         // winget show returns the latest manifest version 0.98.1
@@ -2204,6 +2289,7 @@ mod tests {
             version: "2.43.0".to_string(),
             source: String::new(),
             available_version: String::new(),
+            install_scope: Default::default(),
             pin_state: PinState::None,
         }];
 
@@ -2240,6 +2326,7 @@ mod tests {
             version: "1.0.0.0".to_string(),
             source: String::new(),
             available_version: String::new(),
+            install_scope: Default::default(),
             pin_state: PinState::None,
         }];
 
@@ -2273,6 +2360,7 @@ mod tests {
             version: "2024.01.01".to_string(),
             source: "winget".to_string(),
             available_version: String::new(),
+            install_scope: Default::default(),
             pin_state: PinState::None,
         }];
 
@@ -2314,6 +2402,7 @@ mod tests {
             version: "3.0".to_string(),
             source: String::new(),
             available_version: String::new(),
+            install_scope: Default::default(),
             pin_state: PinState::None,
         }];
 
@@ -2342,6 +2431,7 @@ mod tests {
             version: "1.0".to_string(),
             source: String::new(),
             available_version: String::new(),
+            install_scope: Default::default(),
             pin_state: PinState::None,
         }];
 
@@ -2373,6 +2463,7 @@ mod tests {
             .send(AppMessage::OperationComplete(OpResult {
                 operation: Operation::Upgrade {
                     id: "Google.Chrome".to_string(),
+                    scope: crate::models::InstallScope::Unknown,
                 },
                 success: true,
                 message: "Successfully upgraded".to_string(),

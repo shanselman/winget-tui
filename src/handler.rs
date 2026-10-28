@@ -3,7 +3,7 @@ use crossterm::event::{
 };
 
 use crate::app::{App, AppMode, ConfirmDialog, FocusZone, InputMode};
-use crate::models::{Operation, SortDir, SortField};
+use crate::models::{Operation, SortDir, SortField, UpgradeTarget};
 
 /// Handle the next crossterm event, waiting up to 50 ms for one to arrive.
 ///
@@ -453,15 +453,21 @@ fn handle_normal_mode(
             if let Some(pkg) = app.selected_package() {
                 if pkg.is_truncated() {
                     let name = pkg.name.clone();
+                    let scope = pkg.install_scope;
                     app.confirm = Some(ConfirmDialog {
-                        message: format!("Upgrade {}? (ID truncated in winget output)", name),
-                        operation: Operation::Upgrade { id: name },
+                        message: format!(
+                            "Upgrade {}? (scope: {}; ID truncated in winget output)",
+                            name,
+                            scope.label()
+                        ),
+                        operation: Operation::Upgrade { id: name, scope },
                     });
                 } else {
                     let id = pkg.id.clone();
+                    let scope = pkg.install_scope;
                     app.confirm = Some(ConfirmDialog {
-                        message: format!("Upgrade {}?", id),
-                        operation: Operation::Upgrade { id },
+                        message: format!("Upgrade {}? (scope: {})", id, scope.label()),
+                        operation: Operation::Upgrade { id, scope },
                     });
                 }
             }
@@ -472,22 +478,25 @@ fn handle_normal_mode(
             if app.mode == AppMode::Upgrades && !app.selected_packages.is_empty() =>
         {
             let selected_count = app.selected_packages.len();
-            let ids: Vec<String> = app
+            let packages: Vec<UpgradeTarget> = app
                 .selected_packages
                 .iter()
                 .filter_map(|&idx| {
                     app.filtered_packages
                         .get(idx)
                         .filter(|p| !p.is_truncated())
-                        .map(|p| p.id.clone())
+                        .map(|p| UpgradeTarget {
+                            id: p.id.clone(),
+                            scope: p.install_scope,
+                        })
                 })
                 .collect();
-            if ids.is_empty() {
+            if packages.is_empty() {
                 app.set_status(
                     "Cannot upgrade: all selected packages have truncated IDs — use winget directly",
                 );
             } else {
-                let count = ids.len();
+                let count = packages.len();
                 let skipped = selected_count.saturating_sub(count);
                 let skipped_note = if skipped > 0 {
                     format!(
@@ -505,7 +514,7 @@ fn handle_normal_mode(
                         if count == 1 { "" } else { "s" },
                         skipped_note
                     ),
-                    operation: Operation::BatchUpgrade { ids },
+                    operation: Operation::BatchUpgrade { packages },
                 });
             }
         }
@@ -611,7 +620,7 @@ fn load_detail_for_selected(app: &mut App) {
 /// - If it is already the active sort field, toggles Asc ↔ Desc.
 /// - Otherwise, activates that field in Asc order.
 ///
-/// Clicking an unsortable column (Source, Available) is a no-op.
+/// Clicking an unsortable column (Source, Available, Scope) is a no-op.
 fn click_sort_header(app: &mut App, col: u16) {
     let list = app.layout.package_list;
     // Usable content width: strip left border (1), right border/scrollbar (2)
@@ -626,35 +635,18 @@ fn click_sort_header(app: &mut App, col: u16) {
     }
     let offset = col - x0;
 
-    // Determine the sort field based on column percentages defined in ui.rs.
-    // Non-Upgrades: Name 25%, ID 35%, Version 20%, Source 20% (unsortable)
-    // Upgrades:     Name 25%, ID 30%, Version 15%, Available 15% (unsortable), Source 15% (unsortable)
-    let field = if app.mode == AppMode::Upgrades {
-        let boundary_name = content_width * 25 / 100;
-        let boundary_id = boundary_name + content_width * 30 / 100;
-        let boundary_version = boundary_id + content_width * 15 / 100;
-        if offset < boundary_name {
-            SortField::Name
-        } else if offset < boundary_id {
-            SortField::Id
-        } else if offset < boundary_version {
-            SortField::Version
-        } else {
-            return; // Available or Source — not sortable
-        }
+    let percentages = app.mode.package_column_percentages();
+    let boundary_name = content_width * u32::from(percentages[0]) / 100;
+    let boundary_id = boundary_name + content_width * u32::from(percentages[1]) / 100;
+    let boundary_version = boundary_id + content_width * u32::from(percentages[2]) / 100;
+    let field = if offset < boundary_name {
+        SortField::Name
+    } else if offset < boundary_id {
+        SortField::Id
+    } else if offset < boundary_version {
+        SortField::Version
     } else {
-        let boundary_name = content_width * 25 / 100;
-        let boundary_id = boundary_name + content_width * 35 / 100;
-        let boundary_version = boundary_id + content_width * 20 / 100;
-        if offset < boundary_name {
-            SortField::Name
-        } else if offset < boundary_id {
-            SortField::Id
-        } else if offset < boundary_version {
-            SortField::Version
-        } else {
-            return; // Source — not sortable
-        }
+        return;
     };
 
     if app.sort_field == field {
@@ -891,7 +883,9 @@ mod tests {
     use super::*;
     use crate::app::{App, ConfirmDialog, InputMode};
     use crate::backend::WingetBackend;
-    use crate::models::{Operation, Package, PackageDetail, PackagePin, PinState, Source};
+    use crate::models::{
+        InstallScope, Operation, Package, PackageDetail, PackagePin, PinState, Source,
+    };
 
     // ── helpers ──────────────────────────────────────────────────────────────
 
@@ -926,7 +920,7 @@ mod tests {
         async fn uninstall(&self, _: &str) -> Result<String> {
             Ok(String::new())
         }
-        async fn upgrade(&self, _: &str) -> Result<String> {
+        async fn upgrade(&self, _: &str, _: InstallScope) -> Result<String> {
             Ok(String::new())
         }
         async fn list_pins(&self) -> Result<Vec<PackagePin>> {
@@ -955,6 +949,7 @@ mod tests {
             version: version.to_string(),
             source: "winget".to_string(),
             available_version: available.to_string(),
+            install_scope: Default::default(),
             pin_state: PinState::None,
         }];
         app.filtered_packages = app.packages.clone();
@@ -971,6 +966,7 @@ mod tests {
                 version: "1.0.0".to_string(),
                 source: "winget".to_string(),
                 available_version: String::new(),
+                install_scope: Default::default(),
                 pin_state: PinState::None,
             })
             .collect();
@@ -1081,7 +1077,10 @@ mod tests {
         let mut app = make_app();
         app.confirm = Some(ConfirmDialog {
             message: "Upgrade Foo?".into(),
-            operation: Operation::Upgrade { id: "Foo".into() },
+            operation: Operation::Upgrade {
+                id: "Foo".into(),
+                scope: InstallScope::Unknown,
+            },
         });
         let _ = handle_confirm(&mut app, KeyCode::Char('n'));
         assert!(app.confirm.is_none(), "confirm should be cleared on 'n'");
@@ -1093,7 +1092,10 @@ mod tests {
         let mut app = make_app();
         app.confirm = Some(ConfirmDialog {
             message: "Upgrade Foo?".into(),
-            operation: Operation::Upgrade { id: "Foo".into() },
+            operation: Operation::Upgrade {
+                id: "Foo".into(),
+                scope: InstallScope::Unknown,
+            },
         });
         let _ = handle_confirm(&mut app, KeyCode::Esc);
         assert!(app.confirm.is_none());
@@ -1105,7 +1107,10 @@ mod tests {
         let mut app = make_app();
         app.confirm = Some(ConfirmDialog {
             message: "Upgrade Foo?".into(),
-            operation: Operation::Upgrade { id: "Foo".into() },
+            operation: Operation::Upgrade {
+                id: "Foo".into(),
+                scope: InstallScope::Unknown,
+            },
         });
         let _ = handle_confirm(&mut app, KeyCode::Char('x'));
         assert!(
@@ -1184,6 +1189,7 @@ mod tests {
                 version: "1.0".to_string(),
                 source: "winget".to_string(),
                 available_version: String::new(),
+                install_scope: Default::default(),
                 pin_state: PinState::None,
             },
             Package {
@@ -1192,6 +1198,7 @@ mod tests {
                 version: "1.0".to_string(),
                 source: "winget".to_string(),
                 available_version: String::new(),
+                install_scope: Default::default(),
                 pin_state: PinState::None,
             },
         ];
@@ -1383,6 +1390,8 @@ mod tests {
     fn batch_upgrade_confirm_uses_clean_count_when_all_ids_are_valid() {
         let mut app = make_app_with_pkgs(2);
         app.mode = AppMode::Upgrades;
+        app.filtered_packages[0].install_scope = InstallScope::Machine;
+        app.filtered_packages[1].install_scope = InstallScope::User;
         app.selected_packages = [0usize, 1usize].into_iter().collect();
 
         let _ = handle_normal_mode(&mut app, KeyCode::Char('U'), KeyModifiers::NONE);
@@ -1390,7 +1399,12 @@ mod tests {
         let confirm = app.confirm.expect("confirm dialog should be set");
         assert_eq!(confirm.message, "Upgrade 2 selected packages?");
         match confirm.operation {
-            Operation::BatchUpgrade { ids } => assert_eq!(ids.len(), 2),
+            Operation::BatchUpgrade { mut packages } => {
+                packages.sort_by(|left, right| left.id.cmp(&right.id));
+                assert_eq!(packages.len(), 2);
+                assert_eq!(packages[0].scope, InstallScope::Machine);
+                assert_eq!(packages[1].scope, InstallScope::User);
+            }
             _ => panic!("expected BatchUpgrade operation"),
         }
     }
@@ -1408,7 +1422,7 @@ mod tests {
             "confirm text should explain name-based fallback"
         );
         match confirm.operation {
-            Operation::Upgrade { id } => assert_eq!(id, "Test Package"),
+            Operation::Upgrade { id, .. } => assert_eq!(id, "Test Package"),
             _ => panic!("expected Upgrade operation"),
         }
     }
@@ -1424,6 +1438,7 @@ mod tests {
                 version: "1.0".to_string(),
                 source: "winget".to_string(),
                 available_version: "1.1".to_string(),
+                install_scope: InstallScope::Machine,
                 pin_state: PinState::None,
             },
             Package {
@@ -1432,6 +1447,7 @@ mod tests {
                 version: "1.0".to_string(),
                 source: "winget".to_string(),
                 available_version: "1.1".to_string(),
+                install_scope: Default::default(),
                 pin_state: PinState::None,
             },
         ];
@@ -1444,7 +1460,10 @@ mod tests {
         assert!(confirm.message.contains("Upgrade 1 selected package"));
         assert!(confirm.message.contains("1 skipped"));
         match confirm.operation {
-            Operation::BatchUpgrade { ids } => assert_eq!(ids, vec!["Good.App".to_string()]),
+            Operation::BatchUpgrade { packages } => {
+                assert_eq!(packages[0].id, "Good.App");
+                assert_eq!(packages[0].scope, InstallScope::Machine);
+            }
             _ => panic!("expected BatchUpgrade operation"),
         }
     }
@@ -1459,6 +1478,7 @@ mod tests {
             version: "1.0".to_string(),
             source: "winget".to_string(),
             available_version: "1.1".to_string(),
+            install_scope: Default::default(),
             pin_state: PinState::None,
         }];
         app.filtered_packages = app.packages.clone();
@@ -1746,18 +1766,24 @@ mod tests {
         assert!(confirm.message.contains("ID truncated"));
         assert!(matches!(
             confirm.operation,
-            Operation::Upgrade { ref id } if id == "Test Package"
+            Operation::Upgrade { ref id, .. } if id == "Test Package"
         ));
     }
 
     #[test]
     fn u_on_valid_pkg_creates_upgrade_confirm() {
         let mut app = make_app_with_pkg("Valid.Package", "1.0", "2.0");
+        app.filtered_packages[0].install_scope = InstallScope::User;
         let _ = handle_normal_mode(&mut app, KeyCode::Char('u'), KeyModifiers::NONE);
         assert!(app.confirm.is_some());
+        let confirm = app.confirm.unwrap();
+        assert!(confirm.message.contains("User"));
         assert!(matches!(
-            app.confirm.unwrap().operation,
-            Operation::Upgrade { .. }
+            confirm.operation,
+            Operation::Upgrade {
+                scope: InstallScope::User,
+                ..
+            }
         ));
     }
 
@@ -2392,5 +2418,25 @@ mod tests {
         app.layout.package_list = rect(0, 0, 2, 10); // content_width = 2-3 = underflows to 0
         click_sort_header(&mut app, 0);
         assert_eq!(app.sort_field, SortField::None);
+    }
+
+    #[test]
+    fn scope_column_layout_preserves_sort_hit_testing_in_each_view() {
+        for (mode, id_column, version_column, unsortable_column) in [
+            (AppMode::Search, 30, 65, 85),
+            (AppMode::Installed, 24, 55, 75),
+            (AppMode::Upgrades, 24, 50, 65),
+        ] {
+            let mut app = make_app_with_list_layout();
+            app.mode = mode;
+            click_sort_header(&mut app, id_column);
+            assert_eq!(app.sort_field, SortField::Id);
+            click_sort_header(&mut app, version_column);
+            assert_eq!(app.sort_field, SortField::Version);
+            click_sort_header(&mut app, unsortable_column);
+            assert_eq!(app.sort_field, SortField::Version);
+            click_sort_header(&mut app, 95);
+            assert_eq!(app.sort_field, SortField::Version);
+        }
     }
 }

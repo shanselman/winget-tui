@@ -8,7 +8,7 @@ use unicode_width::UnicodeWidthChar;
 use tokio::process::Command;
 
 use crate::backend::WingetBackend;
-use crate::models::{Package, PackageDetail, PackagePin, PinState, Source};
+use crate::models::{InstallScope, Package, PackageDetail, PackagePin, PinState, Source};
 
 pub struct CliBackend;
 
@@ -87,6 +87,15 @@ impl CliBackend {
         args
     }
 
+    fn list_installed_scope_args<'a>(scope: &'a str, source: Option<&'a str>) -> Vec<&'a str> {
+        let mut args = vec!["list", "--accept-source-agreements", "--scope", scope];
+        if let Some(src) = source {
+            args.push("--source");
+            args.push(src);
+        }
+        args
+    }
+
     fn list_upgrades_args(source: Option<&str>) -> Vec<&str> {
         let mut args = vec!["upgrade", "--accept-source-agreements", "--include-pinned"];
         if let Some(src) = source {
@@ -96,25 +105,35 @@ impl CliBackend {
         args
     }
 
-    fn upgrade_args_by_id(query: &str) -> Vec<&str> {
-        vec![
+    fn upgrade_args_by_id(query: &str, scope: InstallScope) -> Vec<&str> {
+        let mut args = vec![
             "upgrade",
             "--id",
             query,
             "--accept-source-agreements",
             "--accept-package-agreements",
-        ]
+        ];
+        if let Some(scope) = scope.as_arg() {
+            args.push("--scope");
+            args.push(scope);
+        }
+        args
     }
 
-    fn upgrade_args_by_name(query: &str) -> Vec<&str> {
-        vec![
+    fn upgrade_args_by_name(query: &str, scope: InstallScope) -> Vec<&str> {
+        let mut args = vec![
             "upgrade",
             "--name",
             query,
             "--exact",
             "--accept-source-agreements",
             "--accept-package-agreements",
-        ]
+        ];
+        if let Some(scope) = scope.as_arg() {
+            args.push("--scope");
+            args.push(scope);
+        }
+        args
     }
 
     fn pin_add_args(id: &str) -> Vec<&str> {
@@ -209,6 +228,56 @@ impl CliBackend {
             }
         }
         deduped
+    }
+
+    fn package_matches(left: &Package, right: &Package) -> bool {
+        !left.is_truncated()
+            && !right.is_truncated()
+            && left.id.eq_ignore_ascii_case(&right.id)
+            && left.version.eq_ignore_ascii_case(&right.version)
+            && (left.source.is_empty()
+                || right.source.is_empty()
+                || left.source.eq_ignore_ascii_case(&right.source))
+    }
+
+    fn assign_install_scopes(
+        packages: &mut [Package],
+        machine_packages: &[Package],
+        user_packages: &[Package],
+    ) {
+        for package in packages {
+            let machine = machine_packages
+                .iter()
+                .any(|candidate| Self::package_matches(package, candidate));
+            let user = user_packages
+                .iter()
+                .any(|candidate| Self::package_matches(package, candidate));
+            package.install_scope = match (machine, user) {
+                (true, true) => InstallScope::Both,
+                (true, false) => InstallScope::Machine,
+                (false, true) => InstallScope::User,
+                (false, false) => InstallScope::Unknown,
+            };
+        }
+    }
+
+    async fn populate_install_scopes(
+        &self,
+        packages: &mut [Package],
+        source: Option<&str>,
+    ) -> Result<()> {
+        if packages.is_empty() {
+            return Ok(());
+        }
+        let machine_args = Self::list_installed_scope_args("machine", source);
+        let user_args = Self::list_installed_scope_args("user", source);
+        let (machine_output, user_output) =
+            tokio::try_join!(self.run_winget(&machine_args), self.run_winget(&user_args))
+                .context("Failed to determine installed package scope")?;
+        let machine_packages = self.parse_packages_from_table(&machine_output);
+        let user_packages = self.parse_packages_from_table(&user_output);
+        Self::assign_install_scopes(packages, &machine_packages, &user_packages);
+        Ok(())
     }
 
     /// Check whether `winget` is reachable on PATH.
@@ -505,7 +574,7 @@ impl CliBackend {
         // but 3 bytes, so we walk chars counting display width to find correct slice points.
         let field = |idx| Self::extract_field(line, cols, idx);
 
-        let id = pcols.id.map(&field).unwrap_or_default();
+        let id = pcols.id.map(field).unwrap_or_default();
         if id.is_empty() {
             return None;
         }
@@ -519,11 +588,12 @@ impl CliBackend {
         }
 
         Some(Package {
-            name: sanitize_text(&pcols.name.map(&field).unwrap_or_default()),
+            name: sanitize_text(&pcols.name.map(field).unwrap_or_default()),
             id: sanitize_text(&id),
-            version: sanitize_text(&pcols.version.map(&field).unwrap_or_default()),
-            source: sanitize_text(&pcols.source.map(&field).unwrap_or_default()),
-            available_version: sanitize_text(&pcols.available.map(&field).unwrap_or_default()),
+            version: sanitize_text(&pcols.version.map(field).unwrap_or_default()),
+            source: sanitize_text(&pcols.source.map(field).unwrap_or_default()),
+            available_version: sanitize_text(&pcols.available.map(field).unwrap_or_default()),
+            install_scope: InstallScope::Unknown,
             pin_state: PinState::None,
         })
     }
@@ -685,13 +755,13 @@ impl CliBackend {
             .filter_map(|line| {
                 let field = |idx| Self::extract_field(line, &col_positions, idx);
 
-                let id = col_map.id.map(&field).unwrap_or_default();
+                let id = col_map.id.map(field).unwrap_or_default();
                 if id.is_empty() {
                     return None;
                 }
 
-                let pinned_version = col_map.pinned_version.map(&field).unwrap_or_default();
-                let pin_type = col_map.pin_type.map(&field).unwrap_or_default();
+                let pinned_version = col_map.pinned_version.map(field).unwrap_or_default();
+                let pin_type = col_map.pin_type.map(field).unwrap_or_default();
 
                 Some(PackagePin {
                     id: sanitize_text(&id),
@@ -719,15 +789,15 @@ impl CliBackend {
             .filter_map(|line| {
                 let field = |idx| Self::extract_field(line, &col_positions, idx);
 
-                let name = col_map.name.map(&field).unwrap_or_default();
+                let name = col_map.name.map(field).unwrap_or_default();
                 if name.is_empty() {
                     return None;
                 }
 
                 Some(Source {
                     name,
-                    url: col_map.arg.map(&field).unwrap_or_default(),
-                    source_type: col_map.source_type.map(&field).unwrap_or_default(),
+                    url: col_map.arg.map(field).unwrap_or_default(),
+                    source_type: col_map.source_type.map(field).unwrap_or_default(),
                 })
             })
             .collect()
@@ -751,17 +821,17 @@ impl WingetBackend for CliBackend {
     async fn list_installed(&self, source: Option<&str>) -> Result<Vec<Package>> {
         let args = Self::list_installed_args(source);
         let output = self.run_winget(&args).await?;
-        Ok(Self::dedupe_packages(
-            self.parse_packages_from_table(&output),
-        ))
+        let mut packages = Self::dedupe_packages(self.parse_packages_from_table(&output));
+        self.populate_install_scopes(&mut packages, source).await?;
+        Ok(packages)
     }
 
     async fn list_upgrades(&self, source: Option<&str>) -> Result<Vec<Package>> {
         let args = Self::list_upgrades_args(source);
         let output = self.run_winget(&args).await?;
-        Ok(Self::dedupe_packages(
-            self.parse_packages_from_table(&output),
-        ))
+        let mut packages = Self::dedupe_packages(self.parse_packages_from_table(&output));
+        self.populate_install_scopes(&mut packages, source).await?;
+        Ok(packages)
     }
 
     async fn show(&self, id: &str) -> Result<PackageDetail> {
@@ -793,12 +863,12 @@ impl WingetBackend for CliBackend {
 
     // Try the usual ID flow first, then fallback to an exact name match
     // for entries whose ID was truncated in winget's tabular output.
-    async fn upgrade(&self, query: &str) -> Result<String> {
-        let by_id = Self::upgrade_args_by_id(query);
+    async fn upgrade(&self, query: &str, scope: InstallScope) -> Result<String> {
+        let by_id = Self::upgrade_args_by_id(query, scope);
         match self.run_winget_strict(&by_id).await {
             Ok(output) => Ok(output),
             Err(id_err) => {
-                let by_name = Self::upgrade_args_by_name(query);
+                let by_name = Self::upgrade_args_by_name(query, scope);
                 self.run_winget_strict(&by_name).await.map_err(|name_err| {
                     anyhow::anyhow!(
                         "upgrade by id failed: {id_err}; fallback by name failed: {name_err}"
@@ -1000,6 +1070,91 @@ Google Chrome                  Google.Chrome               131.0.6  winget
     }
 
     #[test]
+    fn installed_scope_args_include_scope_and_optional_source() {
+        assert_eq!(
+            CliBackend::list_installed_scope_args("machine", Some("winget")),
+            vec![
+                "list",
+                "--accept-source-agreements",
+                "--scope",
+                "machine",
+                "--source",
+                "winget"
+            ]
+        );
+        assert_eq!(
+            CliBackend::list_installed_scope_args("user", None),
+            vec!["list", "--accept-source-agreements", "--scope", "user"]
+        );
+    }
+
+    #[test]
+    fn assign_install_scopes_matches_machine_user_both_and_unknown() {
+        let make_package = |id: &str| Package {
+            id: id.to_string(),
+            name: id.to_string(),
+            version: "1.0".to_string(),
+            source: "winget".to_string(),
+            available_version: String::new(),
+            install_scope: InstallScope::Unknown,
+            pin_state: PinState::None,
+        };
+        let mut packages = vec![
+            make_package("Machine.App"),
+            make_package("User.App"),
+            make_package("Both.App"),
+            make_package("Unknown.App"),
+        ];
+        let machine_packages = vec![make_package("Machine.App"), make_package("Both.App")];
+        let user_packages = vec![make_package("User.App"), make_package("Both.App")];
+
+        CliBackend::assign_install_scopes(&mut packages, &machine_packages, &user_packages);
+
+        assert_eq!(packages[0].install_scope, InstallScope::Machine);
+        assert_eq!(packages[1].install_scope, InstallScope::User);
+        assert_eq!(packages[2].install_scope, InstallScope::Both);
+        assert_eq!(packages[3].install_scope, InstallScope::Unknown);
+    }
+
+    #[test]
+    fn scope_matching_requires_complete_id_version_and_compatible_source() {
+        let original = make_pkg("1.0", "", "winget");
+        let mut candidate = original.clone();
+        candidate.id = "test.package".into();
+        candidate.source = "WinGet".into();
+        assert!(CliBackend::package_matches(&original, &candidate));
+        candidate.source.clear();
+        assert!(CliBackend::package_matches(&original, &candidate));
+        candidate.source = "msstore".into();
+        assert!(!CliBackend::package_matches(&original, &candidate));
+        candidate.source.clear();
+        candidate.version = "2.0".into();
+        assert!(!CliBackend::package_matches(&original, &candidate));
+        candidate.version = original.version.clone();
+        candidate.id = "Different.Package".into();
+        assert!(!CliBackend::package_matches(&original, &candidate));
+        for id in ["Truncated...", "Truncated\u{2026}"] {
+            candidate.id = id.into();
+            let mut truncated = candidate.clone();
+            truncated.install_scope = InstallScope::Machine;
+            CliBackend::assign_install_scopes(
+                std::slice::from_mut(&mut truncated),
+                std::slice::from_ref(&candidate),
+                &[],
+            );
+            assert_eq!(truncated.install_scope, InstallScope::Unknown);
+        }
+    }
+
+    #[test]
+    fn ambiguous_and_unknown_scopes_do_not_force_upgrade_scope() {
+        for scope in [InstallScope::Both, InstallScope::Unknown] {
+            assert!(!CliBackend::upgrade_args_by_id("Example.App", scope).contains(&"--scope"));
+            assert!(!CliBackend::upgrade_args_by_name("Example App", scope).contains(&"--scope"));
+        }
+    }
+
+    #[test]
     fn upgrade_list_args_keep_include_pinned() {
         let args = CliBackend::list_upgrades_args(Some("winget"));
         assert_eq!(args[0], "upgrade");
@@ -1009,7 +1164,10 @@ Google Chrome                  Google.Chrome               131.0.6  winget
 
     #[test]
     fn upgrade_args_by_id_use_id_flag() {
-        let args = CliBackend::upgrade_args_by_id("Microsoft.Azure.FunctionsCoreTools");
+        let args = CliBackend::upgrade_args_by_id(
+            "Microsoft.Azure.FunctionsCoreTools",
+            InstallScope::Unknown,
+        );
         assert_eq!(args[0], "upgrade");
         assert!(args.contains(&"--id"));
         assert!(!args.contains(&"--name"));
@@ -1018,11 +1176,19 @@ Google Chrome                  Google.Chrome               131.0.6  winget
 
     #[test]
     fn upgrade_args_by_name_use_exact_name_flag() {
-        let args = CliBackend::upgrade_args_by_name("Azure Functions Core Tools");
+        let args =
+            CliBackend::upgrade_args_by_name("Azure Functions Core Tools", InstallScope::User);
         assert_eq!(args[0], "upgrade");
         assert!(args.contains(&"--name"));
         assert!(args.contains(&"--exact"));
         assert!(!args.contains(&"--id"));
+        assert!(args.ends_with(&["--scope", "user"]));
+    }
+
+    #[test]
+    fn upgrade_args_by_id_include_machine_scope() {
+        let args = CliBackend::upgrade_args_by_id("Example.App", InstallScope::Machine);
+        assert!(args.ends_with(&["--scope", "machine"]));
     }
 
     #[test]
@@ -1130,6 +1296,7 @@ Google Chrome                  Google.Chrome               131.0.6  winget
             version: version.to_string(),
             available_version: available_version.to_string(),
             source: source.to_string(),
+            install_scope: InstallScope::Unknown,
             pin_state: PinState::None,
         }
     }
@@ -1197,6 +1364,7 @@ Google Chrome                  Google.Chrome               131.0.6  winget
                 version: "2.41.5".to_string(),
                 source: "winget".to_string(),
                 available_version: String::new(),
+                install_scope: InstallScope::Unknown,
                 pin_state: PinState::None,
             },
             Package {
@@ -1205,6 +1373,7 @@ Google Chrome                  Google.Chrome               131.0.6  winget
                 version: "2.43.1".to_string(),
                 source: "winget".to_string(),
                 available_version: String::new(),
+                install_scope: InstallScope::Unknown,
                 pin_state: PinState::None,
             },
         ];
@@ -1223,6 +1392,7 @@ Google Chrome                  Google.Chrome               131.0.6  winget
             version: version.to_string(),
             source: source.to_string(),
             available_version: String::new(),
+            install_scope: InstallScope::Unknown,
             pin_state: PinState::None,
         };
         let packages = vec![make("1.0", "winget"), make("1.1", "Winget")];
@@ -1239,6 +1409,7 @@ Google Chrome                  Google.Chrome               131.0.6  winget
             version: "1.0".to_string(),
             source: "winget".to_string(),
             available_version: String::new(),
+            install_scope: InstallScope::Unknown,
             pin_state: PinState::None,
         };
         let packages = vec![make("C.Pkg"), make("A.Pkg"), make("B.Pkg")];
@@ -1278,6 +1449,7 @@ Google Chrome                  Google.Chrome               131.0.6  winget
                 version: "1.0.0".to_string(),
                 available_version: String::new(),
                 source: "winget".to_string(),
+                install_scope: InstallScope::Unknown,
                 pin_state: PinState::None,
             },
             Package {
@@ -1286,6 +1458,7 @@ Google Chrome                  Google.Chrome               131.0.6  winget
                 version: "1.0.0".to_string(),
                 available_version: "1.1.0".to_string(),
                 source: "winget".to_string(),
+                install_scope: InstallScope::Unknown,
                 pin_state: PinState::None,
             },
         ];

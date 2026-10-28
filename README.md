@@ -13,6 +13,7 @@ A terminal user interface for [Windows Package Manager (winget)](https://github.
 
 - **Search & Discover** — Find packages across all winget sources
 - **Installed Packages** — View everything installed on your system
+- **Install Scope** — See User/Machine scope in Installed and Upgrades; upgrades retain a uniquely detected scope
 - **Upgrade Management** — See updates at a glance and batch-upgrade multiple packages
 - **Pin Awareness** — Pin or unpin installed packages and filter pinned items without leaving the TUI
 - **Source Filtering** — Filter by source (winget, msstore, or all)
@@ -27,6 +28,11 @@ A terminal user interface for [Windows Package Manager (winget)](https://github.
 - **Keyboard-Driven** — Vim-style navigation, no mouse needed
 - **Non-Blocking** — Install/uninstall/upgrade run in the background
 - **Single Binary** — No runtime dependencies beyond winget itself
+
+Scope is determined from `winget list --scope user` and `--scope machine`. A
+package found in both scopes is shown as **Both**; unmatched or truncated IDs
+are shown as **Unknown**. Neither case forces a scope when upgrading, so the app
+does not guess. Search results describe available packages, not installed scope.
 
 ## Prerequisites
 

@@ -164,7 +164,37 @@ pub struct Package {
     #[serde(alias = "AvailableVersion", default)]
     pub available_version: String,
     #[serde(skip, default)]
+    pub install_scope: InstallScope,
+    #[serde(skip, default)]
     pub pin_state: PinState,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum InstallScope {
+    User,
+    Machine,
+    Both,
+    #[default]
+    Unknown,
+}
+
+impl InstallScope {
+    pub fn as_arg(self) -> Option<&'static str> {
+        match self {
+            Self::User => Some("user"),
+            Self::Machine => Some("machine"),
+            Self::Both | Self::Unknown => None,
+        }
+    }
+
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::User => "User",
+            Self::Machine => "Machine",
+            Self::Both => "Both",
+            Self::Unknown => "Unknown",
+        }
+    }
 }
 
 impl Package {
@@ -249,10 +279,16 @@ pub struct Source {
 pub enum Operation {
     Install { id: String, version: Option<String> },
     Uninstall { id: String },
-    Upgrade { id: String },
+    Upgrade { id: String, scope: InstallScope },
     Pin { id: String },
     Unpin { id: String },
-    BatchUpgrade { ids: Vec<String> },
+    BatchUpgrade { packages: Vec<UpgradeTarget> },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct UpgradeTarget {
+    pub id: String,
+    pub scope: InstallScope,
 }
 
 impl fmt::Display for Operation {
@@ -266,10 +302,15 @@ impl fmt::Display for Operation {
                 }
             }
             Self::Uninstall { id } => write!(f, "Uninstalling {id}"),
-            Self::Upgrade { id } => write!(f, "Upgrading {id}"),
+            Self::Upgrade { id, scope } => match scope.as_arg() {
+                Some(scope) => write!(f, "Upgrading {id} ({scope} scope)"),
+                None => write!(f, "Upgrading {id}"),
+            },
             Self::Pin { id } => write!(f, "Pinning {id}"),
             Self::Unpin { id } => write!(f, "Unpinning {id}"),
-            Self::BatchUpgrade { ids } => write!(f, "Batch upgrading {} packages", ids.len()),
+            Self::BatchUpgrade { packages } => {
+                write!(f, "Batch upgrading {} packages", packages.len())
+            }
         }
     }
 }
@@ -293,6 +334,7 @@ mod tests {
             version: "1.0".to_string(),
             source: "winget".to_string(),
             available_version: String::new(),
+            install_scope: InstallScope::Unknown,
             pin_state: PinState::None,
         }
     }
@@ -379,6 +421,16 @@ mod tests {
         assert!(!PinFilter::UnpinnedOnly.matches(&PinState::Blocking));
     }
 
+    #[test]
+    fn install_scope_arguments_and_labels() {
+        assert_eq!(InstallScope::User.as_arg(), Some("user"));
+        assert_eq!(InstallScope::Machine.as_arg(), Some("machine"));
+        assert_eq!(InstallScope::Both.as_arg(), None);
+        assert_eq!(InstallScope::Unknown.as_arg(), None);
+        assert_eq!(InstallScope::User.label(), "User");
+        assert_eq!(InstallScope::Machine.label(), "Machine");
+    }
+
     // ── Package::is_truncated ─────────────────────────────────────────────────
 
     #[test]
@@ -440,6 +492,7 @@ mod tests {
     fn operation_display_upgrade() {
         let op = Operation::Upgrade {
             id: "Google.Chrome".to_string(),
+            scope: InstallScope::Unknown,
         };
         assert_eq!(op.to_string(), "Upgrading Google.Chrome");
     }
@@ -447,9 +500,15 @@ mod tests {
     #[test]
     fn operation_display_batch_upgrade() {
         let op = Operation::BatchUpgrade {
-            ids: vec![
-                "Google.Chrome".to_string(),
-                "Microsoft.VisualStudioCode".to_string(),
+            packages: vec![
+                UpgradeTarget {
+                    id: "Google.Chrome".to_string(),
+                    scope: InstallScope::Machine,
+                },
+                UpgradeTarget {
+                    id: "Microsoft.VisualStudioCode".to_string(),
+                    scope: InstallScope::User,
+                },
             ],
         };
         assert_eq!(op.to_string(), "Batch upgrading 2 packages");
@@ -457,7 +516,7 @@ mod tests {
 
     #[test]
     fn operation_display_batch_upgrade_zero() {
-        let op = Operation::BatchUpgrade { ids: vec![] };
+        let op = Operation::BatchUpgrade { packages: vec![] };
         assert_eq!(op.to_string(), "Batch upgrading 0 packages");
     }
 

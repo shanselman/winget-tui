@@ -247,6 +247,16 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
             sort_header("Version", SortField::Version, app.sort_field, dir),
             Cow::Borrowed("Available"),
             Cow::Borrowed("Source"),
+            Cow::Borrowed("Scope"),
+        ]
+    } else if app.mode == AppMode::Installed {
+        let dir = app.sort_dir;
+        vec![
+            sort_header("Name", SortField::Name, app.sort_field, dir),
+            sort_header("ID", SortField::Id, app.sort_field, dir),
+            sort_header("Version", SortField::Version, app.sort_field, dir),
+            Cow::Borrowed("Source"),
+            Cow::Borrowed("Scope"),
         ]
     } else {
         let dir = app.sort_dir;
@@ -313,6 +323,20 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
                     Cell::from(pkg.version.as_str()),
                     Cell::from(Span::styled(&pkg.available_version, available_style)),
                     Cell::from(pkg.source.as_str()),
+                    Cell::from(pkg.install_scope.label()),
+                ]
+            } else if app.mode == AppMode::Installed {
+                vec![
+                    Cell::from(format!(
+                        "{}{}{}",
+                        prefix,
+                        pkg.pin_state.short_marker(),
+                        truncate(&pkg.name, 18)
+                    )),
+                    Cell::from(truncate(&pkg.id, 28)),
+                    Cell::from(pkg.version.as_str()),
+                    Cell::from(pkg.source.as_str()),
+                    Cell::from(pkg.install_scope.label()),
                 ]
             } else {
                 vec![
@@ -332,22 +356,12 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
         })
         .collect();
 
-    let widths = if app.mode == AppMode::Upgrades {
-        vec![
-            Constraint::Percentage(25),
-            Constraint::Percentage(30),
-            Constraint::Percentage(15),
-            Constraint::Percentage(15),
-            Constraint::Percentage(15),
-        ]
-    } else {
-        vec![
-            Constraint::Percentage(25),
-            Constraint::Percentage(35),
-            Constraint::Percentage(20),
-            Constraint::Percentage(20),
-        ]
-    };
+    let widths: Vec<Constraint> = app
+        .mode
+        .package_column_percentages()
+        .iter()
+        .map(|&percentage| Constraint::Percentage(percentage))
+        .collect();
 
     let border_style = if is_focused {
         theme::border_focused(palette)
@@ -508,6 +522,15 @@ fn draw_detail_panel(f: &mut Frame, app: &mut App, area: Rect) {
                 Span::raw(&detail.source),
             ]),
         ]);
+
+        if app.mode != AppMode::Search {
+            if let Some(package) = app.selected_package() {
+                lines.push(Line::from(vec![
+                    Span::styled("  Scope     ", label_style),
+                    Span::raw(package.install_scope.label()),
+                ]));
+            }
+        }
 
         if detail.pin_state.is_pinned() {
             lines.push(Line::from(vec![
@@ -1261,7 +1284,7 @@ mod tests {
             Ok(String::new())
         }
 
-        async fn upgrade(&self, _: &str) -> Result<String> {
+        async fn upgrade(&self, _: &str, _: crate::models::InstallScope) -> Result<String> {
             Ok(String::new())
         }
 
@@ -1380,6 +1403,7 @@ mod tests {
                     message: "Proceed with operation?".to_string(),
                     operation: Operation::Upgrade {
                         id: "Example.Package".to_string(),
+                        scope: crate::models::InstallScope::Unknown,
                     },
                 });
             });
@@ -1415,11 +1439,33 @@ mod tests {
                     version: "1.0".to_string(),
                     available_version: "2.0".to_string(),
                     source: "winget".to_string(),
+                    install_scope: crate::models::InstallScope::Unknown,
                     pin_state: Default::default(),
                 }];
                 app.filtered_packages = app.packages.clone();
             });
             assert_text_style(&buffer, "2.0", theme.on_accent, theme.accent);
+        }
+    }
+
+    #[test]
+    fn installed_and_upgrade_rows_show_install_scope() {
+        for mode in [AppMode::Installed, AppMode::Upgrades] {
+            let buffer = render(Theme::original(), |app| {
+                app.mode = mode;
+                app.packages = vec![Package {
+                    name: "Example Package".to_string(),
+                    id: "Example.Package".to_string(),
+                    version: "1.0".to_string(),
+                    available_version: "2.0".to_string(),
+                    source: "winget".to_string(),
+                    install_scope: crate::models::InstallScope::Machine,
+                    pin_state: Default::default(),
+                }];
+                app.filtered_packages = app.packages.clone();
+            });
+            find_text(&buffer, "Scope");
+            find_text(&buffer, "Machine");
         }
     }
 
