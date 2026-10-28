@@ -880,8 +880,7 @@ fn draw_version_input_dialog(f: &mut Frame, app: &App, palette: &theme::Theme) {
 
     let pkg_name = app
         .selected_package()
-        .map(|p| p.name.as_str())
-        .unwrap_or("package");
+        .map_or("package", |p| p.name.as_str());
 
     let block = Block::default()
         .borders(Borders::ALL)
