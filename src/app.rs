@@ -65,6 +65,14 @@ pub enum AppMode {
 }
 
 impl AppMode {
+    pub fn package_column_percentages(self) -> &'static [u16] {
+        match self {
+            Self::Search => &[25, 35, 20, 20],
+            Self::Installed => &[22, 31, 17, 16, 14],
+            Self::Upgrades => &[22, 26, 13, 13, 13, 13],
+        }
+    }
+
     pub fn cycle(&self) -> Self {
         match self {
             Self::Search => Self::Installed,
@@ -573,10 +581,11 @@ impl App {
                     let mut failures: Vec<String> = Vec::new();
                     for (i, package) in packages.iter().enumerate() {
                         let _ = tx.send(AppMessage::StatusUpdate(format!(
-                            "Upgrading {}/{}: {}...",
+                            "Upgrading {}/{}: {} (scope: {})...",
                             i + 1,
                             total,
-                            package.id
+                            package.id,
+                            package.scope.label()
                         )));
                         if let Err(e) = backend.upgrade(&package.id, package.scope).await {
                             failures.push(format!("{}: {}", package.id, e));
@@ -815,12 +824,14 @@ mod tests {
     /// Minimal backend that records `show` calls
     struct SpyBackend {
         show_calls: std::sync::Mutex<Vec<String>>,
+        upgrade_calls: std::sync::Mutex<Vec<crate::models::UpgradeTarget>>,
     }
 
     impl SpyBackend {
         fn new() -> Arc<Self> {
             Arc::new(Self {
                 show_calls: std::sync::Mutex::new(Vec::new()),
+                upgrade_calls: std::sync::Mutex::new(Vec::new()),
             })
         }
 
@@ -850,7 +861,11 @@ mod tests {
         async fn uninstall(&self, _: &str) -> Result<String> {
             Ok(String::new())
         }
-        async fn upgrade(&self, _: &str, _: crate::models::InstallScope) -> Result<String> {
+        async fn upgrade(&self, id: &str, scope: crate::models::InstallScope) -> Result<String> {
+            self.upgrade_calls.lock().unwrap().push(crate::models::UpgradeTarget {
+                id: id.to_string(),
+                scope,
+            });
             Ok(String::new())
         }
         async fn list_pins(&self) -> Result<Vec<PackagePin>> {
@@ -881,6 +896,39 @@ mod tests {
             install_scope: Default::default(),
             pin_state: PinState::None,
         }
+    }
+
+    #[tokio::test]
+    async fn single_and_batch_upgrades_pass_each_scope_to_backend() {
+        use crate::models::{InstallScope, UpgradeTarget};
+
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy.clone() as Arc<dyn WingetBackend>);
+        let targets = vec![
+            UpgradeTarget { id: "Machine.App".into(), scope: InstallScope::Machine },
+            UpgradeTarget { id: "User.App".into(), scope: InstallScope::User },
+            UpgradeTarget { id: "Unknown.App".into(), scope: InstallScope::Unknown },
+            UpgradeTarget { id: "Both.App".into(), scope: InstallScope::Both },
+        ];
+        for operation in [
+            Operation::Upgrade { id: targets[0].id.clone(), scope: targets[0].scope },
+            Operation::BatchUpgrade { packages: targets.clone() },
+        ] {
+            app.execute_operation(operation);
+            loop {
+                let message = tokio::time::timeout(
+                    std::time::Duration::from_secs(5),
+                    app.message_rx.recv(),
+                ).await.expect("operation completes").expect("channel open");
+                if let AppMessage::OperationComplete(result) = message {
+                    assert!(result.success);
+                    break;
+                }
+            }
+        }
+        let calls = spy.upgrade_calls.lock().unwrap();
+        assert_eq!(calls[0], targets[0]);
+        assert_eq!(calls[1..], targets);
     }
 
     /// Simulate receiving a PackagesLoaded message synchronously (bypasses tokio channel).

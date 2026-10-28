@@ -356,31 +356,12 @@ fn draw_package_list(f: &mut Frame, app: &mut App, area: Rect) {
         })
         .collect();
 
-    let widths = if app.mode == AppMode::Upgrades {
-        vec![
-            Constraint::Percentage(22),
-            Constraint::Percentage(26),
-            Constraint::Percentage(13),
-            Constraint::Percentage(13),
-            Constraint::Percentage(13),
-            Constraint::Percentage(13),
-        ]
-    } else if app.mode == AppMode::Installed {
-        vec![
-            Constraint::Percentage(22),
-            Constraint::Percentage(31),
-            Constraint::Percentage(17),
-            Constraint::Percentage(16),
-            Constraint::Percentage(14),
-        ]
-    } else {
-        vec![
-            Constraint::Percentage(25),
-            Constraint::Percentage(35),
-            Constraint::Percentage(20),
-            Constraint::Percentage(20),
-        ]
-    };
+    let widths: Vec<Constraint> = app
+        .mode
+        .package_column_percentages()
+        .iter()
+        .map(|&percentage| Constraint::Percentage(percentage))
+        .collect();
 
     let border_style = if is_focused {
         theme::border_focused(palette)
@@ -541,6 +522,15 @@ fn draw_detail_panel(f: &mut Frame, app: &mut App, area: Rect) {
                 Span::raw(&detail.source),
             ]),
         ]);
+
+        if app.mode != AppMode::Search {
+            if let Some(package) = app.selected_package() {
+                lines.push(Line::from(vec![
+                    Span::styled("  Scope     ", label_style),
+                    Span::raw(package.install_scope.label()),
+                ]));
+            }
+        }
 
         if detail.pin_state.is_pinned() {
             lines.push(Line::from(vec![

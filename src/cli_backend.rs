@@ -231,7 +231,9 @@ impl CliBackend {
     }
 
     fn package_matches(left: &Package, right: &Package) -> bool {
-        left.id.eq_ignore_ascii_case(&right.id)
+        !left.is_truncated()
+            && !right.is_truncated()
+            && left.id.eq_ignore_ascii_case(&right.id)
             && left.version.eq_ignore_ascii_case(&right.version)
             && (left.source.is_empty()
                 || right.source.is_empty()
@@ -272,7 +274,8 @@ impl CliBackend {
         let (machine_output, user_output) = tokio::try_join!(
             self.run_winget(&machine_args),
             self.run_winget(&user_args)
-        )?;
+        )
+        .context("Failed to determine installed package scope")?;
         let machine_packages = self.parse_packages_from_table(&machine_output);
         let user_packages = self.parse_packages_from_table(&user_output);
         Self::assign_install_scopes(packages, &machine_packages, &user_packages);
@@ -1117,6 +1120,44 @@ Google Chrome                  Google.Chrome               131.0.6  winget
         assert_eq!(packages[1].install_scope, InstallScope::User);
         assert_eq!(packages[2].install_scope, InstallScope::Both);
         assert_eq!(packages[3].install_scope, InstallScope::Unknown);
+    }
+
+    #[test]
+    fn scope_matching_requires_complete_id_version_and_compatible_source() {
+        let original = make_pkg("1.0", "", "winget");
+        let mut candidate = original.clone();
+        candidate.id = "test.package".into();
+        candidate.source = "WinGet".into();
+        assert!(CliBackend::package_matches(&original, &candidate));
+        candidate.source.clear();
+        assert!(CliBackend::package_matches(&original, &candidate));
+        candidate.source = "msstore".into();
+        assert!(!CliBackend::package_matches(&original, &candidate));
+        candidate.source.clear();
+        candidate.version = "2.0".into();
+        assert!(!CliBackend::package_matches(&original, &candidate));
+        candidate.version = original.version.clone();
+        candidate.id = "Different.Package".into();
+        assert!(!CliBackend::package_matches(&original, &candidate));
+        for id in ["Truncated...", "Truncated\u{2026}"] {
+            candidate.id = id.into();
+            let mut truncated = candidate.clone();
+            truncated.install_scope = InstallScope::Machine;
+            CliBackend::assign_install_scopes(
+                std::slice::from_mut(&mut truncated),
+                std::slice::from_ref(&candidate),
+                &[],
+            );
+            assert_eq!(truncated.install_scope, InstallScope::Unknown);
+        }
+    }
+
+    #[test]
+    fn ambiguous_and_unknown_scopes_do_not_force_upgrade_scope() {
+        for scope in [InstallScope::Both, InstallScope::Unknown] {
+            assert!(!CliBackend::upgrade_args_by_id("Example.App", scope).contains(&"--scope"));
+            assert!(!CliBackend::upgrade_args_by_name("Example App", scope).contains(&"--scope"));
+        }
     }
 
     #[test]

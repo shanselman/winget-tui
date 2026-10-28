@@ -302,7 +302,10 @@ impl fmt::Display for Operation {
                 }
             }
             Self::Uninstall { id } => write!(f, "Uninstalling {id}"),
-            Self::Upgrade { id, .. } => write!(f, "Upgrading {id}"),
+            Self::Upgrade { id, scope } => match scope.as_arg() {
+                Some(scope) => write!(f, "Upgrading {id} ({scope} scope)"),
+                None => write!(f, "Upgrading {id}"),
+            },
             Self::Pin { id } => write!(f, "Pinning {id}"),
             Self::Unpin { id } => write!(f, "Unpinning {id}"),
             Self::BatchUpgrade { packages } => {

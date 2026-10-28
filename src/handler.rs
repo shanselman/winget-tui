@@ -3,7 +3,7 @@ use crossterm::event::{
 };
 
 use crate::app::{App, AppMode, ConfirmDialog, FocusZone, InputMode};
-use crate::models::{InstallScope, Operation, SortDir, SortField, UpgradeTarget};
+use crate::models::{Operation, SortDir, SortField, UpgradeTarget};
 
 /// Handle the next crossterm event, waiting up to 50 ms for one to arrive.
 ///
@@ -455,14 +455,18 @@ fn handle_normal_mode(
                     let name = pkg.name.clone();
                     let scope = pkg.install_scope;
                     app.confirm = Some(ConfirmDialog {
-                        message: format!("Upgrade {}? (ID truncated in winget output)", name),
+                        message: format!(
+                            "Upgrade {}? (scope: {}; ID truncated in winget output)",
+                            name,
+                            scope.label()
+                        ),
                         operation: Operation::Upgrade { id: name, scope },
                     });
                 } else {
                     let id = pkg.id.clone();
                     let scope = pkg.install_scope;
                     app.confirm = Some(ConfirmDialog {
-                        message: format!("Upgrade {}?", id),
+                        message: format!("Upgrade {}? (scope: {})", id, scope.label()),
                         operation: Operation::Upgrade { id, scope },
                     });
                 }
@@ -616,7 +620,7 @@ fn load_detail_for_selected(app: &mut App) {
 /// - If it is already the active sort field, toggles Asc ↔ Desc.
 /// - Otherwise, activates that field in Asc order.
 ///
-/// Clicking an unsortable column (Source, Available) is a no-op.
+/// Clicking an unsortable column (Source, Available, Scope) is a no-op.
 fn click_sort_header(app: &mut App, col: u16) {
     let list = app.layout.package_list;
     // Usable content width: strip left border (1), right border/scrollbar (2)
@@ -631,35 +635,18 @@ fn click_sort_header(app: &mut App, col: u16) {
     }
     let offset = col - x0;
 
-    // Determine the sort field based on column percentages defined in ui.rs.
-    // Non-Upgrades: Name 25%, ID 35%, Version 20%, Source 20% (unsortable)
-    // Upgrades:     Name 25%, ID 30%, Version 15%, Available 15% (unsortable), Source 15% (unsortable)
-    let field = if app.mode == AppMode::Upgrades {
-        let boundary_name = content_width * 25 / 100;
-        let boundary_id = boundary_name + content_width * 30 / 100;
-        let boundary_version = boundary_id + content_width * 15 / 100;
-        if offset < boundary_name {
-            SortField::Name
-        } else if offset < boundary_id {
-            SortField::Id
-        } else if offset < boundary_version {
-            SortField::Version
-        } else {
-            return; // Available or Source — not sortable
-        }
+    let percentages = app.mode.package_column_percentages();
+    let boundary_name = content_width * u32::from(percentages[0]) / 100;
+    let boundary_id = boundary_name + content_width * u32::from(percentages[1]) / 100;
+    let boundary_version = boundary_id + content_width * u32::from(percentages[2]) / 100;
+    let field = if offset < boundary_name {
+        SortField::Name
+    } else if offset < boundary_id {
+        SortField::Id
+    } else if offset < boundary_version {
+        SortField::Version
     } else {
-        let boundary_name = content_width * 25 / 100;
-        let boundary_id = boundary_name + content_width * 35 / 100;
-        let boundary_version = boundary_id + content_width * 20 / 100;
-        if offset < boundary_name {
-            SortField::Name
-        } else if offset < boundary_id {
-            SortField::Id
-        } else if offset < boundary_version {
-            SortField::Version
-        } else {
-            return; // Source — not sortable
-        }
+        return;
     };
 
     if app.sort_field == field {
@@ -896,7 +883,7 @@ mod tests {
     use super::*;
     use crate::app::{App, ConfirmDialog, InputMode};
     use crate::backend::WingetBackend;
-    use crate::models::{Operation, Package, PackageDetail, PackagePin, PinState, Source};
+    use crate::models::{InstallScope, Operation, Package, PackageDetail, PackagePin, PinState, Source};
 
     // ── helpers ──────────────────────────────────────────────────────────────
 
@@ -1401,6 +1388,8 @@ mod tests {
     fn batch_upgrade_confirm_uses_clean_count_when_all_ids_are_valid() {
         let mut app = make_app_with_pkgs(2);
         app.mode = AppMode::Upgrades;
+        app.filtered_packages[0].install_scope = InstallScope::Machine;
+        app.filtered_packages[1].install_scope = InstallScope::User;
         app.selected_packages = [0usize, 1usize].into_iter().collect();
 
         let _ = handle_normal_mode(&mut app, KeyCode::Char('U'), KeyModifiers::NONE);
@@ -1408,7 +1397,12 @@ mod tests {
         let confirm = app.confirm.expect("confirm dialog should be set");
         assert_eq!(confirm.message, "Upgrade 2 selected packages?");
         match confirm.operation {
-            Operation::BatchUpgrade { packages } => assert_eq!(packages.len(), 2),
+            Operation::BatchUpgrade { mut packages } => {
+                packages.sort_by(|left, right| left.id.cmp(&right.id));
+                assert_eq!(packages.len(), 2);
+                assert_eq!(packages[0].scope, InstallScope::Machine);
+                assert_eq!(packages[1].scope, InstallScope::User);
+            }
             _ => panic!("expected BatchUpgrade operation"),
         }
     }
@@ -1777,12 +1771,12 @@ mod tests {
     #[test]
     fn u_on_valid_pkg_creates_upgrade_confirm() {
         let mut app = make_app_with_pkg("Valid.Package", "1.0", "2.0");
+        app.filtered_packages[0].install_scope = InstallScope::User;
         let _ = handle_normal_mode(&mut app, KeyCode::Char('u'), KeyModifiers::NONE);
         assert!(app.confirm.is_some());
-        assert!(matches!(
-            app.confirm.unwrap().operation,
-            Operation::Upgrade { .. }
-        ));
+        let confirm = app.confirm.unwrap();
+        assert!(confirm.message.contains("User"));
+        assert!(matches!(confirm.operation, Operation::Upgrade { scope: InstallScope::User, .. }));
     }
 
     #[test]
@@ -2416,5 +2410,25 @@ mod tests {
         app.layout.package_list = rect(0, 0, 2, 10); // content_width = 2-3 = underflows to 0
         click_sort_header(&mut app, 0);
         assert_eq!(app.sort_field, SortField::None);
+    }
+
+    #[test]
+    fn scope_column_layout_preserves_sort_hit_testing_in_each_view() {
+        for (mode, id_column, version_column, unsortable_column) in [
+            (AppMode::Search, 30, 65, 85),
+            (AppMode::Installed, 24, 55, 75),
+            (AppMode::Upgrades, 24, 50, 65),
+        ] {
+            let mut app = make_app_with_list_layout();
+            app.mode = mode;
+            click_sort_header(&mut app, id_column);
+            assert_eq!(app.sort_field, SortField::Id);
+            click_sort_header(&mut app, version_column);
+            assert_eq!(app.sort_field, SortField::Version);
+            click_sort_header(&mut app, unsortable_column);
+            assert_eq!(app.sort_field, SortField::Version);
+            click_sort_header(&mut app, 95);
+            assert_eq!(app.sort_field, SortField::Version);
+        }
     }
 }
