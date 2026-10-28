@@ -3,7 +3,7 @@ use crossterm::event::{
 };
 
 use crate::app::{App, AppMode, ConfirmDialog, FocusZone, InputMode};
-use crate::models::{Operation, SortDir, SortField};
+use crate::models::{InstallScope, Operation, SortDir, SortField, UpgradeTarget};
 
 /// Handle the next crossterm event, waiting up to 50 ms for one to arrive.
 ///
@@ -453,15 +453,17 @@ fn handle_normal_mode(
             if let Some(pkg) = app.selected_package() {
                 if pkg.is_truncated() {
                     let name = pkg.name.clone();
+                    let scope = pkg.install_scope;
                     app.confirm = Some(ConfirmDialog {
                         message: format!("Upgrade {}? (ID truncated in winget output)", name),
-                        operation: Operation::Upgrade { id: name },
+                        operation: Operation::Upgrade { id: name, scope },
                     });
                 } else {
                     let id = pkg.id.clone();
+                    let scope = pkg.install_scope;
                     app.confirm = Some(ConfirmDialog {
                         message: format!("Upgrade {}?", id),
-                        operation: Operation::Upgrade { id },
+                        operation: Operation::Upgrade { id, scope },
                     });
                 }
             }
@@ -472,22 +474,25 @@ fn handle_normal_mode(
             if app.mode == AppMode::Upgrades && !app.selected_packages.is_empty() =>
         {
             let selected_count = app.selected_packages.len();
-            let ids: Vec<String> = app
+            let packages: Vec<UpgradeTarget> = app
                 .selected_packages
                 .iter()
                 .filter_map(|&idx| {
                     app.filtered_packages
                         .get(idx)
                         .filter(|p| !p.is_truncated())
-                        .map(|p| p.id.clone())
+                        .map(|p| UpgradeTarget {
+                            id: p.id.clone(),
+                            scope: p.install_scope,
+                        })
                 })
                 .collect();
-            if ids.is_empty() {
+            if packages.is_empty() {
                 app.set_status(
                     "Cannot upgrade: all selected packages have truncated IDs — use winget directly",
                 );
             } else {
-                let count = ids.len();
+                let count = packages.len();
                 let skipped = selected_count.saturating_sub(count);
                 let skipped_note = if skipped > 0 {
                     format!(
@@ -505,7 +510,7 @@ fn handle_normal_mode(
                         if count == 1 { "" } else { "s" },
                         skipped_note
                     ),
-                    operation: Operation::BatchUpgrade { ids },
+                    operation: Operation::BatchUpgrade { packages },
                 });
             }
         }
@@ -926,7 +931,7 @@ mod tests {
         async fn uninstall(&self, _: &str) -> Result<String> {
             Ok(String::new())
         }
-        async fn upgrade(&self, _: &str) -> Result<String> {
+        async fn upgrade(&self, _: &str, _: InstallScope) -> Result<String> {
             Ok(String::new())
         }
         async fn list_pins(&self) -> Result<Vec<PackagePin>> {
@@ -955,6 +960,7 @@ mod tests {
             version: version.to_string(),
             source: "winget".to_string(),
             available_version: available.to_string(),
+            install_scope: Default::default(),
             pin_state: PinState::None,
         }];
         app.filtered_packages = app.packages.clone();
@@ -971,6 +977,7 @@ mod tests {
                 version: "1.0.0".to_string(),
                 source: "winget".to_string(),
                 available_version: String::new(),
+                install_scope: Default::default(),
                 pin_state: PinState::None,
             })
             .collect();
@@ -1081,7 +1088,10 @@ mod tests {
         let mut app = make_app();
         app.confirm = Some(ConfirmDialog {
             message: "Upgrade Foo?".into(),
-            operation: Operation::Upgrade { id: "Foo".into() },
+            operation: Operation::Upgrade {
+                id: "Foo".into(),
+                scope: InstallScope::Unknown,
+            },
         });
         let _ = handle_confirm(&mut app, KeyCode::Char('n'));
         assert!(app.confirm.is_none(), "confirm should be cleared on 'n'");
@@ -1093,7 +1103,10 @@ mod tests {
         let mut app = make_app();
         app.confirm = Some(ConfirmDialog {
             message: "Upgrade Foo?".into(),
-            operation: Operation::Upgrade { id: "Foo".into() },
+            operation: Operation::Upgrade {
+                id: "Foo".into(),
+                scope: InstallScope::Unknown,
+            },
         });
         let _ = handle_confirm(&mut app, KeyCode::Esc);
         assert!(app.confirm.is_none());
@@ -1105,7 +1118,10 @@ mod tests {
         let mut app = make_app();
         app.confirm = Some(ConfirmDialog {
             message: "Upgrade Foo?".into(),
-            operation: Operation::Upgrade { id: "Foo".into() },
+            operation: Operation::Upgrade {
+                id: "Foo".into(),
+                scope: InstallScope::Unknown,
+            },
         });
         let _ = handle_confirm(&mut app, KeyCode::Char('x'));
         assert!(
@@ -1184,6 +1200,7 @@ mod tests {
                 version: "1.0".to_string(),
                 source: "winget".to_string(),
                 available_version: String::new(),
+                install_scope: Default::default(),
                 pin_state: PinState::None,
             },
             Package {
@@ -1192,6 +1209,7 @@ mod tests {
                 version: "1.0".to_string(),
                 source: "winget".to_string(),
                 available_version: String::new(),
+                install_scope: Default::default(),
                 pin_state: PinState::None,
             },
         ];
@@ -1390,7 +1408,7 @@ mod tests {
         let confirm = app.confirm.expect("confirm dialog should be set");
         assert_eq!(confirm.message, "Upgrade 2 selected packages?");
         match confirm.operation {
-            Operation::BatchUpgrade { ids } => assert_eq!(ids.len(), 2),
+            Operation::BatchUpgrade { packages } => assert_eq!(packages.len(), 2),
             _ => panic!("expected BatchUpgrade operation"),
         }
     }
@@ -1408,7 +1426,7 @@ mod tests {
             "confirm text should explain name-based fallback"
         );
         match confirm.operation {
-            Operation::Upgrade { id } => assert_eq!(id, "Test Package"),
+            Operation::Upgrade { id, .. } => assert_eq!(id, "Test Package"),
             _ => panic!("expected Upgrade operation"),
         }
     }
@@ -1424,6 +1442,7 @@ mod tests {
                 version: "1.0".to_string(),
                 source: "winget".to_string(),
                 available_version: "1.1".to_string(),
+                install_scope: InstallScope::Machine,
                 pin_state: PinState::None,
             },
             Package {
@@ -1432,6 +1451,7 @@ mod tests {
                 version: "1.0".to_string(),
                 source: "winget".to_string(),
                 available_version: "1.1".to_string(),
+                install_scope: Default::default(),
                 pin_state: PinState::None,
             },
         ];
@@ -1444,7 +1464,10 @@ mod tests {
         assert!(confirm.message.contains("Upgrade 1 selected package"));
         assert!(confirm.message.contains("1 skipped"));
         match confirm.operation {
-            Operation::BatchUpgrade { ids } => assert_eq!(ids, vec!["Good.App".to_string()]),
+            Operation::BatchUpgrade { packages } => {
+                assert_eq!(packages[0].id, "Good.App");
+                assert_eq!(packages[0].scope, InstallScope::Machine);
+            }
             _ => panic!("expected BatchUpgrade operation"),
         }
     }
@@ -1459,6 +1482,7 @@ mod tests {
             version: "1.0".to_string(),
             source: "winget".to_string(),
             available_version: "1.1".to_string(),
+            install_scope: Default::default(),
             pin_state: PinState::None,
         }];
         app.filtered_packages = app.packages.clone();
@@ -1746,7 +1770,7 @@ mod tests {
         assert!(confirm.message.contains("ID truncated"));
         assert!(matches!(
             confirm.operation,
-            Operation::Upgrade { ref id } if id == "Test Package"
+            Operation::Upgrade { ref id, .. } if id == "Test Package"
         ));
     }
 
