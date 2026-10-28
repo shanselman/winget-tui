@@ -12,6 +12,19 @@ use crate::models::{InstallScope, Package, PackageDetail, PackagePin, PinState, 
 
 pub struct CliBackend;
 
+#[cfg(windows)]
+fn format_size(bytes: u64) -> String {
+    const MIB: u64 = 1024 * 1024;
+    const GIB: u64 = 1024 * MIB;
+    if bytes >= GIB {
+        format!("{:.1} GiB", bytes as f64 / GIB as f64)
+    } else if bytes >= MIB {
+        format!("{:.0} MiB", bytes as f64 / MIB as f64)
+    } else {
+        format!("{} KiB", bytes / 1024)
+    }
+}
+
 /// Returns `true` for winget footer lines like `"2 upgrades available."` or
 /// `"3 Pakete verfügen über Pins…"`.
 ///
@@ -105,6 +118,81 @@ impl CliBackend {
         args
     }
 
+    fn list_details_args(source: Option<&str>) -> Vec<&str> {
+        let mut args = vec!["list", "--details", "--accept-source-agreements"];
+        if let Some(src) = source {
+            args.push("--source");
+            args.push(src);
+        }
+        args
+    }
+
+    fn parse_publishers_from_details(&self, output: &str) -> HashMap<String, String> {
+        let mut publishers = HashMap::new();
+        let mut block = String::new();
+        for line in output.lines() {
+            let trimmed = line.trim_start();
+            let starts_entry = trimmed.starts_with('(')
+                && trimmed
+                    .split_once(')')
+                    .is_some_and(|(counter, _)| counter[1..].contains('/'));
+            if starts_entry && !block.is_empty() {
+                let detail = self.parse_show_output(&block);
+                if !detail.id.is_empty() && !detail.publisher.is_empty() {
+                    publishers.insert(detail.id, detail.publisher);
+                }
+                block.clear();
+            }
+            if !block.is_empty() {
+                block.push('\n');
+            }
+            block.push_str(line);
+        }
+        if !block.is_empty() {
+            let detail = self.parse_show_output(&block);
+            if !detail.id.is_empty() && !detail.publisher.is_empty() {
+                publishers.insert(detail.id, detail.publisher);
+            }
+        }
+        publishers
+    }
+
+    async fn enrich_publishers(&self, packages: &mut [Package], source: Option<&str>) {
+        if let Ok(output) = self.run_winget(&Self::list_details_args(source)).await {
+            let publishers = self.parse_publishers_from_details(&output);
+            for package in packages.iter_mut() {
+                if let Some(publisher) = publishers.get(&package.id) {
+                    package.publisher.clone_from(publisher);
+                }
+            }
+        }
+        #[cfg(windows)]
+        if let Ok(output) = tokio::process::Command::new("powershell.exe")
+            .args([
+                "-NoLogo",
+                "-NoProfile",
+                "-NonInteractive",
+                "-Command",
+                "$roots=@('HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*','HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*','HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*'); Get-ItemProperty -Path $roots -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -and $_.EstimatedSize -gt 0 } | ForEach-Object { \"{0}`t{1}\" -f $_.DisplayName,$_.EstimatedSize }",
+            ])
+            .output()
+            .await
+        {
+            let sizes: HashMap<String, u64> = String::from_utf8_lossy(&output.stdout)
+                .lines()
+                .filter_map(|line| {
+                    let (name, kb) = line.split_once('\t')?;
+                    Some((name.trim().to_lowercase(), kb.trim().parse::<u64>().ok()? * 1024))
+                })
+                .collect();
+            for package in packages.iter_mut() {
+                if let Some(bytes) = sizes.get(&package.name.to_lowercase()) {
+                    package.size = format_size(*bytes);
+                }
+            }
+        }
+    }
+
     fn upgrade_args_by_id(query: &str, scope: InstallScope) -> Vec<&str> {
         let mut args = vec![
             "upgrade",
@@ -129,6 +217,36 @@ impl CliBackend {
             "--accept-source-agreements",
             "--accept-package-agreements",
         ];
+        if let Some(scope) = scope.as_arg() {
+            args.push("--scope");
+            args.push(scope);
+        }
+        args
+    }
+
+    fn uninstall_scopes(scope: InstallScope) -> Vec<InstallScope> {
+        match scope {
+            InstallScope::Both => vec![InstallScope::Machine, InstallScope::User],
+            scope => vec![scope],
+        }
+    }
+
+    fn uninstall_args<'a>(
+        id: &'a str,
+        source: Option<&'a str>,
+        scope: InstallScope,
+    ) -> Vec<&'a str> {
+        let mut args = vec![
+            "uninstall",
+            "--id",
+            id,
+            "--exact",
+            "--accept-source-agreements",
+        ];
+        if let Some(source) = source {
+            args.push("--source");
+            args.push(source);
+        }
         if let Some(scope) = scope.as_arg() {
             args.push("--scope");
             args.push(scope);
@@ -591,6 +709,8 @@ impl CliBackend {
             name: sanitize_text(&pcols.name.map(field).unwrap_or_default()),
             id: sanitize_text(&id),
             version: sanitize_text(&pcols.version.map(field).unwrap_or_default()),
+            publisher: String::new(),
+            size: String::new(),
             source: sanitize_text(&pcols.source.map(field).unwrap_or_default()),
             available_version: sanitize_text(&pcols.available.map(field).unwrap_or_default()),
             install_scope: InstallScope::Unknown,
@@ -822,6 +942,7 @@ impl WingetBackend for CliBackend {
         let args = Self::list_installed_args(source);
         let output = self.run_winget(&args).await?;
         let mut packages = Self::dedupe_packages(self.parse_packages_from_table(&output));
+        self.enrich_publishers(&mut packages, source).await;
         self.populate_install_scopes(&mut packages, source).await?;
         Ok(packages)
     }
@@ -830,6 +951,7 @@ impl WingetBackend for CliBackend {
         let args = Self::list_upgrades_args(source);
         let output = self.run_winget(&args).await?;
         let mut packages = Self::dedupe_packages(self.parse_packages_from_table(&output));
+        self.enrich_publishers(&mut packages, source).await;
         self.populate_install_scopes(&mut packages, source).await?;
         Ok(packages)
     }
@@ -856,9 +978,36 @@ impl WingetBackend for CliBackend {
         self.run_winget_strict(&args).await
     }
 
-    async fn uninstall(&self, id: &str) -> Result<String> {
-        self.run_winget_strict(&["uninstall", "--id", id, "--accept-source-agreements"])
-            .await
+    async fn uninstall(
+        &self,
+        id: &str,
+        source: Option<&str>,
+        scope: InstallScope,
+    ) -> Result<String> {
+        let scopes = Self::uninstall_scopes(scope);
+        let mut outputs = Vec::new();
+        let mut failures = Vec::new();
+        for scope in &scopes {
+            match self
+                .run_winget_strict(&Self::uninstall_args(id, source, *scope))
+                .await
+            {
+                Ok(output) => outputs.push(format!("{} scope: {}", scope.label(), output.trim())),
+                Err(error) => failures.push(format!("{} scope: {error}", scope.label())),
+            }
+        }
+        if failures.is_empty() {
+            Ok(outputs.join("; "))
+        } else if outputs.is_empty() {
+            bail!("{}", failures.join("; "))
+        } else {
+            bail!(
+                "{}/{} scopes uninstalled; {}",
+                outputs.len(),
+                scopes.len(),
+                failures.join("; ")
+            )
+        }
     }
 
     // Try the usual ID flow first, then fallback to an exact name match
@@ -1094,6 +1243,8 @@ Google Chrome                  Google.Chrome               131.0.6  winget
             id: id.to_string(),
             name: id.to_string(),
             version: "1.0".to_string(),
+            publisher: String::new(),
+            size: String::new(),
             source: "winget".to_string(),
             available_version: String::new(),
             install_scope: InstallScope::Unknown,
@@ -1189,6 +1340,52 @@ Google Chrome                  Google.Chrome               131.0.6  winget
     fn upgrade_args_by_id_include_machine_scope() {
         let args = CliBackend::upgrade_args_by_id("Example.App", InstallScope::Machine);
         assert!(args.ends_with(&["--scope", "machine"]));
+    }
+
+    #[test]
+    fn uninstall_args_include_known_scope() {
+        assert_eq!(
+            CliBackend::uninstall_args("Example.App", Some("winget"), InstallScope::User),
+            vec![
+                "uninstall",
+                "--id",
+                "Example.App",
+                "--exact",
+                "--accept-source-agreements",
+                "--source",
+                "winget",
+                "--scope",
+                "user"
+            ]
+        );
+        assert_eq!(
+            CliBackend::uninstall_args("Example.App", None, InstallScope::Machine),
+            vec![
+                "uninstall",
+                "--id",
+                "Example.App",
+                "--exact",
+                "--accept-source-agreements",
+                "--scope",
+                "machine"
+            ]
+        );
+    }
+
+    #[test]
+    fn uninstall_both_scope_runs_machine_and_user_separately() {
+        assert_eq!(
+            CliBackend::uninstall_scopes(InstallScope::Both),
+            vec![InstallScope::Machine, InstallScope::User]
+        );
+        assert_eq!(
+            CliBackend::uninstall_scopes(InstallScope::Unknown),
+            vec![InstallScope::Unknown]
+        );
+        assert!(
+            !CliBackend::uninstall_args("Example.App", None, InstallScope::Unknown)
+                .contains(&"--scope")
+        );
     }
 
     #[test]
@@ -1294,6 +1491,8 @@ Google Chrome                  Google.Chrome               131.0.6  winget
             name: "Test".to_string(),
             id: "Test.Package".to_string(),
             version: version.to_string(),
+            publisher: String::new(),
+            size: String::new(),
             available_version: available_version.to_string(),
             source: source.to_string(),
             install_scope: InstallScope::Unknown,
@@ -1362,6 +1561,8 @@ Google Chrome                  Google.Chrome               131.0.6  winget
                 name: "ScreenToGif".to_string(),
                 id: "NickeManarin.ScreenToGif".to_string(),
                 version: "2.41.5".to_string(),
+                publisher: String::new(),
+                size: String::new(),
                 source: "winget".to_string(),
                 available_version: String::new(),
                 install_scope: InstallScope::Unknown,
@@ -1371,6 +1572,8 @@ Google Chrome                  Google.Chrome               131.0.6  winget
                 name: "ScreenToGif".to_string(),
                 id: "NickeManarin.ScreenToGif".to_string(),
                 version: "2.43.1".to_string(),
+                publisher: String::new(),
+                size: String::new(),
                 source: "winget".to_string(),
                 available_version: String::new(),
                 install_scope: InstallScope::Unknown,
@@ -1390,6 +1593,8 @@ Google Chrome                  Google.Chrome               131.0.6  winget
             name: "Pkg".to_string(),
             id: "A.Pkg".to_string(),
             version: version.to_string(),
+            publisher: String::new(),
+            size: String::new(),
             source: source.to_string(),
             available_version: String::new(),
             install_scope: InstallScope::Unknown,
@@ -1407,6 +1612,8 @@ Google Chrome                  Google.Chrome               131.0.6  winget
             name: id.to_string(),
             id: id.to_string(),
             version: "1.0".to_string(),
+            publisher: String::new(),
+            size: String::new(),
             source: "winget".to_string(),
             available_version: String::new(),
             install_scope: InstallScope::Unknown,
@@ -1447,6 +1654,8 @@ Google Chrome                  Google.Chrome               131.0.6  winget
                 name: "App".to_string(),
                 id: "Pub.App".to_string(),
                 version: "1.0.0".to_string(),
+                publisher: String::new(),
+                size: String::new(),
                 available_version: String::new(),
                 source: "winget".to_string(),
                 install_scope: InstallScope::Unknown,
@@ -1456,6 +1665,8 @@ Google Chrome                  Google.Chrome               131.0.6  winget
                 name: "App".to_string(),
                 id: "Pub.App".to_string(),
                 version: "1.0.0".to_string(),
+                publisher: String::new(),
+                size: String::new(),
                 available_version: "1.1.0".to_string(),
                 source: "winget".to_string(),
                 install_scope: InstallScope::Unknown,
@@ -1881,6 +2092,21 @@ License: MIT
         assert_eq!(
             detail.homepage, "https://somepublisher.example.com",
             "Publisher Url should be used as homepage when Homepage is absent"
+        );
+    }
+
+    #[test]
+    fn parse_publishers_from_winget_list_details() {
+        let backend = CliBackend::new();
+        let output = "(1/2) 7-Zip 26.03 (x64) [7zip.7zip]\nVersion: 26.03\nPublisher: Igor Pavlov\n\n(2/2) AIMP [AIMP.AIMP]\nVersion: 5.30\nPublisher: Artem Izmaylov\n";
+        let publishers = backend.parse_publishers_from_details(output);
+        assert_eq!(
+            publishers.get("7zip.7zip").map(String::as_str),
+            Some("Igor Pavlov")
+        );
+        assert_eq!(
+            publishers.get("AIMP.AIMP").map(String::as_str),
+            Some("Artem Izmaylov")
         );
     }
 

@@ -1,3 +1,4 @@
+use std::cmp::Reverse;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
@@ -57,7 +58,7 @@ pub enum AppMessage {
     Error(String),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum AppMode {
     Search,
     Installed,
@@ -67,9 +68,9 @@ pub enum AppMode {
 impl AppMode {
     pub fn package_column_percentages(self) -> &'static [u16] {
         match self {
-            Self::Search => &[25, 35, 20, 20],
-            Self::Installed => &[22, 31, 17, 16, 14],
-            Self::Upgrades => &[22, 26, 13, 13, 13, 13],
+            Self::Search => &[19, 24, 12, 20, 12, 13],
+            Self::Installed => &[17, 21, 10, 18, 11, 11, 12],
+            Self::Upgrades => &[16, 18, 10, 9, 14, 10, 13, 10],
         }
     }
 
@@ -116,6 +117,23 @@ pub struct ConfirmDialog {
     pub operation: Operation,
 }
 
+#[derive(Clone)]
+struct CachedView {
+    packages: Option<Vec<Package>>,
+    filtered_packages: Option<Vec<Package>>,
+    selected: usize,
+    selected_packages: HashSet<usize>,
+    local_filter: String,
+    search_query: String,
+    source_filter: SourceFilter,
+    pin_filter: PinFilter,
+    sort_field: SortField,
+    sort_dir: SortDir,
+    table_offset: usize,
+    detail_scroll: usize,
+    focus: FocusZone,
+}
+
 pub struct App {
     pub theme: Theme,
     pub mode: AppMode,
@@ -160,6 +178,8 @@ pub struct App {
     pub detail_generation: u64,
     /// Cache of package details to avoid repeated winget show calls
     pub detail_cache: HashMap<String, PackageDetail>,
+    view_cache: HashMap<AppMode, CachedView>,
+    has_loaded_view: bool,
     /// Indices into filtered_packages that are selected for batch operations
     pub selected_packages: HashSet<usize>,
     /// A high-signal status message to restore after the next list refresh completes.
@@ -202,6 +222,22 @@ fn version_key(v: &str) -> Vec<VersionPart> {
             src: part.to_string(),
         })
         .collect()
+}
+
+fn size_key(size: &str) -> u64 {
+    let Some((amount, unit)) = size.split_once(' ') else {
+        return 0;
+    };
+    let Ok(amount) = amount.parse::<f64>() else {
+        return 0;
+    };
+    let multiplier = match unit {
+        "KiB" => 1024.0,
+        "MiB" => 1024.0 * 1024.0,
+        "GiB" => 1024.0 * 1024.0 * 1024.0,
+        _ => return 0,
+    };
+    (amount * multiplier) as u64
 }
 
 #[cfg(test)]
@@ -256,6 +292,8 @@ impl App {
             view_generation: 0,
             detail_generation: 0,
             detail_cache: HashMap::new(),
+            view_cache: HashMap::new(),
+            has_loaded_view: false,
             selected_packages: HashSet::new(),
             post_refresh_status: None,
             backend,
@@ -265,6 +303,13 @@ impl App {
     }
 
     pub fn apply_filter(&mut self) {
+        if self.mode == AppMode::Search
+            && matches!(self.sort_field, SortField::Publisher | SortField::Size)
+        {
+            self.sort_field = SortField::None;
+            self.sort_dir = SortDir::Asc;
+        }
+
         // When a source filter is active, winget already filters server-side
         // (and omits the Source column), so accept all returned packages.
         // Backfill the source field when winget omitted it (single-source query).
@@ -311,6 +356,22 @@ impl App {
                     .sort_by_cached_key(|pkg| version_key(&pkg.version));
                 if self.sort_dir == SortDir::Desc {
                     self.filtered_packages.reverse();
+                }
+            }
+            SortField::Publisher => {
+                self.filtered_packages
+                    .sort_by_cached_key(|p| p.publisher.to_lowercase());
+                if self.sort_dir == SortDir::Desc {
+                    self.filtered_packages.reverse();
+                }
+            }
+            SortField::Size => {
+                if self.sort_dir == SortDir::Asc {
+                    self.filtered_packages
+                        .sort_by_cached_key(|p| (p.size.is_empty(), size_key(&p.size)));
+                } else {
+                    self.filtered_packages
+                        .sort_by_cached_key(|p| (p.size.is_empty(), Reverse(size_key(&p.size))));
                 }
             }
         }
@@ -371,7 +432,7 @@ impl App {
         self.status_message = msg.into();
     }
 
-    /// Advance through sort states: None → Name↑ → Name↓ → ID↑ → ID↓ → Version↑ → Version↓ → None → …
+    /// Advance through sort states: None → Name → ID → Version → Publisher → Size → None.
     pub fn cycle_sort(&mut self) {
         use crate::models::{SortDir, SortField};
         let (next_field, next_dir) = match (self.sort_field, self.sort_dir) {
@@ -381,7 +442,11 @@ impl App {
             (SortField::Id, SortDir::Asc) => (SortField::Id, SortDir::Desc),
             (SortField::Id, SortDir::Desc) => (SortField::Version, SortDir::Asc),
             (SortField::Version, SortDir::Asc) => (SortField::Version, SortDir::Desc),
-            (SortField::Version, SortDir::Desc) => (SortField::None, SortDir::Asc),
+            (SortField::Version, SortDir::Desc) => (SortField::Publisher, SortDir::Asc),
+            (SortField::Publisher, SortDir::Asc) => (SortField::Publisher, SortDir::Desc),
+            (SortField::Publisher, SortDir::Desc) => (SortField::Size, SortDir::Asc),
+            (SortField::Size, SortDir::Asc) => (SortField::Size, SortDir::Desc),
+            (SortField::Size, SortDir::Desc) => (SortField::None, SortDir::Asc),
         };
         self.sort_field = next_field;
         self.sort_dir = next_dir;
@@ -427,7 +492,74 @@ impl App {
             format!("Additional metadata is not available from {source} for this package.");
     }
 
+    pub fn cache_current_view(&mut self) {
+        self.view_cache.insert(
+            self.mode,
+            CachedView {
+                packages: self.has_loaded_view.then(|| self.packages.clone()),
+                filtered_packages: self.has_loaded_view.then(|| self.filtered_packages.clone()),
+                selected: self.selected,
+                selected_packages: if self.has_loaded_view {
+                    self.selected_packages.clone()
+                } else {
+                    HashSet::new()
+                },
+                local_filter: self.local_filter.clone(),
+                search_query: self.search_query.clone(),
+                source_filter: self.source_filter.clone(),
+                pin_filter: self.pin_filter,
+                sort_field: self.sort_field,
+                sort_dir: self.sort_dir,
+                table_offset: self.table_state.offset(),
+                detail_scroll: self.detail_scroll,
+                focus: self.focus,
+            },
+        );
+    }
+
+    /// Restore a mode's previous data and UI state. Returns true when its package
+    /// data is cached and does not need to be loaded again.
+    pub fn restore_cached_view(&mut self, mode: AppMode) -> Option<bool> {
+        let cache = self.view_cache.get(&mode).cloned()?;
+        let has_data = cache.packages.is_some() && cache.filtered_packages.is_some();
+        self.packages = cache.packages.unwrap_or_default();
+        self.filtered_packages = cache.filtered_packages.unwrap_or_default();
+        self.selected = cache
+            .selected
+            .min(self.filtered_packages.len().saturating_sub(1));
+        self.selected_packages = if has_data {
+            cache.selected_packages
+        } else {
+            HashSet::new()
+        };
+        self.local_filter = cache.local_filter;
+        self.search_query = cache.search_query;
+        self.source_filter = cache.source_filter;
+        self.pin_filter = cache.pin_filter;
+        self.sort_field = cache.sort_field;
+        self.sort_dir = cache.sort_dir;
+        *self.table_state.offset_mut() = cache.table_offset;
+        self.detail_scroll = cache.detail_scroll;
+        self.focus = cache.focus;
+        self.has_loaded_view = has_data;
+        Some(has_data)
+    }
+
+    pub fn invalidate_cached_views(&mut self) {
+        for view in self.view_cache.values_mut() {
+            view.packages = None;
+            view.filtered_packages = None;
+            view.selected_packages.clear();
+        }
+        self.has_loaded_view = false;
+    }
+
+    pub fn discard_cached_view(&mut self, mode: AppMode) {
+        self.view_cache.remove(&mode);
+    }
+
     pub fn refresh_view(&mut self) {
+        self.has_loaded_view = false;
         self.view_generation += 1;
         let generation = self.view_generation;
         let backend = self.backend.clone();
@@ -571,7 +703,9 @@ impl App {
         tokio::spawn(async move {
             let result = match &op {
                 Operation::Install { id, version } => backend.install(id, version.as_deref()).await,
-                Operation::Uninstall { id } => backend.uninstall(id).await,
+                Operation::Uninstall { id, source, scope } => {
+                    backend.uninstall(id, source.as_deref(), *scope).await
+                }
                 Operation::Upgrade { id, scope } => backend.upgrade(id, *scope).await,
                 Operation::Pin { id } => backend.pin(id).await,
                 Operation::Unpin { id } => backend.unpin(id).await,
@@ -593,6 +727,36 @@ impl App {
                     }
                     if failures.is_empty() {
                         Ok(format!("All {} packages upgraded successfully", total))
+                    } else {
+                        Err(anyhow::anyhow!(
+                            "{}/{} succeeded, {} failed: {}",
+                            total - failures.len(),
+                            total,
+                            failures.len(),
+                            failures.join("; ")
+                        ))
+                    }
+                }
+                Operation::BatchUninstall { packages } => {
+                    let total = packages.len();
+                    let mut failures: Vec<String> = Vec::new();
+                    for (i, package) in packages.iter().enumerate() {
+                        let _ = tx.send(AppMessage::StatusUpdate(format!(
+                            "Uninstalling {}/{}: {} (scope: {})...",
+                            i + 1,
+                            total,
+                            package.id,
+                            package.scope.label()
+                        )));
+                        if let Err(e) = backend
+                            .uninstall(&package.id, package.source.as_deref(), package.scope)
+                            .await
+                        {
+                            failures.push(format!("{}: {}", package.id, e));
+                        }
+                    }
+                    if failures.is_empty() {
+                        Ok(format!("All {} packages uninstalled successfully", total))
                     } else {
                         Err(anyhow::anyhow!(
                             "{}/{} succeeded, {} failed: {}",
@@ -650,20 +814,22 @@ impl App {
         include_available: bool,
     ) -> std::io::Result<()> {
         let header = if include_available {
-            "Name,Id,Version,Source,AvailableVersion"
+            "Name,Id,Version,Source,Publisher,EstimatedSize,AvailableVersion"
         } else {
-            "Name,Id,Version,Source"
+            "Name,Id,Version,Source,Publisher,EstimatedSize"
         };
         writeln!(writer, "{header}")?;
 
         for pkg in &self.filtered_packages {
             write!(
                 writer,
-                "{},{},{},{}",
+                "{},{},{},{},{},{}",
                 csv_escape(&pkg.name),
                 csv_escape(&pkg.id),
                 csv_escape(&pkg.version),
                 csv_escape(&pkg.source),
+                csv_escape(&pkg.publisher),
+                csv_escape(&pkg.size),
             )?;
             if include_available {
                 write!(writer, ",{}", csv_escape(&pkg.available_version))?;
@@ -695,6 +861,7 @@ impl App {
                     let prev_id = self.selected_package().map(|p| p.id.clone());
                     self.packages = packages;
                     self.apply_filter();
+                    self.has_loaded_view = true;
                     // Restore cursor to the same package (if it is still present)
                     // so that pressing 'r' to refresh does not jump the cursor.
                     if let Some(id) = prev_id {
@@ -750,13 +917,19 @@ impl App {
                     // Invalidate cache for the affected package(s)
                     match &result.operation {
                         Operation::Install { id, .. }
-                        | Operation::Uninstall { id }
+                        | Operation::Uninstall { id, .. }
                         | Operation::Upgrade { id, .. }
                         | Operation::Pin { id }
                         | Operation::Unpin { id } => {
                             self.detail_cache.remove(id);
                         }
                         Operation::BatchUpgrade { packages } => {
+                            for package in packages {
+                                self.detail_cache.remove(&package.id);
+                            }
+                            self.selected_packages.clear();
+                        }
+                        Operation::BatchUninstall { packages } => {
                             for package in packages {
                                 self.detail_cache.remove(&package.id);
                             }
@@ -777,8 +950,20 @@ impl App {
                     self.loading = false;
                     // Refresh after successful mutations, or after a batch-upgrade
                     // attempt where some items may still have changed state.
-                    if result.success || matches!(result.operation, Operation::BatchUpgrade { .. })
+                    if result.success
+                        || matches!(
+                            result.operation,
+                            Operation::BatchUpgrade { .. } | Operation::BatchUninstall { .. }
+                        )
+                        || matches!(
+                            result.operation,
+                            Operation::Uninstall {
+                                scope: crate::models::InstallScope::Both,
+                                ..
+                            }
+                        )
                     {
+                        self.invalidate_cached_views();
                         self.post_refresh_status = Some(status);
                         self.loading = true;
                         self.refresh_view();
@@ -824,6 +1009,7 @@ mod tests {
     /// Minimal backend that records `show` calls
     struct SpyBackend {
         show_calls: std::sync::Mutex<Vec<String>>,
+        uninstall_calls: std::sync::Mutex<Vec<crate::models::UninstallTarget>>,
         upgrade_calls: std::sync::Mutex<Vec<crate::models::UpgradeTarget>>,
     }
 
@@ -831,6 +1017,7 @@ mod tests {
         fn new() -> Arc<Self> {
             Arc::new(Self {
                 show_calls: std::sync::Mutex::new(Vec::new()),
+                uninstall_calls: std::sync::Mutex::new(Vec::new()),
                 upgrade_calls: std::sync::Mutex::new(Vec::new()),
             })
         }
@@ -858,7 +1045,20 @@ mod tests {
         async fn install(&self, _: &str, _: Option<&str>) -> Result<String> {
             Ok(String::new())
         }
-        async fn uninstall(&self, _: &str) -> Result<String> {
+        async fn uninstall(
+            &self,
+            id: &str,
+            source: Option<&str>,
+            scope: crate::models::InstallScope,
+        ) -> Result<String> {
+            self.uninstall_calls
+                .lock()
+                .unwrap()
+                .push(crate::models::UninstallTarget {
+                    id: id.to_string(),
+                    source: source.map(str::to_string),
+                    scope,
+                });
             Ok(String::new())
         }
         async fn upgrade(&self, id: &str, scope: crate::models::InstallScope) -> Result<String> {
@@ -894,6 +1094,8 @@ mod tests {
             id: id.to_string(),
             name: id.to_string(),
             version: "1.0".to_string(),
+            publisher: String::new(),
+            size: String::new(),
             source: "winget".to_string(),
             available_version: String::new(),
             install_scope: Default::default(),
@@ -950,6 +1152,126 @@ mod tests {
         let calls = spy.upgrade_calls.lock().unwrap();
         assert_eq!(calls[0], targets[0]);
         assert_eq!(calls[1..], targets);
+    }
+
+    #[tokio::test]
+    async fn single_and_batch_uninstalls_pass_each_scope_to_backend() {
+        use crate::models::{InstallScope, UninstallTarget};
+
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy.clone() as Arc<dyn WingetBackend>);
+        let targets = vec![
+            UninstallTarget {
+                id: "Machine.App".into(),
+                source: Some("winget".into()),
+                scope: InstallScope::Machine,
+            },
+            UninstallTarget {
+                id: "User.App".into(),
+                source: Some("msstore".into()),
+                scope: InstallScope::User,
+            },
+            UninstallTarget {
+                id: "Unknown.App".into(),
+                source: None,
+                scope: InstallScope::Unknown,
+            },
+            UninstallTarget {
+                id: "Both.App".into(),
+                source: Some("winget".into()),
+                scope: InstallScope::Both,
+            },
+        ];
+
+        app.execute_operation(Operation::Uninstall {
+            id: "Single.App".into(),
+            source: None,
+            scope: InstallScope::Machine,
+        });
+        loop {
+            let message =
+                tokio::time::timeout(std::time::Duration::from_secs(5), app.message_rx.recv())
+                    .await
+                    .expect("operation completes")
+                    .expect("channel open");
+            if let AppMessage::OperationComplete(result) = message {
+                assert!(result.success);
+                break;
+            }
+        }
+
+        app.execute_operation(Operation::BatchUninstall {
+            packages: targets.clone(),
+        });
+        loop {
+            let message =
+                tokio::time::timeout(std::time::Duration::from_secs(5), app.message_rx.recv())
+                    .await
+                    .expect("operation completes")
+                    .expect("channel open");
+            if let AppMessage::OperationComplete(result) = message {
+                assert!(result.success);
+                break;
+            }
+        }
+
+        let calls = spy.uninstall_calls.lock().unwrap();
+        assert_eq!(calls.len(), 5);
+        assert_eq!(
+            calls[0],
+            crate::models::UninstallTarget {
+                id: "Single.App".into(),
+                source: None,
+                scope: InstallScope::Machine,
+            }
+        );
+        assert_eq!(calls[1..], targets);
+    }
+
+    #[tokio::test]
+    async fn failed_batch_uninstall_invalidates_caches_and_refreshes() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        let target = crate::models::UninstallTarget {
+            id: "Package.App".into(),
+            source: Some("winget".into()),
+            scope: crate::models::InstallScope::Machine,
+        };
+        app.mode = AppMode::Installed;
+        app.packages = vec![pkg(&target.id)];
+        app.filtered_packages = app.packages.clone();
+        app.has_loaded_view = true;
+        app.detail_cache.insert(
+            target.id.clone(),
+            PackageDetail {
+                id: target.id.clone(),
+                ..PackageDetail::default()
+            },
+        );
+        app.selected_packages.insert(0);
+        app.cache_current_view();
+        let previous_generation = app.view_generation;
+
+        app.message_tx
+            .send(AppMessage::OperationComplete(OpResult {
+                operation: Operation::BatchUninstall {
+                    packages: vec![target.clone()],
+                },
+                success: false,
+                message: format!("0/1 succeeded, 1 failed: {}: partial failure", target.id),
+            }))
+            .unwrap();
+        app.process_messages();
+
+        assert!(!app.detail_cache.contains_key(&target.id));
+        assert!(app.selected_packages.is_empty());
+        assert!(app
+            .view_cache
+            .get(&app.mode)
+            .is_some_and(|view| view.packages.is_none() && view.filtered_packages.is_none()));
+        assert!(app.loading);
+        assert_eq!(app.view_generation, previous_generation + 1);
+        assert!(app.status_message.contains("partial failure"));
     }
 
     /// Simulate receiving a PackagesLoaded message synchronously (bypasses tokio channel).
@@ -1116,6 +1438,8 @@ mod tests {
                 id: format!("Pkg.{i}"),
                 name: format!("Package {i}"),
                 version: "1.0".to_string(),
+                publisher: String::new(),
+                size: String::new(),
                 source: "winget".to_string(),
                 available_version: String::new(),
                 install_scope: Default::default(),
@@ -1295,6 +1619,8 @@ mod tests {
             name: name.to_string(),
             id: id.to_string(),
             version: version.to_string(),
+            publisher: String::new(),
+            size: String::new(),
             source: "winget".to_string(),
             available_version: String::new(),
             install_scope: Default::default(),
@@ -1384,6 +1710,8 @@ mod tests {
             name: "Pkg One".to_string(),
             id: "Pkg.One".to_string(),
             version: "1.0.0".to_string(),
+            publisher: String::new(),
+            size: String::new(),
             source: String::new(),
             available_version: String::new(),
             install_scope: Default::default(),
@@ -1498,6 +1826,66 @@ mod tests {
             .map(|p| p.version.as_str())
             .collect();
         assert_eq!(versions, ["1.0", "2.0", "3.0"]);
+    }
+
+    #[test]
+    fn apply_filter_sort_by_publisher_asc() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        let mut first = make_package("Z Publisher", "Z.App", "1.0");
+        first.publisher = "Zeta Inc".to_string();
+        let mut second = make_package("A Publisher", "A.App", "1.0");
+        second.publisher = "Acme Corp".to_string();
+        app.packages = vec![first, second];
+        app.sort_field = crate::models::SortField::Publisher;
+        app.sort_dir = crate::models::SortDir::Asc;
+        app.apply_filter();
+        assert_eq!(app.filtered_packages[0].publisher, "Acme Corp");
+        assert_eq!(app.filtered_packages[1].publisher, "Zeta Inc");
+    }
+
+    #[test]
+    fn search_view_does_not_keep_unavailable_publisher_or_size_sort() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        app.mode = AppMode::Search;
+        app.sort_field = crate::models::SortField::Publisher;
+        app.sort_dir = crate::models::SortDir::Desc;
+
+        app.apply_filter();
+
+        assert_eq!(app.sort_field, crate::models::SortField::None);
+        assert_eq!(app.sort_dir, crate::models::SortDir::Asc);
+    }
+
+    #[test]
+    fn apply_filter_sort_by_size_uses_numeric_values_and_keeps_unknowns_last() {
+        let spy = SpyBackend::new();
+        let mut app = make_app(spy as Arc<dyn WingetBackend>);
+        let mut smaller = make_package("Small", "Small.App", "1.0");
+        smaller.size = "950 MiB".to_string();
+        let mut larger = make_package("Large", "Large.App", "1.0");
+        larger.size = "1.2 GiB".to_string();
+        let unknown = make_package("Unknown", "Unknown.App", "1.0");
+        app.packages = vec![larger, unknown, smaller];
+        app.sort_field = crate::models::SortField::Size;
+        app.sort_dir = crate::models::SortDir::Asc;
+        app.apply_filter();
+        let sizes: Vec<&str> = app
+            .filtered_packages
+            .iter()
+            .map(|p| p.size.as_str())
+            .collect();
+        assert_eq!(sizes, ["950 MiB", "1.2 GiB", ""]);
+
+        app.sort_dir = crate::models::SortDir::Desc;
+        app.apply_filter();
+        let sizes: Vec<&str> = app
+            .filtered_packages
+            .iter()
+            .map(|p| p.size.as_str())
+            .collect();
+        assert_eq!(sizes, ["1.2 GiB", "950 MiB", ""]);
     }
 
     #[test]
@@ -1993,7 +2381,7 @@ mod tests {
         app.write_csv(&mut buf, false).unwrap();
 
         let content = String::from_utf8(buf).unwrap();
-        assert!(content.starts_with("Name,Id,Version,Source\n"));
+        assert!(content.starts_with("Name,Id,Version,Source,Publisher,EstimatedSize\n"));
     }
 
     #[test]
@@ -2007,7 +2395,8 @@ mod tests {
         app.write_csv(&mut buf, true).unwrap();
 
         let content = String::from_utf8(buf).unwrap();
-        assert!(content.starts_with("Name,Id,Version,Source,AvailableVersion\n"));
+        assert!(content
+            .starts_with("Name,Id,Version,Source,Publisher,EstimatedSize,AvailableVersion\n"));
     }
 
     #[test]
@@ -2018,6 +2407,8 @@ mod tests {
             name: "App, \"Pro\"".to_string(),
             id: "App.Pro".to_string(),
             version: "1.0".to_string(),
+            publisher: String::new(),
+            size: String::new(),
             source: "winget".to_string(),
             available_version: String::new(),
             install_scope: Default::default(),
@@ -2127,6 +2518,8 @@ mod tests {
             id: "Microsoft.PowerToys".to_string(),
             name: "PowerToys".to_string(),
             version: "0.96.0".to_string(),
+            publisher: String::new(),
+            size: String::new(),
             source: "winget".to_string(),
             available_version: "0.98.1".to_string(),
             install_scope: Default::default(),
@@ -2214,6 +2607,16 @@ mod tests {
         app.cycle_sort();
         assert_eq!(app.sort_dir, crate::models::SortDir::Desc);
         app.cycle_sort();
+        assert_eq!(app.sort_field, crate::models::SortField::Publisher);
+        assert_eq!(app.sort_dir, crate::models::SortDir::Asc);
+        app.cycle_sort();
+        assert_eq!(app.sort_dir, crate::models::SortDir::Desc);
+        app.cycle_sort();
+        assert_eq!(app.sort_field, crate::models::SortField::Size);
+        assert_eq!(app.sort_dir, crate::models::SortDir::Asc);
+        app.cycle_sort();
+        assert_eq!(app.sort_dir, crate::models::SortDir::Desc);
+        app.cycle_sort();
         assert_eq!(app.sort_field, crate::models::SortField::None);
     }
 
@@ -2287,6 +2690,8 @@ mod tests {
             id: arp_id.to_string(),
             name: "Git".to_string(),
             version: "2.43.0".to_string(),
+            publisher: String::new(),
+            size: String::new(),
             source: String::new(),
             available_version: String::new(),
             install_scope: Default::default(),
@@ -2324,6 +2729,8 @@ mod tests {
             id: msix_id.to_string(),
             name: "Bluesky".to_string(),
             version: "1.0.0.0".to_string(),
+            publisher: String::new(),
+            size: String::new(),
             source: String::new(),
             available_version: String::new(),
             install_scope: Default::default(),
@@ -2358,6 +2765,8 @@ mod tests {
             id: truncated_id.to_string(),
             name: "Sysinternals Suite".to_string(),
             version: "2024.01.01".to_string(),
+            publisher: String::new(),
+            size: String::new(),
             source: "winget".to_string(),
             available_version: String::new(),
             install_scope: Default::default(),
@@ -2400,6 +2809,8 @@ mod tests {
             id: id.to_string(),
             name: "Unlisted App".to_string(),
             version: "3.0".to_string(),
+            publisher: String::new(),
+            size: String::new(),
             source: String::new(),
             available_version: String::new(),
             install_scope: Default::default(),
@@ -2429,6 +2840,8 @@ mod tests {
             id: arp_id.to_string(),
             name: "Some App".to_string(),
             version: "1.0".to_string(),
+            publisher: String::new(),
+            size: String::new(),
             source: String::new(),
             available_version: String::new(),
             install_scope: Default::default(),
@@ -2516,6 +2929,8 @@ mod tests {
             .send(AppMessage::OperationComplete(OpResult {
                 operation: Operation::Uninstall {
                     id: "Pkg.ToRemove".to_string(),
+                    source: None,
+                    scope: crate::models::InstallScope::Unknown,
                 },
                 success: false,
                 message: "Access is denied".to_string(),

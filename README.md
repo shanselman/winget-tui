@@ -13,15 +13,18 @@ A terminal user interface for [Windows Package Manager (winget)](https://github.
 
 - **Search & Discover** — Find packages across all winget sources
 - **Installed Packages** — View everything installed on your system
+- **Batch Uninstall** — Select multiple installed packages and uninstall them together
+- **Per-View State** — Cache each tab's list and restore its cursor, scroll, filters, sort, and multi-selection when switching views
 - **Install Scope** — See User/Machine scope in Installed and Upgrades; upgrades retain a uniquely detected scope
 - **Upgrade Management** — See updates at a glance and batch-upgrade multiple packages
 - **Pin Awareness** — Pin or unpin installed packages and filter pinned items without leaving the TUI
 - **Source Filtering** — Filter by source (winget, msstore, or all)
 - **Real-Time Local Filter** — Narrow Installed and Upgrades lists instantly with `/` or `s`
-- **Sortable Columns** — Sort by Name, ID, or Version (ascending or descending) with `S`
+- **Sortable Columns** — Sort by Name, ID, or Version in Search; Installed and Upgrades also support Publisher and estimated size
 - **Version-Specific Install** — Install a specific version with `I`
 - **CSV Export** — Save the current visible package list to a CSV file with `e`
 - **Package Details** — View publisher, description, license, homepage, and release notes
+- **Publisher and Size Columns** — Sort by publisher or estimated size in Installed and Upgrades; show best effort installed-size estimates where Windows provides them
 - **Graceful Local Package Info** — Non-winget installs still show a useful explanation when rich manifest metadata is unavailable
 - **Scrollable Details Pane** — Read long descriptions without losing your place in the package list
 - **Configurable Themes and Startup Defaults** — Select an accessible color preset and default view in `config.toml`
@@ -32,7 +35,10 @@ A terminal user interface for [Windows Package Manager (winget)](https://github.
 Scope is determined from `winget list --scope user` and `--scope machine`. A
 package found in both scopes is shown as **Both**; unmatched or truncated IDs
 are shown as **Unknown**. Neither case forces a scope when upgrading, so the app
-does not guess. Search results describe available packages, not installed scope.
+does not guess. Uninstall uses an exact package ID and its source when known;
+**Both** is handled as separate machine and user attempts, while **Unknown**
+does not force a scope. Search results describe available packages, not installed
+scope.
 
 ## Prerequisites
 
@@ -118,7 +124,7 @@ winget-tui
 | `↓` / `j` | Move down |
 | `PgUp` / `PgDn` | Jump one page |
 | `Home` / `End` | Jump to first / last |
-| `←` / `→` | Cycle views backward / forward |
+| `←` / `→` | Cycle views backward / forward, restoring each tab's state |
 | `Tab` / `Shift+Tab` | Toggle focus between the package list and detail panel |
 | `/` or `s` | Focus search in Search view, or local filter in Installed/Upgrades |
 | `Enter` | Submit search / show details |
@@ -128,15 +134,16 @@ winget-tui
 | `i` | Install selected package |
 | `I` | Install a specific version of the selected package |
 | `u` | Upgrade selected package |
-| `x` | Uninstall selected package |
+| `x` | Uninstall current package, or selected packages in the Installed view |
 | `p` | Pin / unpin the selected installed package (blocks upgrades) |
 | `P` | Cycle pin filter (All → Pinned only → Hide pinned) |
-| `Space` | Toggle selection for batch upgrade (Upgrades view) |
-| `a` | Select / deselect all packages (Upgrades view) |
+| `Space` | Toggle selection (Installed / Upgrades views) |
+| `a` | Select / deselect all packages (Installed / Upgrades views) |
 | `U` | Upgrade all selected packages (Upgrades view) |
+| `X` | Uninstall all selected packages (Installed view; `x` also works) |
 | `o` | Open package homepage in your browser |
 | `c` | Open release notes / changelog in your browser |
-| `S` | Cycle sort (Name↑ → Name↓ → ID↑ → ID↓ → Version↑ → Version↓ → off) |
+| `S` | Cycle available sorts (Search: Name → ID → Version; Installed / Upgrades also include Publisher and Size) |
 | `?` | Toggle help overlay |
 | `q` / `Esc` | Quit / close dialog |
 | `Ctrl+C` | Quit |
@@ -170,7 +177,7 @@ Example:
 ```toml
 default_view = "upgrades"          # installed | search | upgrades
 default_source = "winget"          # all | winget | msstore
-default_sort = "name"              # name | name_desc | id | id_desc | version | version_desc | none
+default_sort = "name"              # name | name_desc | id | id_desc | version | version_desc | publisher | publisher_desc | size | size_desc | none
 default_pin_filter = "hide_pinned" # all | pinned | hide_pinned
 theme = "retro"                    # original | retro | nord | terminal
 ```
