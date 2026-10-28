@@ -22,6 +22,11 @@ on:
 
 timeout-minutes: 60
 
+engine:
+  id: copilot
+  # Native CLI web-fetch is unavailable; SDK fetch stays behind the AWF proxy.
+  copilot-sdk: true
+
 model: claude-sonnet-5
 
 permissions: read-all
