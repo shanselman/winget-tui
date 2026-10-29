@@ -7,6 +7,17 @@ Versions match the `v<major>.<minor>.<patch>` tags in git.
 
 ---
 
+## [Unreleased]
+
+### Added
+- MIT `LICENSE` file in the repository root (closes #434).
+
+### Fixed
+- Portable release ZIP archives (x64 and arm64) now include the `LICENSE`
+  file alongside the binary.
+
+---
+
 ## [0.14.0] – 2026-09-25
 
 ### Added
