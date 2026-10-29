@@ -255,11 +255,8 @@ fn handle_normal_mode(
             switch_view(app, app.mode.cycle());
         }
 
-        // Tab toggles focus between package list and detail panel
-        KeyCode::Tab => {
-            app.focus = app.focus.toggle();
-        }
-        KeyCode::BackTab => {
+        // Tab / Shift+Tab toggle focus between package list and detail panel
+        KeyCode::Tab | KeyCode::BackTab => {
             app.focus = app.focus.toggle();
         }
 
