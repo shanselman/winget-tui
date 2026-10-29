@@ -511,4 +511,155 @@ mod tests {
         assert_eq!(theme.on_install, Color::Rgb(240, 240, 240));
         assert_eq!(theme.on_danger, Color::Rgb(30, 30, 30));
     }
+
+    #[test]
+    fn root_and_surface_use_expected_fg_and_bg() {
+        let theme = Theme::original();
+        assert_eq!(
+            root(&theme),
+            Style::default().fg(theme.text_primary).bg(theme.background)
+        );
+        assert_eq!(
+            surface(&theme),
+            Style::default().fg(theme.text_primary).bg(theme.surface)
+        );
+    }
+
+    #[test]
+    fn secondary_styles_use_text_secondary_and_dim_only_for_reset() {
+        let original = Theme::original();
+        let secondary_style = secondary(&original);
+        assert_eq!(secondary_style.fg, Some(original.text_secondary));
+        assert_eq!(secondary_style.bg, Some(original.background));
+        assert!(!secondary_style.add_modifier.contains(Modifier::DIM));
+
+        let terminal = Theme::terminal();
+        assert!(secondary(&terminal).add_modifier.contains(Modifier::DIM));
+        assert!(surface_secondary(&terminal)
+            .add_modifier
+            .contains(Modifier::DIM));
+    }
+
+    #[test]
+    fn border_styles_use_accent_colors_on_background() {
+        let theme = Theme::original();
+        assert_eq!(
+            border_focused(&theme),
+            Style::default().fg(theme.accent).bg(theme.background)
+        );
+        assert_eq!(
+            border_unfocused(&theme),
+            Style::default().fg(theme.accent_dim).bg(theme.background)
+        );
+    }
+
+    #[test]
+    fn selected_and_marked_row_styles_are_bold() {
+        let theme = Theme::original();
+        let selected = selected_row(&theme);
+        assert_eq!(selected.fg, Some(theme.on_accent));
+        assert_eq!(selected.bg, Some(theme.accent));
+        assert!(selected.add_modifier.contains(Modifier::BOLD));
+
+        let marked = marked_row(&theme);
+        assert_eq!(marked.fg, Some(theme.success));
+        assert_eq!(marked.bg, Some(theme.background));
+        assert!(marked.add_modifier.contains(Modifier::BOLD));
+    }
+
+    #[test]
+    fn table_header_and_title_styles_are_bold_accent() {
+        let theme = Theme::original();
+        let header = table_header(&theme);
+        assert_eq!(header.fg, Some(theme.accent));
+        assert_eq!(header.bg, Some(theme.background));
+        assert!(header.add_modifier.contains(Modifier::BOLD));
+
+        let title_style = title(&theme);
+        assert_eq!(title_style.fg, Some(theme.text_primary));
+        assert_eq!(title_style.bg, Some(theme.background));
+        assert!(title_style.add_modifier.contains(Modifier::BOLD));
+
+        let label = detail_label(&theme);
+        assert_eq!(label.fg, Some(theme.accent));
+        assert_eq!(label.bg, Some(theme.background));
+        assert!(label.add_modifier.contains(Modifier::BOLD));
+    }
+
+    #[test]
+    fn navbar_styles_reflect_active_and_inactive_state() {
+        let theme = Theme::original();
+        let active = navbar_active(&theme);
+        assert_eq!(active.fg, Some(theme.on_accent));
+        assert_eq!(active.bg, Some(theme.accent));
+        assert!(active.add_modifier.contains(Modifier::BOLD));
+
+        assert_eq!(navbar_inactive(&theme), secondary(&theme));
+    }
+
+    #[test]
+    fn status_styles_use_surface_background_with_semantic_fg() {
+        let theme = Theme::original();
+        assert_eq!(status_normal(&theme), surface(&theme));
+        assert_eq!(
+            status_loading(&theme),
+            Style::default().fg(theme.accent).bg(theme.surface)
+        );
+        assert_eq!(
+            status_error(&theme),
+            Style::default().fg(theme.error).bg(theme.surface)
+        );
+    }
+
+    #[test]
+    fn action_styles_pair_on_colors_with_semantic_backgrounds() {
+        let theme = Theme::original();
+        for (style, fg, bg) in [
+            (action_install(&theme), theme.on_install, theme.install),
+            (action_confirm(&theme), theme.on_success, theme.success),
+            (action_key(&theme), theme.on_accent, theme.accent),
+            (action_danger(&theme), theme.on_danger, theme.danger),
+        ] {
+            assert_eq!(style.fg, Some(fg));
+            assert_eq!(style.bg, Some(bg));
+            assert!(style.add_modifier.contains(Modifier::BOLD));
+        }
+    }
+
+    #[test]
+    fn source_badge_styles_pair_on_colors_with_source_backgrounds() {
+        let theme = Theme::original();
+        let winget = source_winget(&theme);
+        assert_eq!(winget.fg, Some(theme.on_info));
+        assert_eq!(winget.bg, Some(theme.info));
+        assert!(winget.add_modifier.contains(Modifier::BOLD));
+
+        let msstore = source_msstore(&theme);
+        assert_eq!(msstore.fg, Some(theme.on_selection));
+        assert_eq!(msstore.bg, Some(theme.selection));
+        assert!(msstore.add_modifier.contains(Modifier::BOLD));
+    }
+
+    #[test]
+    fn help_styles_use_surface_background() {
+        let theme = Theme::original();
+        let section = help_section(&theme);
+        assert_eq!(section.fg, Some(theme.accent));
+        assert_eq!(section.bg, Some(theme.surface));
+        assert!(section.add_modifier.contains(Modifier::BOLD));
+
+        let key = help_key(&theme);
+        assert_eq!(key.fg, Some(theme.info));
+        assert_eq!(key.bg, Some(theme.surface));
+    }
+
+    #[test]
+    fn logo_lines_renders_three_lines_of_31_columns() {
+        let theme = Theme::original();
+        let lines = logo_lines(&theme);
+        assert_eq!(lines.len(), 3);
+        for line in &lines {
+            assert_eq!(line.spans.len(), 31);
+        }
+    }
 }
