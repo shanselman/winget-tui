@@ -620,7 +620,7 @@ impl App {
         // Determine if this package can be looked up via `winget show --exact`.
         // Truncated IDs, ARP entries, and MSIX sideloads have no manifest so the
         // call would always fail. Show a local detail stub instead.
-        let is_truncated = id.ends_with('…') || id.ends_with("...");
+        let is_truncated = Package::is_truncated_id(id);
         let is_local = id.starts_with("ARP\\") || id.starts_with("MSIX\\");
         let pkg_source_empty = self
             .filtered_packages

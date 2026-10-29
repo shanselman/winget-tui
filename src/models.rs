@@ -213,7 +213,13 @@ impl Package {
     /// must be treated as truncated; using such an ID with `winget show --exact`
     /// or any mutating command will always fail.
     pub fn is_truncated(&self) -> bool {
-        self.id.ends_with('…') || self.id.ends_with("...")
+        Self::is_truncated_id(&self.id)
+    }
+
+    /// Same check as [`Package::is_truncated`], usable without a `Package`
+    /// instance (e.g. when only an id string is available).
+    pub fn is_truncated_id(id: &str) -> bool {
+        id.ends_with('…') || id.ends_with("...")
     }
 }
 
