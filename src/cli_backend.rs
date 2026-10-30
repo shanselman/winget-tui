@@ -2268,6 +2268,39 @@ Google Chrome  Google.Chrome  131.0
         assert!(!super::is_winget_footer_line("20 Minutes Till Dawn"));
     }
 
+    // ── format_size ──────────────────────────────────────────────────────────
+    // `format_size` is only compiled on Windows (used by the registry-based
+    // size-enrichment path in `enrich_publishers`), so these tests are
+    // Windows-only too; see `tests/parse_test.rs` for the other Windows-only
+    // integration tests per AGENTS.md.
+
+    #[cfg(windows)]
+    #[test]
+    fn format_size_uses_kib_below_one_mebibyte() {
+        assert_eq!(super::format_size(0), "0 KiB");
+        assert_eq!(super::format_size(1023), "0 KiB");
+        assert_eq!(super::format_size(2048), "2 KiB");
+        // Just under the 1 MiB boundary still reports KiB.
+        assert_eq!(super::format_size(1024 * 1024 - 1), "1023 KiB");
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn format_size_uses_mib_between_one_mebibyte_and_one_gibibyte() {
+        assert_eq!(super::format_size(1024 * 1024), "1 MiB");
+        assert_eq!(super::format_size(5 * 1024 * 1024), "5 MiB");
+        // Just under the 1 GiB boundary still reports MiB.
+        assert_eq!(super::format_size(1024 * 1024 * 1024 - 1), "1024 MiB");
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn format_size_uses_gib_at_and_above_one_gibibyte() {
+        assert_eq!(super::format_size(1024 * 1024 * 1024), "1.0 GiB");
+        assert_eq!(super::format_size(1024 * 1024 * 1024 * 3 / 2), "1.5 GiB");
+        assert_eq!(super::format_size(10u64 * 1024 * 1024 * 1024), "10.0 GiB");
+    }
+
     // ── detect_columns ───────────────────────────────────────────────────────
 
     #[test]
