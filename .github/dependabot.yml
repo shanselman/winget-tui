@@ -26,6 +26,11 @@ updates:
     open-pull-requests-limit: 5
     commit-message:
       prefix: ci
+    ignore:
+      # The MSRV is an intentional compatibility contract, not a latest-version pin.
+      - dependency-name: dtolnay/rust-toolchain
+      # Upgrade the gh-aw compiler and regenerate its lockfile together.
+      - dependency-name: github/gh-aw-actions/setup
     groups:
       actions-minor-patch:
         patterns:
