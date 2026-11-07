@@ -57,7 +57,7 @@ Supported keys:
 ```toml
 default_view = "installed"    # installed | search | upgrades
 default_source = "all"        # all | winget | msstore
-default_sort = "none"         # name | name_desc | id | id_desc | version | version_desc | none
+default_sort = "none"         # name | name_desc | id | id_desc | version | version_desc | publisher | publisher_desc | size | size_desc | none
 default_pin_filter = "all"    # all | pinned | hide_pinned
 theme = "original"            # original | retro | nord | terminal
 ```
@@ -76,10 +76,12 @@ theme = "original"            # original | retro | nord | terminal
 - `i`: install
 - `I`: install a specific version
 - `u`: upgrade
-- `x`: uninstall
+- `x`: uninstall selected package, or batch uninstall a multi-selection in Installed
+- `X`: batch uninstall in Installed
 - `p`: pin / unpin selected package (block upgrades)
 - `P`: cycle pinned filter (All → Pinned only → Hide pinned)
-- `Space`, `a`, `U`: multi-select and batch upgrade in Upgrades view
+- `Space`, `a`: multi-select in Installed and Upgrades
+- `U`: batch upgrade in Upgrades
 - `o`: open homepage
 - `c`: open changelog / release notes
 - `S`: cycle sorting

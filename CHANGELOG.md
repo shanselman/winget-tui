@@ -7,7 +7,7 @@ Versions match the `v<major>.<minor>.<patch>` tags in git.
 
 ---
 
-## [Unreleased]
+## [0.15.0] – 2026-11-07
 
 ### Added
 - MIT `LICENSE` file in the repository root (closes #434).
@@ -25,10 +25,17 @@ Versions match the `v<major>.<minor>.<patch>` tags in git.
   file alongside the binary.
 - Unnecessary closure borrows removed to satisfy the current Clippy
   toolchain.
+- Configuration documentation now lists publisher and size sorting and
+  shows the actual default sort.
 
 ### Other
 - `theme` configuration key documented in `AGENTS.md`.
 - Updated `tokio` and `actions/setup-node` dependencies.
+- Updated `unicode-width` to 0.2.3.
+- Added regression tests for multibyte and wide-character package fields
+  and Windows size-formatting boundaries.
+- Cached MSRV builds separately from stable-toolchain builds.
+- Grouped compatible Dependabot updates to reduce maintenance noise.
 
 ---
 
