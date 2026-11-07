@@ -91,10 +91,12 @@ jobs:
 
           New-Item -ItemType Directory -Path "artifacts/winget-tui-$version-x64" -Force
           Copy-Item "target/x86_64-pc-windows-msvc/release/winget-tui.exe" -Destination "artifacts/winget-tui-$version-x64/winget-tui.exe"
+          Copy-Item LICENSE -Destination "artifacts/winget-tui-$version-x64/LICENSE"
           Compress-Archive -Path "artifacts/winget-tui-$version-x64" -DestinationPath "artifacts/winget-tui-$version-x64.zip" -Force
 
           New-Item -ItemType Directory -Path "artifacts/winget-tui-$version-arm64" -Force
           Copy-Item "target/aarch64-pc-windows-msvc/release/winget-tui.exe" -Destination "artifacts/winget-tui-$version-arm64/winget-tui.exe"
+          Copy-Item LICENSE -Destination "artifacts/winget-tui-$version-arm64/LICENSE"
           Compress-Archive -Path "artifacts/winget-tui-$version-arm64" -DestinationPath "artifacts/winget-tui-$version-arm64.zip" -Force
 
       - name: Upload artifacts

@@ -42,11 +42,14 @@ winget-tui-<version>-x64.zip
 winget-tui-<version>-arm64.zip
 ```
 
-Each ZIP contains a nested folder and a stable executable name:
+Each ZIP contains a nested folder with a stable executable name and the project
+MIT license:
 
 ```text
 winget-tui-<version>-x64\winget-tui.exe
+winget-tui-<version>-x64\LICENSE
 winget-tui-<version>-arm64\winget-tui.exe
+winget-tui-<version>-arm64\LICENSE
 ```
 
 ## Normal release flow
