@@ -7,6 +7,31 @@ Versions match the `v<major>.<minor>.<patch>` tags in git.
 
 ---
 
+## [Unreleased]
+
+### Added
+- MIT `LICENSE` file in the repository root (closes #434).
+- Install scope (User/Machine) shown in Installed and Upgrades views; a
+  uniquely detected scope is retained on single and batch upgrades.
+- Batch uninstall — select multiple installed packages and uninstall them
+  together.
+- Publisher and estimated-size columns in Installed and Upgrades, with
+  sorting support.
+- Per-view state caching — each tab retains its cursor, scroll position,
+  filters, sort, and multi-selection when switching views.
+
+### Fixed
+- Portable release ZIP archives (x64 and arm64) now include the `LICENSE`
+  file alongside the binary.
+- Unnecessary closure borrows removed to satisfy the current Clippy
+  toolchain.
+
+### Other
+- `theme` configuration key documented in `AGENTS.md`.
+- Updated `tokio` and `actions/setup-node` dependencies.
+
+---
+
 ## [0.14.0] – 2026-09-25
 
 ### Added
