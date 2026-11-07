@@ -1,7 +1,7 @@
 use anyhow::Result;
 use async_trait::async_trait;
 
-use crate::models::{Package, PackageDetail, PackagePin, Source};
+use crate::models::{InstallScope, Package, PackageDetail, PackagePin, Source};
 
 #[async_trait]
 pub trait WingetBackend: Send + Sync {
@@ -20,11 +20,16 @@ pub trait WingetBackend: Send + Sync {
     /// Install a package by id, optionally a specific version
     async fn install(&self, id: &str, version: Option<&str>) -> Result<String>;
 
-    /// Uninstall a package by id
-    async fn uninstall(&self, id: &str) -> Result<String>;
+    /// Uninstall a package by exact id, optionally limited to a source and scope.
+    async fn uninstall(
+        &self,
+        id: &str,
+        source: Option<&str>,
+        scope: InstallScope,
+    ) -> Result<String>;
 
     /// Upgrade a package (prefers id matching; backends may fallback to name)
-    async fn upgrade(&self, id: &str) -> Result<String>;
+    async fn upgrade(&self, id: &str, scope: InstallScope) -> Result<String>;
 
     /// List all configured package pins
     async fn list_pins(&self) -> Result<Vec<PackagePin>>;
