@@ -2106,6 +2106,50 @@ mod tests {
         );
     }
 
+    // ── version_key ──────────────────────────────────────────────────────────
+
+    #[test]
+    fn version_key_splits_on_dot_dash_and_plus() {
+        let key = version_key("1.2-3+4");
+        assert_eq!(key.len(), 4);
+        assert_eq!(key[0].num, Some(1));
+        assert_eq!(key[1].num, Some(2));
+        assert_eq!(key[2].num, Some(3));
+        assert_eq!(key[3].num, Some(4));
+    }
+
+    #[test]
+    fn version_key_empty_string_yields_single_unparsed_part() {
+        // "".split(...) yields one empty segment, not zero segments.
+        let key = version_key("");
+        assert_eq!(key.len(), 1);
+        assert_eq!(key[0].num, None);
+        assert_eq!(key[0].src, "");
+    }
+
+    #[test]
+    fn version_key_non_numeric_segment_keeps_src_and_no_num() {
+        let key = version_key("beta");
+        assert_eq!(key.len(), 1);
+        assert_eq!(key[0].num, None);
+        assert_eq!(key[0].src, "beta");
+    }
+
+    #[test]
+    fn version_key_mixed_numeric_and_text_segments() {
+        let key = version_key("1.0-rc1");
+        assert_eq!(key[0].num, Some(1));
+        assert_eq!(key[1].num, Some(0));
+        // "rc1" doesn't parse as a plain u64, so it falls back to text.
+        assert_eq!(key[2].num, None);
+        assert_eq!(key[2].src, "rc1");
+    }
+
+    #[test]
+    fn version_key_equal_strings_produce_equal_keys() {
+        assert_eq!(version_key("1.2.3"), version_key("1.2.3"));
+    }
+
     #[test]
     fn local_filter_returns_empty_when_no_match() {
         let spy = SpyBackend::new();
