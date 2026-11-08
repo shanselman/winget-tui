@@ -2773,4 +2773,32 @@ mod tests {
             assert_eq!(app.sort_field, SortField::Version);
         }
     }
+
+    // ── list_page_size ───────────────────────────────────────────────────────
+
+    #[test]
+    fn list_page_size_falls_back_to_20_before_first_render() {
+        // layout.package_list defaults to a zero-height rect until the first
+        // draw, so page size must fall back to a sane default rather than 0.
+        let app = make_app();
+        assert_eq!(list_page_size(&app), 20);
+    }
+
+    #[test]
+    fn list_page_size_derives_from_rendered_viewport_height() {
+        let mut app = make_app();
+        // Border top + top padding + header row + border bottom == 4 rows of
+        // chrome; a 14-row rect leaves 10 rows for data.
+        app.layout.package_list = rect(0, 0, 40, 14);
+        assert_eq!(list_page_size(&app), 10);
+    }
+
+    #[test]
+    fn list_page_size_falls_back_to_20_when_viewport_is_too_short_for_chrome() {
+        let mut app = make_app();
+        // Height smaller than the 4 rows of chrome saturates to 0, which
+        // should fall back to the default rather than yielding an empty page.
+        app.layout.package_list = rect(0, 0, 40, 2);
+        assert_eq!(list_page_size(&app), 20);
+    }
 }
