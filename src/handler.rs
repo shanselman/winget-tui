@@ -256,10 +256,7 @@ fn handle_normal_mode(
         }
 
         // Tab toggles focus between package list and detail panel
-        KeyCode::Tab => {
-            app.focus = app.focus.toggle();
-        }
-        KeyCode::BackTab => {
+        KeyCode::Tab | KeyCode::BackTab => {
             app.focus = app.focus.toggle();
         }
 
@@ -442,7 +439,7 @@ fn handle_normal_mode(
         }
 
         // Uninstall
-        KeyCode::Char('x')
+        KeyCode::Char('x' | 'X')
             if app.mode == AppMode::Installed && !app.selected_packages.is_empty() =>
         {
             confirm_batch_uninstall(app);
@@ -542,13 +539,6 @@ fn handle_normal_mode(
                     operation: Operation::BatchUpgrade { packages },
                 });
             }
-        }
-
-        // Batch uninstall shortcut (X; lowercase x also uses a selection)
-        KeyCode::Char('X')
-            if app.mode == AppMode::Installed && !app.selected_packages.is_empty() =>
-        {
-            confirm_batch_uninstall(app);
         }
 
         // Toggle selection (Space)
