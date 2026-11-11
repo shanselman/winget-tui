@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-11-20b (run_id 42542570663)",
-  "last_run_id": "42542570663",
+  "last_run": "2026-11-11 (run_id 42934574794)",
+  "last_run_id": "42934574794",
   "monthly_summary_disabled": true,
   "monthly_summary_note": "2026-06-08: Maintainer closed issue #222 with 'Closing during triage: monthly Repo Assist activity tracker/automation noise, no maintainer action required.' Do NOT create monthly activity summary issues. Still honored as of 2026-10-11 (run 38141242846) - no new maintainer comments requesting re-enable.",
   "comments_made": {
@@ -14,10 +14,40 @@
   },
   "open_repo_assist_prs": [
     {
+      "pr": 486,
+      "title": "[Repo Assist] test: add direct unit tests for size_key parsing",
+      "branch": "repo-assist/test-size-key-unit-coverage-491f91e2ac3ee742",
+      "status": "open draft; mergeable_state unstable; zero check runs (approval-gated); already commented"
+    },
+    {
+      "pr": 487,
+      "title": "[Repo Assist] test: add direct unit tests for version_key and list_page_size",
+      "branch": "repo-assist/test-version-key-and-list-page-size-43f50f252537e036",
+      "status": "open draft; mergeable_state unstable; zero check runs"
+    },
+    {
+      "pr": 488,
+      "title": "[Repo Assist] chore: update Cargo.lock with latest compatible transitive dependencies",
+      "branch": "repo-assist/eng-cargo-update-20261108-525672232fc6388e",
+      "status": "open draft; mergeable_state unstable; zero check runs"
+    },
+    {
+      "pr": 489,
+      "title": "[Repo Assist] refactor: inline format args per clippy::uninlined_format_args",
+      "branch": "repo-assist/improve-uninlined-format-args-9103247c5983d75e",
+      "status": "open draft; mergeable_state unstable; zero check runs"
+    },
+    {
+      "pr": 490,
+      "title": "[Repo Assist] refactor: merge duplicate key-handler match arms and inline redundant closures",
+      "branch": "repo-assist/improve-dedupe-key-arms-and-closures-95b09b27e12bfd09",
+      "status": "open draft; mergeable_state unstable; zero check runs"
+    },
+    {
       "pr": "pending-assignment",
-      "title": "test: add direct unit tests for size_key parsing",
-      "branch": "repo-assist/test-size-key-unit-coverage",
-      "status": "open draft; created 2026-11-20 (run 42373960077); adds 7 unit tests for size_key in app.rs"
+      "title": "refactor: remove redundant Arc clones in two app.rs tests",
+      "branch": "repo-assist/improve-redundant-clones-tests",
+      "status": "NEW this run (42934574794) - created via Task 5 after pedantic/nursery clippy scan found two genuine redundant_clone warnings in src/app.rs test fns not covered by any existing open PR"
     }
   ],
   "closed_repo_assist_prs_not_merged": "2026-11-07: ENTIRE prior backlog (#435-#485 range, ~28 PRs) bulk-closed by a maintainer-delegated 'Copilot triage agent' citing 'requested backlog cleanup'. All prior entries in this field are now obsolete/superseded by that event - do not re-propose their content without re-verifying it isn't already addressed elsewhere in main.",
@@ -31,5 +61,5 @@
   "dependabot_prs_new": "Confirmed PR #481 (gh-aw-actions/setup bump) and #482 (unicode-width bump) still open, mergeable_state=clean, zero comments. Not bundled yet (dependabot.yml caps at 5 open PRs/ecosystem so no urgency; bundling would need Task 4 selection).",
   "task8_conclusion_20261119": "Re-scanned src/app.rs/cli_backend.rs/ui.rs for new clone()/to_lowercase()/to_string() allocation hot spots not already covered. Every genuine perf opportunity found is already proposed in an open unreviewed PR: local-filter case-folding (#436/#467), apply_filter clone-skip (#468), version-comparator allocation (#461/#471), sort-by-Name/Id lowercase (#454), extract_field ASCII fast path (#448, already merged variant). Opening a 29th similar PR into a 28-PR backlog with zero review velocity would not help; concluded no new Task 8 PR this run.",
   "task10_conclusion_20261119": "No new fixable issue found (399/444 msrv-cache + dup, both blocked on protected workflow-file push permission; 450 CONTRIBUTING.md PR already created and sitting in backlog; 460 dependabot-grouping PR already created and sitting in backlog; 423 is an auto-managed Detection Runs tracker, no action). Judged restraint as the correct Task 10 choice again: the highest-value forward progress available is maintainer review of the existing 28-PR backlog (5 of which are now stale/conflicting), not more new PRs. No action taken this run beyond verification.",
-  "notes_latest": "[run 42542570663, tasks 4+8]: Verified live state: 0 open issues, 3 open PRs (#486 size_key tests, #487 version_key/list_page_size tests, #488 Cargo.lock update), all pre-existing Repo Assist drafts, all showing conclusion=action_required on their workflow runs (CI/Build/Repo Assist) - this is the known GitHub Actions approval-gating for bot-triggered runs, NOT a real CI failure (already documented via comment on #486 in a prior run). Task 4: ran `cargo update --dry-run` - the ~44 transitive bumps available exactly match what #488 already proposes, so no new dependency PR. Checked latest GitHub Actions tags via MCP (list_tags) for actions/checkout (v7.0.1 - already latest), actions/cache (v6.1.0 vs pinned v6 - patch-level, already tracks latest major), actions/upload-artifact (v8.0.2 vs pinned v7/v8 depending on workflow - build.yml already uses v8), actions/download-artifact (v8), softprops/action-gh-release (v3.0.4 vs pinned v3 - already latest major), rustsec/audit-check (pinned by SHA, tracks v2.0.0 latest), actions/setup-node (v7.1.0), actions/github-script (v9.0.0), azure/trusted-signing-action (v0.5.x - not used in this repo's workflows). No CI workflow action version is outdated enough to justify a new PR; dependabot's github-actions ecosystem config already handles this automatically. Task 8: re-confirmed via task8_conclusion_20261119 reasoning - all genuine perf opportunities (local-filter case-folding, apply_filter clone-skip, version-comparator allocation, sort-by lowercase) were already proposed in PRs #436/#467/#468/#461/#471/#454, and those PRs have since been CLOSED by the maintainer's own 'Copilot triage agent' as unproven/unmeasured micro-optimizations not worth release risk. Re-reviewed app.rs sort/filter hot paths again - confirmed sort_by_cached_key is already in place, no new allocation hot spots found. Concluded: no new Task 4 or Task 8 action this run; posting noop with full justification. Backlog is healthy (only 3 open PRs, all draft, all pending maintainer review/approval-gate clearance - no action needed from Repo Assist side). Task 11 still skipped per #222 closure (monthly_summary_disabled)."
+  "notes_latest": "[run 42934574794, tasks 6+5]: Re-verified live state: 0 open issues visible via bulk list (1 filtered by integrity policy - issue #491, could not read). 5 pre-existing open Repo Assist PRs (#486-#490), all draft, all mergeable_state=unstable (not dirty - no conflicts), all showing EMPTY check_runs arrays (consistent with the known Actions approval-gating already documented via comment on #486). Zero new comments on any of the 5. Task 6: no action needed - no CI failures to fix, no conflicts to resolve, no infra-only failure needing a fresh comment (already covered). Task 5: ran a fresh  scan (153 warnings, mostly already covered by open PR #489/#490 content or judged too design-intent-risky per past runs - e.g. InstallScope::default() style, usize/u16 truncation casts, unused self, too-many-lines). Found TWO genuine  warnings in src/app.rs test helpers (load_detail_proceeds_for_normal_id line 1401, load_detail_local_stub_is_cached line 2837) - confirmed via manual read that  is never reused after the clone in either function body (unlike ~9 other  call sites in the same file where spy IS reused afterward for assertions - correctly left untouched). This is a new, non-duplicate, low-risk, purely mechanical fix not covered by any of #486-#490. Created branch repo-assist/improve-redundant-clones-tests, removed the two .clone() calls, verified: cargo build clean, cargo test --all-targets 424/424 passed (unchanged), cargo clippy -D warnings clean, cargo fmt --check clean. Opened new draft PR via create_pull_request tool (success). Did NOT attempt issue #491 (filtered by integrity policy, could not read content - noted for a future run to re-try individual issue_read if accessible). Task 11 (Monthly Activity Summary) continues to be skipped per standing maintainer directive (monthly_summary_disabled=true, #222 closure from 2026-06-08); no reversal comment found this run."
 }
