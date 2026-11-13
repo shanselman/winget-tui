@@ -80,14 +80,14 @@ fn handle_help_input(app: &mut App, key: KeyCode) {
 
 fn handle_confirm(app: &mut App, key: KeyCode) -> anyhow::Result<bool> {
     match key {
-        KeyCode::Char('y') | KeyCode::Char('Y') => {
+        KeyCode::Char('y' | 'Y') => {
             if let Some(confirm) = app.confirm.take() {
                 app.set_status(format!("{}...", confirm.operation));
                 app.loading = true;
                 app.execute_operation(confirm.operation);
             }
         }
-        KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Esc => {
+        KeyCode::Char('n' | 'N') | KeyCode::Esc => {
             app.confirm = None;
             app.set_status("Cancelled");
         }
@@ -329,7 +329,7 @@ fn handle_normal_mode(
         }
 
         // Search in Search view, local filter in Installed/Upgrades
-        KeyCode::Char('/') | KeyCode::Char('s') => {
+        KeyCode::Char('/' | 's') => {
             if app.mode == AppMode::Search {
                 app.input_mode = InputMode::Search;
             } else {
