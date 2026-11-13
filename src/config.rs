@@ -16,7 +16,7 @@ use crate::app::AppMode;
 use crate::models::{PinFilter, SortDir, SortField, SourceFilter};
 use crate::theme::ThemeName;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Config {
     pub theme: ThemeName,
     pub default_view: AppMode,
