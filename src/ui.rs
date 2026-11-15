@@ -1292,7 +1292,8 @@ mod tests {
     use super::*;
     use crate::backend::WingetBackend;
     use crate::models::{
-        Operation, Package, PackageDetail, PackagePin, SortDir, SortField, Source, SourceFilter,
+        Operation, Package, PackageDetail, PackagePin, PinState, SortDir, SortField, Source,
+        SourceFilter,
     };
     use crate::theme::Theme;
 
@@ -1487,7 +1488,7 @@ mod tests {
                     available_version: "2.0".to_string(),
                     source: "winget".to_string(),
                     install_scope: crate::models::InstallScope::Unknown,
-                    pin_state: Default::default(),
+                    pin_state: PinState::default(),
                 }];
                 app.filtered_packages = app.packages.clone();
             });
@@ -1509,7 +1510,7 @@ mod tests {
                     available_version: "2.0".to_string(),
                     source: "winget".to_string(),
                     install_scope: crate::models::InstallScope::Machine,
-                    pin_state: Default::default(),
+                    pin_state: PinState::default(),
                 }];
                 app.filtered_packages = app.packages.clone();
             });
