@@ -1004,7 +1004,7 @@ mod tests {
 
     use super::*;
     use crate::backend::WingetBackend;
-    use crate::models::{Package, PackageDetail, PackagePin, PinState, Source};
+    use crate::models::{InstallScope, Package, PackageDetail, PackagePin, PinState, Source};
 
     /// Minimal backend that records `show` calls
     struct SpyBackend {
@@ -1098,7 +1098,7 @@ mod tests {
             size: String::new(),
             source: "winget".to_string(),
             available_version: String::new(),
-            install_scope: Default::default(),
+            install_scope: InstallScope::default(),
             pin_state: PinState::None,
         }
     }
@@ -1442,7 +1442,7 @@ mod tests {
                 size: String::new(),
                 source: "winget".to_string(),
                 available_version: String::new(),
-                install_scope: Default::default(),
+                install_scope: InstallScope::default(),
                 pin_state: PinState::None,
             })
             .collect()
@@ -1623,7 +1623,7 @@ mod tests {
             size: String::new(),
             source: "winget".to_string(),
             available_version: String::new(),
-            install_scope: Default::default(),
+            install_scope: InstallScope::default(),
             pin_state: PinState::None,
         }
     }
@@ -1714,7 +1714,7 @@ mod tests {
             size: String::new(),
             source: String::new(),
             available_version: String::new(),
-            install_scope: Default::default(),
+            install_scope: InstallScope::default(),
             pin_state: PinState::None,
         }];
 
@@ -2411,7 +2411,7 @@ mod tests {
             size: String::new(),
             source: "winget".to_string(),
             available_version: String::new(),
-            install_scope: Default::default(),
+            install_scope: InstallScope::default(),
             pin_state: PinState::None,
         }];
 
@@ -2522,7 +2522,7 @@ mod tests {
             size: String::new(),
             source: "winget".to_string(),
             available_version: "0.98.1".to_string(),
-            install_scope: Default::default(),
+            install_scope: InstallScope::default(),
             pin_state: PinState::None,
         }];
         // winget show returns the latest manifest version 0.98.1
@@ -2694,7 +2694,7 @@ mod tests {
             size: String::new(),
             source: String::new(),
             available_version: String::new(),
-            install_scope: Default::default(),
+            install_scope: InstallScope::default(),
             pin_state: PinState::None,
         }];
 
@@ -2733,7 +2733,7 @@ mod tests {
             size: String::new(),
             source: String::new(),
             available_version: String::new(),
-            install_scope: Default::default(),
+            install_scope: InstallScope::default(),
             pin_state: PinState::None,
         }];
 
@@ -2769,7 +2769,7 @@ mod tests {
             size: String::new(),
             source: "winget".to_string(),
             available_version: String::new(),
-            install_scope: Default::default(),
+            install_scope: InstallScope::default(),
             pin_state: PinState::None,
         }];
 
@@ -2813,7 +2813,7 @@ mod tests {
             size: String::new(),
             source: String::new(),
             available_version: String::new(),
-            install_scope: Default::default(),
+            install_scope: InstallScope::default(),
             pin_state: PinState::None,
         }];
 
@@ -2844,7 +2844,7 @@ mod tests {
             size: String::new(),
             source: String::new(),
             available_version: String::new(),
-            install_scope: Default::default(),
+            install_scope: InstallScope::default(),
             pin_state: PinState::None,
         }];
 
