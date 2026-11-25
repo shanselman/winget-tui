@@ -67,7 +67,7 @@ theme = "original"            # original | retro | nord | terminal
 - `↑` / `k`, `↓` / `j`: move selection up / down
 - `PgUp` / `PgDn`: jump one page
 - `Home` / `End`: jump to first / last
-- `Left` / `Right`: switch views
+- `Left` / `h`, `Right` / `l`: switch views
 - `Tab` / `Shift+Tab`: toggle focus between list and details
 - `/` or `s`: focus search (Search view) or local filter (Installed/Upgrades)
 - `f`: cycle source filter
