@@ -124,7 +124,7 @@ winget-tui
 | `↓` / `j` | Move down |
 | `PgUp` / `PgDn` | Jump one page |
 | `Home` / `End` | Jump to first / last |
-| `←` / `→` | Cycle views backward / forward, restoring each tab's state |
+| `←` / `h`, `→` / `l` | Cycle views backward / forward, restoring each tab's state |
 | `Tab` / `Shift+Tab` | Toggle focus between the package list and detail panel |
 | `/` or `s` | Focus search in Search view, or local filter in Installed/Upgrades |
 | `Enter` | Submit search / show details |

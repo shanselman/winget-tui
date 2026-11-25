@@ -1025,7 +1025,7 @@ fn draw_help_overlay(f: &mut Frame, app: &mut App, palette: &theme::Theme) {
             Span::raw("Jump to first / last"),
         ]),
         Line::from(vec![
-            Span::styled("  lt/rt       ", key),
+            Span::styled("  lt/h  rt/l  ", key),
             Span::raw("Switch view (Search / Installed / Upgrades)"),
         ]),
         Line::from(vec![

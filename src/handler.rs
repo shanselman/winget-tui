@@ -247,11 +247,11 @@ fn handle_normal_mode(
             app.show_help = !app.show_help;
         }
 
-        // Left/Right switch views (Search/Installed/Upgrades)
-        KeyCode::Left => {
+        // Left/Right and h/l switch views (Search/Installed/Upgrades)
+        KeyCode::Left | KeyCode::Char('h') => {
             switch_view(app, app.mode.cycle_back());
         }
-        KeyCode::Right => {
+        KeyCode::Right | KeyCode::Char('l') => {
             switch_view(app, app.mode.cycle());
         }
 
@@ -2135,6 +2135,49 @@ mod tests {
         app.mode = AppMode::Installed;
         let _ = handle_normal_mode(&mut app, KeyCode::Left, KeyModifiers::NONE);
         assert_eq!(app.mode, AppMode::Search);
+    }
+
+    #[test]
+    fn h_and_l_cycle_views_including_wraparound() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        for (start, key, expected) in [
+            (AppMode::Search, 'h', AppMode::Upgrades),
+            (AppMode::Installed, 'h', AppMode::Search),
+            (AppMode::Upgrades, 'h', AppMode::Installed),
+            (AppMode::Search, 'l', AppMode::Installed),
+            (AppMode::Installed, 'l', AppMode::Upgrades),
+            (AppMode::Upgrades, 'l', AppMode::Search),
+        ] {
+            let mut app = make_app();
+            app.mode = start;
+            app.focus = FocusZone::DetailPanel;
+            let generation = app.detail_generation;
+            handle_normal_mode(&mut app, KeyCode::Char(key), KeyModifiers::NONE).unwrap();
+            assert_eq!(app.mode, expected, "{key} from {start:?}");
+            assert_eq!(app.focus, FocusZone::PackageList);
+            assert!(app.detail_generation > generation);
+        }
+    }
+
+    #[test]
+    fn h_and_l_remain_text_in_input_modes() {
+        let rt = test_runtime();
+        let _guard = rt.enter();
+        let mut app = make_app();
+        let mode = app.mode;
+        for key in ['h', 'l'] {
+            app.input_mode = InputMode::Search;
+            handle_search_input(&mut app, KeyCode::Char(key)).unwrap();
+            app.input_mode = InputMode::LocalFilter;
+            handle_local_filter_input(&mut app, KeyCode::Char(key)).unwrap();
+            app.input_mode = InputMode::VersionInput;
+            handle_version_input(&mut app, KeyCode::Char(key)).unwrap();
+        }
+        assert_eq!(app.mode, mode);
+        assert_eq!(app.search_query, "hl");
+        assert_eq!(app.local_filter, "hl");
+        assert_eq!(app.version_input, "hl");
     }
 
     #[test]
