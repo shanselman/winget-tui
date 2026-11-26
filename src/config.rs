@@ -45,9 +45,8 @@ impl Config {
     /// missing or malformed file is silently ignored.
     pub fn load() -> Self {
         let path = Self::config_path();
-        let text = match path.and_then(|p| std::fs::read_to_string(p).ok()) {
-            Some(t) => t,
-            None => return Self::default(),
+        let Some(text) = path.and_then(|p| std::fs::read_to_string(p).ok()) else {
+            return Self::default();
         };
         Self::parse(&text)
     }
