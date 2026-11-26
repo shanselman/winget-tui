@@ -22,7 +22,7 @@ pub struct LayoutRegions {
     pub detail_panel: Rect,
     /// Y offset where the first data row starts in the package list (after header + border)
     pub list_content_y: u16,
-    /// Tab click regions: (start_x, end_x, mode)
+    /// Tab click regions: (`start_x`, `end_x`, mode)
     pub tab_regions: Vec<(u16, u16, AppMode)>,
 }
 
@@ -151,7 +151,7 @@ pub struct App {
     pub status_message: String,
     pub loading: bool,
     pub confirm: Option<ConfirmDialog>,
-    /// Version string being edited in the VersionInput prompt
+    /// Version string being edited in the `VersionInput` prompt
     pub version_input: String,
     pub show_help: bool,
     /// Scroll offset for the help overlay (in rendered lines)
@@ -180,7 +180,7 @@ pub struct App {
     pub detail_cache: HashMap<String, PackageDetail>,
     view_cache: HashMap<AppMode, CachedView>,
     has_loaded_view: bool,
-    /// Indices into filtered_packages that are selected for batch operations
+    /// Indices into `filtered_packages` that are selected for batch operations
     pub selected_packages: HashSet<usize>,
     /// A high-signal status message to restore after the next list refresh completes.
     pub post_refresh_status: Option<String>,
@@ -1274,7 +1274,7 @@ mod tests {
         assert!(app.status_message.contains("partial failure"));
     }
 
-    /// Simulate receiving a PackagesLoaded message synchronously (bypasses tokio channel).
+    /// Simulate receiving a `PackagesLoaded` message synchronously (bypasses tokio channel).
     fn deliver_packages(app: &mut App, packages: Vec<Package>) {
         let gen = app.view_generation;
         app.message_tx
