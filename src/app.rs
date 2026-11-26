@@ -2052,6 +2052,43 @@ mod tests {
         assert_eq!(packages[0].pin_state, PinState::None);
     }
 
+    // ── size_key ──────────────────────────────────────────────────────────────
+
+    #[test]
+    fn size_key_parses_kib() {
+        assert_eq!(size_key("512 KiB"), 512 * 1024);
+    }
+
+    #[test]
+    fn size_key_parses_mib() {
+        assert_eq!(size_key("1.5 MiB"), (1.5 * 1024.0 * 1024.0) as u64);
+    }
+
+    #[test]
+    fn size_key_parses_gib() {
+        assert_eq!(size_key("2 GiB"), 2 * 1024 * 1024 * 1024);
+    }
+
+    #[test]
+    fn size_key_empty_string_returns_zero() {
+        assert_eq!(size_key(""), 0);
+    }
+
+    #[test]
+    fn size_key_missing_unit_separator_returns_zero() {
+        assert_eq!(size_key("1024"), 0);
+    }
+
+    #[test]
+    fn size_key_unknown_unit_returns_zero() {
+        assert_eq!(size_key("5 TiB"), 0);
+    }
+
+    #[test]
+    fn size_key_non_numeric_amount_returns_zero() {
+        assert_eq!(size_key("abc MiB"), 0);
+    }
+
     // ── compare_versions ─────────────────────────────────────────────────────
 
     #[test]
