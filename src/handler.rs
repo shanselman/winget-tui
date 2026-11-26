@@ -1104,7 +1104,7 @@ mod tests {
             size: String::new(),
             source: "winget".to_string(),
             available_version: available.to_string(),
-            install_scope: Default::default(),
+            install_scope: InstallScope::default(),
             pin_state: PinState::None,
         }];
         app.filtered_packages = app.packages.clone();
@@ -1123,7 +1123,7 @@ mod tests {
                 size: String::new(),
                 source: "winget".to_string(),
                 available_version: String::new(),
-                install_scope: Default::default(),
+                install_scope: InstallScope::default(),
                 pin_state: PinState::None,
             })
             .collect();
@@ -1348,7 +1348,7 @@ mod tests {
                 size: String::new(),
                 source: "winget".to_string(),
                 available_version: String::new(),
-                install_scope: Default::default(),
+                install_scope: InstallScope::default(),
                 pin_state: PinState::None,
             },
             Package {
@@ -1359,7 +1359,7 @@ mod tests {
                 size: String::new(),
                 source: "winget".to_string(),
                 available_version: String::new(),
-                install_scope: Default::default(),
+                install_scope: InstallScope::default(),
                 pin_state: PinState::None,
             },
         ];
@@ -1701,7 +1701,7 @@ mod tests {
                 size: String::new(),
                 source: "winget".to_string(),
                 available_version: "1.1".to_string(),
-                install_scope: Default::default(),
+                install_scope: InstallScope::default(),
                 pin_state: PinState::None,
             },
         ];
@@ -1734,7 +1734,7 @@ mod tests {
             size: String::new(),
             source: "winget".to_string(),
             available_version: "1.1".to_string(),
-            install_scope: Default::default(),
+            install_scope: InstallScope::default(),
             pin_state: PinState::None,
         }];
         app.filtered_packages = app.packages.clone();
