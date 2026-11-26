@@ -215,6 +215,29 @@ impl PartialOrd for VersionPart {
     }
 }
 
+/// Case-insensitive substring search that avoids allocating a lowercased copy
+/// of `haystack` when both strings are plain ASCII (the common case for
+/// package names and IDs). Falls back to a `to_lowercase()`-based comparison
+/// when either string contains non-ASCII characters, preserving correct
+/// Unicode case folding.
+fn contains_ignore_case(haystack: &str, needle_lower: &str) -> bool {
+    if haystack.is_ascii() && needle_lower.is_ascii() {
+        let needle_len = needle_lower.len();
+        if needle_len == 0 {
+            return true;
+        }
+        let hay = haystack.as_bytes();
+        let needle = needle_lower.as_bytes();
+        if needle_len > hay.len() {
+            return false;
+        }
+        hay.windows(needle_len)
+            .any(|w| w.eq_ignore_ascii_case(needle))
+    } else {
+        haystack.to_lowercase().contains(needle_lower)
+    }
+}
+
 fn version_key(v: &str) -> Vec<VersionPart> {
     v.split(['.', '-', '+'])
         .map(|part| VersionPart {
@@ -324,7 +347,7 @@ impl App {
         if self.mode != AppMode::Search && !self.local_filter.is_empty() {
             let query = self.local_filter.to_lowercase();
             self.filtered_packages.retain(|pkg| {
-                pkg.name.to_lowercase().contains(&query) || pkg.id.to_lowercase().contains(&query)
+                contains_ignore_case(&pkg.name, &query) || contains_ignore_case(&pkg.id, &query)
             });
         }
         if self.mode != AppMode::Search {
@@ -3033,5 +3056,33 @@ mod tests {
             !app.process_messages(),
             "should return false on second call when channel is now empty"
         );
+    }
+
+    #[test]
+    fn contains_ignore_case_matches_ascii_case_insensitively() {
+        assert!(contains_ignore_case("Visual Studio Code", "studio"));
+        assert!(contains_ignore_case("Visual Studio Code", "VISUAL"));
+        assert!(contains_ignore_case(
+            "Microsoft.VisualStudioCode",
+            "visualstudio"
+        ));
+        assert!(!contains_ignore_case("Visual Studio Code", "atom"));
+    }
+
+    #[test]
+    fn contains_ignore_case_handles_edge_cases() {
+        assert!(contains_ignore_case("anything", ""));
+        assert!(!contains_ignore_case("", "needle"));
+        assert!(!contains_ignore_case("short", "longer than haystack"));
+        assert!(contains_ignore_case("exact", "EXACT"));
+    }
+
+    #[test]
+    fn contains_ignore_case_falls_back_for_non_ascii() {
+        // `needle_lower` is expected pre-lowercased by the caller (as `apply_filter`
+        // does); the haystack may still contain mixed-case non-ASCII characters.
+        assert!(contains_ignore_case("Café Müller", "müller"));
+        assert!(contains_ignore_case("Café Müller", "café"));
+        assert!(!contains_ignore_case("Café Müller", "espresso"));
     }
 }
