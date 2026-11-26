@@ -189,39 +189,55 @@ pub struct App {
     pub message_rx: tokio::sync::mpsc::UnboundedReceiver<AppMessage>,
 }
 
+/// Compare two strings case-insensitively for sorting (e.g. package Name, Id,
+/// Publisher), without allocating a lowercased copy for the common ASCII case.
+///
+/// Used with `sort_by` instead of `sort_by_cached_key(|p| s.to_lowercase())`:
+/// compares bytes in place via `eq_ignore_ascii_case`/`to_ascii_lowercase` on
+/// individual bytes, falling back to an allocating `to_lowercase().cmp(...)`
+/// comparison only when either string contains non-ASCII bytes (ASCII
+/// byte-folding alone doesn't correctly case-fold Unicode).
+fn cmp_ignore_case(a: &str, b: &str) -> std::cmp::Ordering {
+    if a.is_ascii() && b.is_ascii() {
+        a.bytes()
+            .map(|c| c.to_ascii_lowercase())
+            .cmp(b.bytes().map(|c| c.to_ascii_lowercase()))
+    } else {
+        a.to_lowercase().cmp(&b.to_lowercase())
+    }
+}
+
 /// Compare two package version strings numerically, component by component.
 ///
 /// Version strings are split on `.`, `-`, and `+`. Each component is compared
 /// numerically when both sides parse as `u64`; otherwise lexicographically.
 /// This avoids the lexicographic pitfall where `"10.0"` sorts before `"2.0"`.
-#[derive(Debug, Clone, Eq, PartialEq)]
-struct VersionPart {
-    num: Option<u64>,
-    src: String,
-}
-
-impl Ord for VersionPart {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        match (self.num, other.num) {
-            (Some(left), Some(right)) => left.cmp(&right),
-            _ => self.src.cmp(&other.src),
+///
+/// Implemented as a direct comparator over borrowed `&str` slices (used with
+/// `sort_by` rather than `sort_by_cached_key`) so no `Vec`/`String` allocation
+/// is needed per component: `split()` is walked lazily and components are
+/// compared in place, only parsing each side as `u64` when needed.
+fn compare_versions(a: &str, b: &str) -> std::cmp::Ordering {
+    let mut a_parts = a.split(['.', '-', '+']);
+    let mut b_parts = b.split(['.', '-', '+']);
+    loop {
+        match (a_parts.next(), b_parts.next()) {
+            (Some(left), Some(right)) => {
+                let ord = match (left.parse::<u64>().ok(), right.parse::<u64>().ok()) {
+                    (Some(l), Some(r)) => l.cmp(&r),
+                    _ => left.cmp(right),
+                };
+                if ord != std::cmp::Ordering::Equal {
+                    return ord;
+                }
+            }
+            // Shorter component list sorts first when the shared prefix is equal,
+            // e.g. "1.2" < "1.2.0".
+            (None, Some(_)) => return std::cmp::Ordering::Less,
+            (Some(_), None) => return std::cmp::Ordering::Greater,
+            (None, None) => return std::cmp::Ordering::Equal,
         }
     }
-}
-
-impl PartialOrd for VersionPart {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-fn version_key(v: &str) -> Vec<VersionPart> {
-    v.split(['.', '-', '+'])
-        .map(|part| VersionPart {
-            num: part.parse::<u64>().ok(),
-            src: part.to_string(),
-        })
-        .collect()
 }
 
 fn size_key(size: &str) -> u64 {
@@ -238,11 +254,6 @@ fn size_key(size: &str) -> u64 {
         _ => return 0,
     };
     (amount * multiplier) as u64
-}
-
-#[cfg(test)]
-fn compare_versions(a: &str, b: &str) -> std::cmp::Ordering {
-    version_key(a).cmp(&version_key(b))
 }
 
 impl App {
@@ -332,35 +343,36 @@ impl App {
                 .retain(|pkg| self.pin_filter.matches(&pkg.pin_state));
         }
         // Apply sort if a field is selected.
-        // sort_by_cached_key computes the key exactly once per element (O(N))
-        // rather than on every comparison (O(N log N)), avoiding repeated heap
-        // allocations from to_lowercase() for Name and Id sorts.
+        // Name/Id/Publisher/Version use a direct comparator (sort_by, stable)
+        // instead of sort_by_cached_key, avoiding a per-row heap allocation
+        // (to_lowercase()/String key) on every keystroke in a local filter,
+        // pin toggle, or source switch for the common ASCII case.
         match self.sort_field {
             SortField::None => {}
             SortField::Name => {
                 self.filtered_packages
-                    .sort_by_cached_key(|p| p.name.to_lowercase());
+                    .sort_by(|a, b| cmp_ignore_case(&a.name, &b.name));
                 if self.sort_dir == SortDir::Desc {
                     self.filtered_packages.reverse();
                 }
             }
             SortField::Id => {
                 self.filtered_packages
-                    .sort_by_cached_key(|p| p.id.to_lowercase());
+                    .sort_by(|a, b| cmp_ignore_case(&a.id, &b.id));
                 if self.sort_dir == SortDir::Desc {
                     self.filtered_packages.reverse();
                 }
             }
             SortField::Version => {
                 self.filtered_packages
-                    .sort_by_cached_key(|pkg| version_key(&pkg.version));
+                    .sort_by(|a, b| compare_versions(&a.version, &b.version));
                 if self.sort_dir == SortDir::Desc {
                     self.filtered_packages.reverse();
                 }
             }
             SortField::Publisher => {
                 self.filtered_packages
-                    .sort_by_cached_key(|p| p.publisher.to_lowercase());
+                    .sort_by(|a, b| cmp_ignore_case(&a.publisher, &b.publisher));
                 if self.sort_dir == SortDir::Desc {
                     self.filtered_packages.reverse();
                 }
@@ -2098,10 +2110,44 @@ mod tests {
 
     #[test]
     fn compare_versions_build_metadata_separator() {
-        // Build metadata delimited by '+' — version_key splits on '+' as well.
+        // Build metadata delimited by '+' is split the same way as '.'/'-'.
         // "1.0+20240101" => [1, 0, 20240101]; "1.0+20230101" => [1, 0, 20230101]
         assert_eq!(
             compare_versions("1.0+20240101", "1.0+20230101"),
+            std::cmp::Ordering::Greater
+        );
+    }
+
+    #[test]
+    fn compare_versions_shorter_prefix_sorts_first() {
+        // Equal shared prefix, but "1.2" has fewer components than "1.2.0".
+        assert_eq!(compare_versions("1.2", "1.2.0"), std::cmp::Ordering::Less);
+        assert_eq!(
+            compare_versions("1.2.0", "1.2"),
+            std::cmp::Ordering::Greater
+        );
+    }
+
+    // ── cmp_ignore_case ──────────────────────────────────────────────────────
+
+    #[test]
+    fn cmp_ignore_case_ascii_is_case_insensitive() {
+        assert_eq!(cmp_ignore_case("abc", "ABC"), std::cmp::Ordering::Equal);
+        assert_eq!(cmp_ignore_case("Apple", "banana"), std::cmp::Ordering::Less);
+        assert_eq!(
+            cmp_ignore_case("Zebra", "apple"),
+            std::cmp::Ordering::Greater
+        );
+    }
+
+    #[test]
+    fn cmp_ignore_case_unicode_falls_back_correctly() {
+        // Non-ASCII input uses the to_lowercase() fallback path; verify it still
+        // case-folds correctly (e.g. German sharp S / Turkish dotted I aside,
+        // simple accented letters should fold as expected).
+        assert_eq!(cmp_ignore_case("É", "é"), std::cmp::Ordering::Equal);
+        assert_eq!(
+            cmp_ignore_case("Äpfel", "Apfel"),
             std::cmp::Ordering::Greater
         );
     }
