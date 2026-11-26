@@ -110,9 +110,9 @@ fn handle_version_input(app: &mut App, key: KeyCode) -> anyhow::Result<bool> {
             if let Some(pkg) = app.selected_package() {
                 let id = pkg.id.clone();
                 let (msg, ver) = if version.is_empty() {
-                    (format!("Install {}?", id), None)
+                    (format!("Install {id}?"), None)
                 } else {
-                    (format!("Install {} v{}?", id, version), Some(version))
+                    (format!("Install {id} v{version}?"), Some(version))
                 };
                 app.confirm = Some(ConfirmDialog {
                     message: msg,
@@ -390,7 +390,7 @@ fn handle_normal_mode(
                 } else {
                     let id = pkg.id.clone();
                     app.confirm = Some(ConfirmDialog {
-                        message: format!("Install {}?", id),
+                        message: format!("Install {id}?"),
                         operation: Operation::Install { id, version: None },
                     });
                 }
@@ -409,10 +409,10 @@ fn handle_normal_mode(
                 } else {
                     let id = pkg.id.clone();
                     let (message, operation) = if pkg.pin_state.is_pinned() {
-                        (format!("Remove pin for {}?", id), Operation::Unpin { id })
+                        (format!("Remove pin for {id}?"), Operation::Unpin { id })
                     } else {
                         (
-                            format!("Pin {} and block upgrades until unpinned?", id),
+                            format!("Pin {id} and block upgrades until unpinned?"),
                             Operation::Pin { id },
                         )
                     };
@@ -984,7 +984,7 @@ fn open_detail_url(
         }
     };
     if open_url(&url) {
-        app.set_status(format!("{opening_prefix}{}…", url));
+        app.set_status(format!("{opening_prefix}{url}…"));
     } else {
         app.set_status("Blocked: URL must start with http:// or https://");
     }
